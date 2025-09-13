@@ -131,20 +131,27 @@
   .line-chip{ font-weight:700 }
   .sub{ margin-top:8px; color:var(--muted); font-size:14px }
 
-  /* ===== Glas-Badge: Losgeh-Zeit (oben links) ===== */
+  /* ===== Glas-Badge: Losgeh-Zeit (oben links, dezent) ===== */
   .leave-badge{
     display:inline-flex; align-items:center; gap:8px;
-    padding:8px 12px; border-radius:999px;
-    border:1px solid var(--rule); box-shadow:var(--shadow);
+    padding:6px 10px; border-radius:999px;
+    border:1px solid var(--rule);
+    box-shadow:0 0.5px 0 rgba(0,0,0,.04), 0 6px 18px rgba(0,0,0,.04);
     backdrop-filter:saturate(140%) blur(8px); -webkit-backdrop-filter:saturate(140%) blur(8px);
-    background:rgba(255,255,255,.55);
-    color:var(--text);
+    background:rgba(255,255,255,.58);
+    color:var(--muted);
     margin-bottom:10px;
   }
-  [data-theme="dark"] .leave-badge{ background:rgba(13,18,25,.45); }
-  .leave-badge .label{ font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:.4px; color:var(--muted) }
-  .leave-badge .leave-time{ font-size:18px; font-weight:900; font-variant-numeric:tabular-nums }
-  .leave-badge i{ opacity:.9 }
+  .leave-badge i{ opacity:.85; font-size:14px }
+  .leave-badge .leave-time{ font-size:16px; font-weight:800; font-variant-numeric:tabular-nums }
+
+  /* bessere Sichtbarkeit im Dark-Mode */
+  [data-theme="dark"] .leave-badge{
+    background:rgba(255,255,255,.10);
+    border-color:rgba(255,255,255,.20);
+    box-shadow:0 0 0 1px rgba(255,255,255,.06) inset;
+    color:var(--muted);
+  }
 
   /* Timeline */
   .timeline{
@@ -438,7 +445,6 @@ function renderJourneysInto(containerId, list, aToB){
     el.innerHTML=`
       <div class="leave-badge" title="Zeit zum Loslaufen">
         <i class="fa-solid fa-person-walking" aria-hidden="true"></i>
-        <span class="label">Losgehen</span>
         <span class="leave-time">${fmtHM(leaveTime)}</span>
       </div>
 
