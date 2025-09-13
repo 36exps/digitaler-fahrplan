@@ -49,17 +49,21 @@
   }
 
   html,body{height:100%}
+  html, body { overflow-x:hidden; }
+  *{ box-sizing:border-box }
   body{
     margin:0; background:var(--bg); color:var(--text);
     font-family:var(--font); -webkit-font-smoothing:antialiased;
     padding-top:env(safe-area-inset-top);
   }
 
-  /* ===== Tabs + Theme-Schalter ===== */
+  /* ===== Topbar (Tabs/Hamburger + Theme) ===== */
   .tabs{
-    position:sticky; top:0; z-index:40;
+    position:sticky; top:0; z-index:50;
     display:flex; align-items:center; gap:10px;
     padding:10px 14px; background:var(--bar); border-bottom:1px solid var(--rule);
+    padding-left: calc(14px + env(safe-area-inset-left));
+    padding-right: calc(14px + env(safe-area-inset-right));
   }
   .tabs .left{display:flex; gap:8px; flex-wrap:wrap}
   .tab{
@@ -75,7 +79,35 @@
   }
   .theme-btn i{font-size:18px}
 
-  .wrap{padding:16px; max-width:1920px; margin:0 auto}
+  /* Hamburger (nur kleine Screens) */
+  .hamburger{
+    display:none; border:1px solid var(--rule); background:var(--panel); color:var(--text);
+    border-radius:12px; padding:10px 12px; cursor:pointer;
+  }
+  @media (max-width:980px){
+    #tabsInline{ display:none }
+    .hamburger{ display:inline-flex; align-items:center; gap:8px }
+  }
+
+  /* Drawer */
+  .drawer[hidden]{ display:none !important; }
+  .drawer-backdrop{
+    position:fixed; inset:0; background:rgba(0,0,0,.3); backdrop-filter:saturate(130%) blur(2px);
+  }
+  .drawer-panel{
+    position:fixed; inset:0 auto 0 0; width:min(86vw, 340px);
+    background:var(--panel); border-right:1px solid var(--rule);
+    padding:16px; padding-top:calc(16px + env(safe-area-inset-top));
+    box-shadow:var(--shadow); display:flex; flex-direction:column; gap:10px;
+  }
+  .drawer-panel .tab{ display:block; width:100%; text-align:left }
+
+  .wrap{
+    padding:16px clamp(12px, 4vw, 16px);
+    padding-left: calc(clamp(12px, 4vw, 16px) + env(safe-area-inset-left));
+    padding-right: calc(clamp(12px, 4vw, 16px) + env(safe-area-inset-right));
+    max-width:1920px; margin:0 auto
+  }
 
   /* ===== Route-Karten ===== */
   .cards{ display:grid; gap:14px; grid-template-columns:1fr }
@@ -85,15 +117,16 @@
 
   .card{
     background:var(--panel); border:1px solid var(--rule); border-radius:var(--radius);
-    padding:16px; box-shadow:var(--shadow);
+    padding:16px; box-shadow:var(--shadow); min-width:0;
   }
-  .card .row{ display:flex; align-items:center; gap:12px; flex-wrap:wrap }
+  .card .row{ display:flex; align-items:center; gap:12px; flex-wrap:wrap; min-width:0 }
   .time{ font-variant-numeric:tabular-nums; font-weight:700; font-size:20px }
   .sep{ color:var(--muted) }
   .chip{
     display:inline-flex; gap:8px; align-items:center;
     background:var(--panel-2); border:1px solid var(--rule);
     border-radius:10px; padding:6px 10px; font-weight:600; font-size:14px; color:var(--text);
+    white-space:nowrap;
   }
   .line-chip{ font-weight:700 }
   .sub{ margin-top:8px; color:var(--muted); font-size:14px }
@@ -104,17 +137,24 @@
     display:grid; grid-template-columns:22px 1fr auto; gap:8px 12px;
   }
   .tl-ico{ text-align:center; color:var(--muted) }
-  .tl-stop{ font-weight:600 }
-  .tl-meta{ color:var(--muted); font-variant-numeric:tabular-nums; white-space:nowrap }
+  .tl-stop{ font-weight:600; min-width:0; overflow-wrap:anywhere }
+  .tl-meta{ color:var(--muted); font-variant-numeric:tabular-nums }
   .actual{ font-weight:700 }
   .planned{ font-size:12px; opacity:.75; margin-left:6px }
   .late .actual{ color:var(--bad) }
   .early .actual{ color:var(--ok) }
 
+  @media (max-width:420px){
+    .timeline{ grid-template-columns:18px 1fr; }
+    .timeline > div:last-child{ grid-column:1 / -1 }
+    .tl-meta{ white-space:normal; font-size:13px }
+    .chip{ font-size:13px; padding:5px 8px }
+  }
+
   /* ===== Tabellen ===== */
   .panel-table{
     background:var(--panel); border:1px solid var(--rule); border-radius:var(--radius);
-    box-shadow:var(--shadow); overflow:hidden; padding:0; margin:0;
+    box-shadow:var(--shadow); overflow:hidden; padding:0; margin:0; width:100%;
   }
   .table-head{
     margin:0;
@@ -122,20 +162,24 @@
     display:grid; grid-template-columns:140px 140px 220px 1fr 120px 100px;
     padding:12px 16px; font-weight:700; color:var(--muted);
   }
-  @media (max-width:740px){
-    .table-head{ grid-template-columns:140px 1fr 120px 100px; }
-    .col-plan, .col-steig { display:none }
-  }
   .rows{ margin:0 }
   .row-item{
-    display:grid; grid-template-columns:140px 140px 220px 1fr 120px 100px;
+    display:grid; grid-template-columns:140px 140px 220px 1fr 120px 100px; align-items:center;
     padding:14px 16px; border-bottom:1px solid var(--rule); background:var(--panel);
-  }
-  @media (max-width:740px){
-    .row-item{ grid-template-columns:140px 1fr 120px 100px; }
+    min-width:0;
   }
   .delta{ font-variant-numeric:tabular-nums; font-weight:700 }
   .delta.late{ color:var(--bad) } .delta.early{ color:var(--ok) } .delta.ontime{ color:var(--muted) }
+
+  @media (max-width:900px){
+    .table-head, .row-item{ grid-template-columns:120px 1fr 80px 64px; }
+    .col-plan, .col-steig { display:none }
+    .row-item, .table-head { padding:12px 14px }
+  }
+  @media (max-width:420px){
+    .table-head, .row-item{ grid-template-columns:100px 1fr 70px 54px; }
+    .row-item, .table-head { padding:10px 12px }
+  }
 
   .footer{
     margin:16px; padding:10px 14px; color:var(--muted); font-size:13px;
@@ -143,29 +187,50 @@
   }
   .footer-space{ height:64px }
 
-  .more-wrap{ padding:10px 0 0; display:flex; justify-content:center }
+  .more-wrap{ padding:10px 0 0; display:flex; justify-content:center; gap:8px; flex-wrap:wrap }
   .btn{
     border:1px solid var(--rule); background:var(--panel); border-radius:10px; padding:10px 14px; font-weight:700; cursor:pointer;
   }
   .btn:disabled{ opacity:.6; cursor:not-allowed }
   .hint{padding:12px 14px; color:var(--muted)}
+  .badge{ font-size:12px; opacity:.8; }
 </style>
 </head>
 <body>
 
-  <!-- Tabs + Theme -->
+  <!-- Topbar -->
   <div class="tabs">
-    <div class="left">
+    <button id="menuBtn" class="hamburger" aria-label="Menü öffnen" aria-expanded="false">
+      <i class="fa-solid fa-bars"></i> Menü
+    </button>
+
+    <!-- Inline-Tabs (nur Desktop/Tablet) -->
+    <div id="tabsInline" class="left" role="tablist" aria-label="Navigation">
       <a href="#route-a" class="tab active">Gießen → Frankfurt(Main) Hbf</a>
       <a href="#route-b" class="tab">Frankfurt(Main) Hbf → Gießen</a>
       <a href="#abfahrten" class="tab">Abfahrten (stadt­einwärts)</a>
       <a href="#homebound" class="tab">Abfahrten (heimwärts)</a>
     </div>
+
     <div class="spacer"></div>
+
+    <!-- Theme -->
     <button id="themeBtn" class="theme-btn" aria-label="Theme umschalten">
       <i class="fa-solid fa-sun" id="sunIcon"></i>
       <i class="fa-solid fa-moon" id="moonIcon" style="display:none"></i>
     </button>
+  </div>
+
+  <!-- Drawer für kleine Screens -->
+  <div id="drawer" class="drawer" hidden>
+    <div id="drawerBackdrop" class="drawer-backdrop" role="button" aria-label="Menü schließen"></div>
+    <nav class="drawer-panel" aria-label="Menü">
+      <a href="#route-a" class="tab" data-drawer-link>Gießen → Frankfurt(Main) Hbf</a>
+      <a href="#route-b" class="tab" data-drawer-link>Frankfurt(Main) Hbf → Gießen</a>
+      <a href="#abfahrten" class="tab" data-drawer-link>Abfahrten (stadt­einwärts)</a>
+      <a href="#homebound" class="tab" data-drawer-link>Abfahrten (heimwärts)</a>
+      <button id="drawerClose" class="btn" style="margin-top:8px"><i class="fa-solid fa-xmark"></i> Schließen</button>
+    </nav>
   </div>
 
   <div class="wrap">
@@ -173,7 +238,10 @@
     <!-- ROUTEN -->
     <div id="view-route" hidden>
       <div id="cards" class="cards"><div class="card">Lade Verbindungen …</div></div>
-      <div class="more-wrap"><button id="moreBtn" class="btn">Weitere Verbindungen</button></div>
+      <div class="more-wrap">
+        <button id="moreBtn" class="btn">Weitere Verbindungen (+60 min)</button>
+        <span id="moreInfo" class="badge"></span>
+      </div>
       <div id="noJourneys" class="hint" style="display:none">Für das gewählte Zeitfenster sind keine Verbindungen verfügbar.</div>
     </div>
 
@@ -220,15 +288,35 @@ const EXCLUDE_DIRECTIONS=[/rödgen/i,/coleman\s*str/i];
 
 let ids={school:null,ffm:null,friedr:null,giessenBhf:null};
 let activeTab='route-a', timer=null, lastUpdated=null;
-let moreLong=false;         // bleibt aktiv bis Tabwechsel/Reload
-let inflight=null;          // AbortController
+
+/* Routen-„Mehr“-Logik: jedes Klicken +60min */
+let routeLongMode=false;    // false = zeige feste Kartenanzahl, true = Zeitfensteranzeige
+let routeWindowMin=60;      // aktuelles Zeitfenster in Minuten (wächst in 60er-Schritten)
 
 /* ========= Theme ========= */
 const mediaDark=window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)');
 const sunIcon=document.getElementById('sunIcon'), moonIcon=document.getElementById('moonIcon'), themeBtn=document.getElementById('themeBtn');
-function applyTheme(m){document.documentElement.setAttribute('data-theme',m); if(m==='dark'){sunIcon.style.display='none';moonIcon.style.display='inline-block'} else {moonIcon.style.display='none';sunIcon.style.display='inline-block'}}
-applyTheme(mediaDark?.matches?'dark':'light'); mediaDark?.addEventListener?.('change',e=>applyTheme(e.matches?'dark':'light'));
+function applyTheme(m){
+  document.documentElement.setAttribute('data-theme',m);
+  if(m==='dark'){sunIcon.style.display='none';moonIcon.style.display='inline-block'}
+  else {moonIcon.style.display='none';sunIcon.style.display='inline-block'}
+}
+applyTheme(mediaDark?.matches?'dark':'light');
+mediaDark?.addEventListener?.('change',e=>applyTheme(e.matches?'dark':'light'));
 themeBtn.addEventListener('click',()=>applyTheme((document.documentElement.getAttribute('data-theme')==='light')?'dark':'light'));
+
+/* ========= Drawer ========= */
+const drawer=document.getElementById('drawer');
+const menuBtn=document.getElementById('menuBtn');
+const drawerBackdrop=document.getElementById('drawerBackdrop');
+const drawerClose=document.getElementById('drawerClose');
+function openDrawer(){ drawer.hidden=false; menuBtn.setAttribute('aria-expanded','true'); }
+function closeDrawer(){ drawer.hidden=true; menuBtn.setAttribute('aria-expanded','false'); }
+menuBtn.addEventListener('click', ()=> (drawer.hidden?openDrawer():closeDrawer()));
+drawerBackdrop.addEventListener('click', closeDrawer);
+drawerClose.addEventListener('click', closeDrawer);
+drawer.addEventListener('keydown', e=>{ if(e.key==='Escape') closeDrawer(); });
+drawer.querySelectorAll('[data-drawer-link]').forEach(a=>a.addEventListener('click', ()=>{ closeDrawer(); setTimeout(()=>handleHash(), 0); }));
 
 /* ========= Helpers ========= */
 const fmtHM = d => new Date(d).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
@@ -243,8 +331,9 @@ function setFooter(ms){
   document.getElementById('lastUpdated').textContent='Zuletzt: '+(lastUpdated?fmtHMS(lastUpdated):'—');
 }
 async function fetchJSON(url){
-  inflight?.abort?.(); inflight=new AbortController();
-  const r=await fetch(url,{signal:inflight.signal}); if(!r.ok) throw new Error(`${url} → ${r.status}`);
+  // Wichtig: KEIN globales Abort mehr (verursachte "The operation was aborted" bei Parallel-Requests)
+  const r=await fetch(url);
+  if(!r.ok) throw new Error(`${url} → ${r.status}`);
   lastUpdated=Date.now(); setFooter((activeTab==='abfahrten'||activeTab==='homebound')?REFRESH_DEPS_MS:REFRESH_ROUTE_MS);
   return r.json();
 }
@@ -265,7 +354,6 @@ function prettyStop(n){return n==='Gießen'?'Gießen Bahnhof':n}
 /* ========= Timeline (geplante Zeit nur wenn abweichend) ========= */
 function buildTimeline(legs){
   if(!legs?.length) return '';
-
   function plannedIfDiff(actual, planned){
     if(!actual || !planned) return '';
     const a=new Date(actual), p=new Date(planned);
@@ -393,6 +481,10 @@ function gridCols(){
   if(w>=1000) return 2;
   return 1;
 }
+function desiredCardsForCols(cols){
+  // Vorgabe: 1 Spalte 4, 2 Spalten 6, 3 Spalten 6, 4 Spalten 8
+  return cols===1?4:(cols===2?6:(cols===3?6:8));
+}
 
 function filterByTimeWindow(journeys, minutes){
   const now=Date.now(), limit=now+minutes*60000;
@@ -404,20 +496,34 @@ function filterByTimeWindow(journeys, minutes){
   });
 }
 
-async function loadRoute(aToB=true, extra=false){
+async function loadRoute(aToB=true){
   try{
     await ensureIds();
     const from=aToB?ids.school:ids.ffm, to=aToB?ids.ffm:ids.school;
     const cols=gridCols();
-    const minShort = (cols>=4)?8:6;                         // Mindestanzahl Karten
-    const windowMin = extra ? 120 : 60;                    // Zeitfenster
-    const results = 40;                                    // ausreichend groß
+    const desired=desiredCardsForCols(cols);
+    const results = 80; // großzügig
     const data=await fetchJSON(`${API}/journeys?from=${from}&to=${to}&results=${results}&stopovers=true&language=de`);
-    let journeys = filterByTimeWindow(data.journeys||[], windowMin);
-    const short = journeys.slice(0, minShort);
-    const hasAny = journeys.length>0;
-    document.getElementById('noJourneys').style.display = hasAny ? 'none' : 'block';
-    renderJourneysInto('cards', {journeys: extra ? journeys : (short.length?short:journeys)}, aToB);
+    const all=(data.journeys||[]).filter(j=>{
+      const t=j.departure || j.legs?.[0]?.departure || j.legs?.[0]?.plannedDeparture;
+      return t && new Date(t).getTime()>=Date.now();
+    });
+
+    let visible=[];
+    if(!routeLongMode){
+      // Feste Kartenanzahl – NICHT aufs 60-Min Fenster begrenzen
+      visible = all.slice(0, desired);
+      document.getElementById('noJourneys').style.display = visible.length? 'none':'block';
+      document.getElementById('moreInfo').textContent = '';
+    }else{
+      // Zeitfensteranzeige – wächst pro Klick um +60 min
+      const within=filterByTimeWindow(all, routeWindowMin);
+      visible = within.length ? within : [];
+      document.getElementById('noJourneys').style.display = within.length? 'none':'block';
+      document.getElementById('moreInfo').textContent = within.length ? `Zeitraum: jetzt bis +${routeWindowMin} min, Treffer: ${within.length}` : `Keine Verbindungen bis +${routeWindowMin} min.`;
+    }
+
+    renderJourneysInto('cards', {journeys: visible}, aToB);
   }catch(e){
     document.getElementById('cards').innerHTML=`<div class="card">Fehler: ${e.message}</div>`;
   }
@@ -432,7 +538,7 @@ async function loadInbound(){
   }catch(e){ document.getElementById('rows').innerHTML=`<div class="hint" style="color:var(--bad)">${e.message}</div>`; }
 }
 
-/* Heimwärts jetzt über Departures je Ursprung + Richtung Sophie-Scholl-Schule */
+/* Heimwärts: Fix für parallele Requests (kein Abort mehr in fetchJSON) */
 async function loadHomebound(){
   try{
     await ensureIds();
@@ -470,12 +576,18 @@ async function loadHomebound(){
     if(unique.length===0){
       document.getElementById('rows-home').innerHTML=`<div class="hint">Keine passenden Abfahrten in den nächsten 120 Minuten.</div>`;
     }
-  }catch(e){ document.getElementById('rows-home').innerHTML=`<div class="hint" style="color:var(--bad)">${e.message}</div>`; }
+  }catch(e){
+    document.getElementById('rows-home').innerHTML=`<div class="hint" style="color:var(--bad)">${e.message}</div>`;
+  }
 }
 
 /* ========= Tabs / Refresh ========= */
 function setTabs(tab){
-  activeTab=tab; moreLong=false; // Tabwechsel -> Kurzliste
+  activeTab=tab;
+  // Routen-Mehr zurücksetzen beim Tabwechsel
+  routeLongMode=false;
+  routeWindowMin=60;
+
   document.querySelectorAll('.tab').forEach(a=>{
     const act=a.getAttribute('href')==='#'+tab; a.classList.toggle('active',act); a.setAttribute('aria-selected',String(act));
   });
@@ -485,33 +597,45 @@ function setTabs(tab){
 }
 function startRefresh(){
   if(timer) clearInterval(timer);
-  if(activeTab==='abfahrten'){ setFooter(REFRESH_DEPS_MS); loadInbound();  timer=setInterval(loadInbound,REFRESH_DEPS_MS); }
-  else if(activeTab==='homebound'){ setFooter(REFRESH_DEPS_MS); loadHomebound(); timer=setInterval(loadHomebound,REFRESH_DEPS_MS); }
-  else { const aToB=(activeTab==='route-a'); setFooter(REFRESH_ROUTE_MS); loadRoute(aToB, moreLong); timer=setInterval(()=>loadRoute(aToB, moreLong), REFRESH_ROUTE_MS); }
-}
-function handleHash(){ const h=(location.hash||'#route-a').replace('#',''); const ok=['route-a','route-b','abfahrten','homebound']; setTabs(ok.includes(h)?h:'route-a'); startRefresh(); }
-window.addEventListener('hashchange',handleHash);
-document.querySelectorAll('.tab').forEach(a=>a.addEventListener('click',e=>{e.preventDefault(); history.replaceState(null,'',a.getAttribute('href')); handleHash();}));
-
-/* ========= Weitere Verbindungen (stabil + Timer-Neustart) ========= */
-const moreBtn=document.getElementById('moreBtn');
-async function forceLong(){
-  if(!(activeTab==='route-a'||activeTab==='route-b')) return;
-  moreLong=true;
-  const aToB=(activeTab==='route-a');
-  if(timer) clearInterval(timer);                 // Refresh kurz anhalten
-  const prev=moreBtn.innerHTML; moreBtn.disabled=true; moreBtn.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i> Lädt…';
-  try{ await loadRoute(aToB, true); } finally {
-    moreBtn.disabled=false; moreBtn.innerHTML=prev;
-    // Refresh wieder starten; Lang bleibt aktiv
-    timer=setInterval(()=>loadRoute(aToB, true), REFRESH_ROUTE_MS);
+  if(activeTab==='abfahrten'){
+    setFooter(REFRESH_DEPS_MS); loadInbound();  timer=setInterval(loadInbound,REFRESH_DEPS_MS);
+  } else if(activeTab==='homebound'){
+    setFooter(REFRESH_DEPS_MS); loadHomebound(); timer=setInterval(loadHomebound,REFRESH_DEPS_MS);
+  } else {
+    const aToB=(activeTab==='route-a');
+    setFooter(REFRESH_ROUTE_MS); loadRoute(aToB); timer=setInterval(()=>loadRoute(aToB), REFRESH_ROUTE_MS);
   }
 }
-moreBtn.addEventListener('click', forceLong);
+function handleHash(){
+  const h=(location.hash||'#route-a').replace('#','');
+  const ok=['route-a','route-b','abfahrten','homebound'];
+  setTabs(ok.includes(h)?h:'route-a'); startRefresh();
+}
+window.addEventListener('hashchange',handleHash);
+document.querySelectorAll('#tabsInline .tab').forEach(a=>a.addEventListener('click',e=>{e.preventDefault(); history.replaceState(null,'',a.getAttribute('href')); handleHash();}));
+
+/* ========= Weitere Verbindungen: +60min pro Klick ========= */
+const moreBtn=document.getElementById('moreBtn');
+const moreInfo=document.getElementById('moreInfo');
+moreBtn.addEventListener('click', async ()=>{
+  if(!(activeTab==='route-a'||activeTab==='route-b')) return;
+  routeLongMode=true;
+  routeWindowMin += 60; // +60min pro Klick
+  const aToB=(activeTab==='route-a');
+  if(timer) clearInterval(timer);
+  const prev=moreBtn.innerHTML; moreBtn.disabled=true; moreBtn.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i> Lädt…';
+  try{ await loadRoute(aToB); } finally {
+    moreBtn.disabled=false; moreBtn.innerHTML=prev;
+    timer=setInterval(()=>loadRoute(aToB), REFRESH_ROUTE_MS);
+  }
+});
 
 /* ========= Init & Resize ========= */
 (function init(){ handleHash(); })();
-window.addEventListener('resize', ()=>{ if(activeTab==='route-a'||activeTab==='route-b') loadRoute(activeTab==='route-a', moreLong); });
+window.addEventListener('resize', ()=>{
+  // Reflow: Kartenanzahl passt sich beim Resize an
+  if(activeTab==='route-a'||activeTab==='route-b') loadRoute(activeTab==='route-a');
+});
 </script>
 </body>
 </html>
