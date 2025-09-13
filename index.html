@@ -401,7 +401,24 @@ function buildTimeline(legs){
   }
   nodes[nodes.length-1].type='end';
 
-  return nodes.map(n=>{
+  // → NEU: Dedupe/Komprimierung gleicher, direkt aufeinanderfolgender Stationen (z.B. durch Walk-Legs)
+  const merged=[];
+  for(const n of nodes){
+    const last=merged[merged.length-1];
+    if(last && last.name===n.name){
+      last.arr   = last.arr   || n.arr;
+      last.parr  = last.parr  || n.parr;
+      last.dep   = last.dep   || n.dep;
+      last.pdep  = last.pdep  || n.pdep;
+      last.product = last.product || n.product;
+      if(n.type==='end') last.type='end';
+    } else {
+      merged.push({...n});
+    }
+  }
+  const use=merged;
+
+  return use.map(n=>{
     let right='';
     if(n.type==='start'){
       const c=cls(n.dep,n.pdep);
