@@ -40,7 +40,7 @@
   .wrap{ padding:12px 16px 18px; max-width:1920px; margin:0 auto; }
   .panel{ background:var(--panel); border:1px solid var(--rule); border-radius:14px; overflow:hidden; box-shadow:var(--shadow); }
 
-  /* Journey cards */
+  /* Journey cards – immer EINSPALTIG */
   .cards{ display:grid; grid-template-columns:1fr; }
   .card{ padding:18px; border-top:1px solid var(--rule); }
   .card:first-child{ border-top:none; }
@@ -63,8 +63,6 @@
   .late{ color:#e74c3c !important; font-weight:800; }
   .early{ color:#27ae60 !important; font-weight:800; }
 
-  @media (min-width:1100px){ .cards{ grid-template-columns:1fr 1fr; } .card{ min-height:92px; } }
-
   /* Departures table */
   table{ width:100%; border-collapse:collapse; }
   thead th{ text-align:left; background:var(--panel); position:sticky; top:0; z-index:5; padding:14px 16px; color:var(--muted); border-bottom:1px solid var(--rule); }
@@ -80,7 +78,7 @@
   footer{ padding:10px 16px; color:var(--muted); font-size:13px; display:flex; gap:12px; align-items:center;}
   footer .dot{ opacity:.5 }
 
-  /* ===== Responsive for iPhone ===== */
+  /* Responsive iPhone */
   @media (max-width: 740px){
     .hdr{ padding:12px 14px; }
     .brand{ font-size:18px; }
@@ -187,7 +185,7 @@ let activeTab = 'route-a';
 let timer = null;
 let lastUpdated = null;
 
-/* Einmaliger „More“-Status – wird beim Refresh/Tabwechsel zurückgesetzt */
+/* Lang/Kurz – bleibt lang bei Auto-Refresh, wird bei Reload/Tabwechsel zurückgesetzt */
 let moreShownOnce = false;
 
 /* ========= Theme (Auto + Override) ========= */
@@ -454,24 +452,17 @@ async function ensureIds(){
   if(!ids.giessenBhf)  ids.giessenBhf  = await findStopId(Q_GIESSEN, /(gie(s|ß)en).*(bahnhof|hbf)/i);
 }
 
-/* Routen (mit „Weitere Verbindungen“) */
+/* Routen (Kurz/Lang, Lang bleibt bei Auto-Refresh bestehen) */
 async function loadRoute(aToB=true, extra=false){
   try{
     await ensureIds();
     const from = aToB ? ids.school : ids.ffm;
     const to   = aToB ? ids.ffm    : ids.school;
-
-    // Basis 8; erweitert ~24 (≈ +60min je nach Takt)
-    const results = extra ? 24 : 8;
+    const results = extra ? 24 : 8; // Lang ≈ +60 min
     const url = `${API}/journeys?from=${from}&to=${to}&results=${results}&stopovers=true&language=de`;
     const data = await fetchJSON(url);
-
-    if(extra){
-      renderJourneysInto('cards', data, aToB);
-    }else{
-      const lite = { journeys: (data.journeys||[]).slice(0,8) };
-      renderJourneysInto('cards', lite, aToB);
-    }
+    if(extra){ renderJourneysInto('cards', data, aToB); }
+    else { renderJourneysInto('cards', {journeys:(data.journeys||[]).slice(0,8)}, aToB); }
   }catch(e){ document.getElementById('cards').innerHTML = `<div class="card err">${e.message}</div>`; }
 }
 
@@ -487,9 +478,7 @@ async function loadInbound(){
   }catch(e){ const el=document.getElementById('depErr'); el.hidden=false; el.textContent=e.message; }
 }
 
-/* Heimwärts: NUR
-   - Linie 17 ab Gießen Bahnhof → Schule
-   - Linie 1  ab Friedrichstraße → Schule */
+/* Heimwärts: NUR Linie 17 (Bhf → Schule) und Linie 1 (Friedrichstraße → Schule) */
 async function loadHomebound(){
   try{
     await ensureIds();
@@ -504,12 +493,10 @@ async function loadHomebound(){
       const journeys = data?.journeys || [];
       for(const j of journeys){
         const legs = j.legs || [];
-        // erste Linien-Etappe
         const firstLineLeg = legs.find(l => l.line && (l.departure || l.plannedDeparture));
         if(!firstLineLeg) continue;
         const lineName = firstLineLeg.line?.name || '';
-        if(!requiredLineRegex.test(lineName)) continue; // Filter strikt
-
+        if(!requiredLineRegex.test(lineName)) continue;
         rows.push({
           line:{name:lineName, product:firstLineLeg.line?.product},
           when:firstLineLeg.departure || firstLineLeg.plannedDeparture,
@@ -521,13 +508,10 @@ async function loadHomebound(){
       }
     }
 
-    // Linie 17 ab Hbf
-    pushRowsFromJourneys(j17, /\b(17|Bus\s*17)\b/i);
-    // Linie 1 ab Friedrichstraße
-    pushRowsFromJourneys(j1, /\b(1|Bus\s*1)\b/i);
+    pushRowsFromJourneys(j17, /\b(17|Bus\s*17)\b/i); // ab Bhf
+    pushRowsFromJourneys(j1,  /\b(1|Bus\s*1)\b/i);   // ab Friedrichstraße
 
     rows.sort((a,b)=> new Date(a.when||a.plannedWhen) - new Date(b.when||b.plannedWhen));
-    // Duplikate vermeiden
     const out=[], seen=new Set();
     for(const r of rows){
       const k=(r.line?.name||'')+'|'+(r.when||r.plannedWhen);
@@ -542,7 +526,7 @@ async function loadHomebound(){
 /* ========= Tabs & Intervals ========= */
 function setTabs(tab){
   activeTab = tab;
-  moreShownOnce = false; // Reset bei Tabwechsel
+  moreShownOnce = false; // bei Tabwechsel immer zurück auf Kurzliste
 
   for(const a of document.querySelectorAll('.tab')){
     const act = a.getAttribute('href') === '#'+tab;
@@ -560,8 +544,9 @@ function startRefresh(){
   else {
     const aToB = activeTab==='route-a';
     setFooter(REFRESH_ROUTE_MS);
-    loadRoute(aToB, /*extra*/ false); // immer Kurzliste
-    timer=setInterval(()=>{ moreShownOnce=false; loadRoute(aToB,false); }, REFRESH_ROUTE_MS);
+    /* wichtig: respektiere aktuellen Status (kurz/lang) */
+    loadRoute(aToB, /*extra*/ moreShownOnce);
+    timer=setInterval(()=>loadRoute(aToB, /*extra*/ moreShownOnce), REFRESH_ROUTE_MS);
   }
 }
 function handleHash(){
@@ -574,18 +559,17 @@ for(const a of document.querySelectorAll('.tab')){
   a.addEventListener('click', (e)=>{ e.preventDefault(); history.replaceState(null,'',a.getAttribute('href')); handleHash(); });
 }
 
-/* „Weitere Verbindungen“ – einmalig bis zum nächsten Auto-Refresh */
+/* „Weitere Verbindungen“ – bleibt bei Auto-Refresh lang */
 const moreBtn = document.getElementById('moreBtn');
 moreBtn.addEventListener('click', async ()=>{
   if(!(activeTab==='route-a' || activeTab==='route-b')) return;
-  if(moreShownOnce) return;
   const aToB = activeTab==='route-a';
   const prevLabel = moreBtn.innerHTML;
   moreBtn.disabled = true;
   moreBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Lädt…';
   try{
-    await loadRoute(aToB, /*extra*/ true);
-    moreShownOnce = true;
+    moreShownOnce = true;                  // Status aktivieren
+    await loadRoute(aToB, /*extra*/ true); // lange Liste laden
   }finally{
     moreBtn.disabled = false;
     moreBtn.innerHTML = prevLabel;
