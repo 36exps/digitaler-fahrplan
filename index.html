@@ -10,7 +10,7 @@
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="alternate icon" type="image/png" sizes="512x512" href="apple-touch-icon.png">
 
-<!-- Font Awesome Free (ohne Anmeldung) -->
+<!-- Font Awesome Free -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.2/css/all.min.css">
 
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -69,8 +69,8 @@
   tbody td{ padding:14px 16px; border-bottom:1px solid var(--rule); vertical-align:middle; }
   .line{ font-weight:500; } /* nicht fett */
   .delta{ font-variant-numeric:tabular-nums; font-weight:800; }
-  .delta.late{ color:#d22; }     /* rot */
-  .delta.early{ color:#0a8a3f; } /* grün */
+  .delta.late{ color:#e74c3c; }   /* alizarin */
+  .delta.early{ color:#27ae60; }  /* nephritis */
   .delta.ontime{ color:var(--muted);} /* grau */
   .err{ color:#b40000; padding:14px 16px; }
 
@@ -211,37 +211,51 @@ document.getElementById('themeBtn').addEventListener('click', ()=>{
 });
 setTheme(localStorage.getItem('fahrplan-theme') || 'light');
 
-/* ========= Linienfarben: dauerhaft gleich =========
-   1) Erst versuchen wir ein FESTES Mapping (manuell gepflegt).
-   2) Für unbekannte Linien verwenden wir eine deterministische Hash-Farbe,
-      die auf dem Linienstring basiert (immer gleich über Sessions).
+/* ========= Linienfarben aus Flat UI „defo“ =========
+   Palette (kräftige Töne): https://flatuicolors.com/palette/defo
+   Wir verwenden v.a. die satten Farben (keine sehr hellen Grautöne).
 */
+const FLAT_DEFO = [
+  '#1abc9c', /* Turquoise */
+  '#16a085', /* Green Sea */
+  '#2ecc71', /* Emerald */
+  '#27ae60', /* Nephritis */
+  '#3498db', /* Peter River */
+  '#2980b9', /* Belize Hole */
+  '#9b59b6', /* Amethyst */
+  '#8e44ad', /* Wisteria */
+  '#f1c40f', /* Sun Flower */
+  '#f39c12', /* Orange */
+  '#e67e22', /* Carrot */
+  '#d35400', /* Pumpkin */
+  '#e74c3c', /* Alizarin */
+  '#c0392b', /* Pomegranate */
+  '#34495e', /* Wet Asphalt */
+  '#2c3e50'  /* Midnight Blue */
+];
+
+/* feste Farben für bekannte Linien (immer gleich) – aus der Palette gewählt */
 const FIXED_COLORS = {
-  'Bus 1':  '#1d6cff',   // kräftiges Blau
-  '1':      '#1d6cff',
-  'Bus 17': '#f08a24',   // warmes Orange
-  '17':     '#f08a24',
-  'RB40':   '#2e8b57',
-  'RB41':   '#3b82f6',
-  'RE30':   '#8b5cf6',
-  'S6':     '#16a34a',
-  'ICE':    '#111827',
-  'IC':     '#374151'
+  'Bus 1':'#3498db',   // Peter River
+  '1':'#3498db',
+  'Bus 17':'#e67e22',  // Carrot
+  '17':'#e67e22',
+  'RB40':'#9b59b6',    // Amethyst
+  'RB41':'#1abc9c',    // Turquoise
+  'RE30':'#f1c40f',    // Sun Flower
+  'S6':'#2ecc71',      // Emerald
+  'ICE':'#2c3e50',     // Midnight Blue
+  'IC':'#34495e'       // Wet Asphalt
 };
 function hashLine(s){ let h=0; for(let i=0;i<s.length;i++){ h=((h<<5)-h)+s.charCodeAt(i); h|=0; } return Math.abs(h); }
-function colorFromHash(name){
-  const h = hashLine(name||'') % 360;
-  // hohe Sättigung und mittlere Helligkeit für klare Unterscheidung
-  return `hsl(${h} 72% 45%)`;
-}
 function lineColor(name){
-  if(!name) return '#475569';
+  if(!name) return '#7f8c8d';
   const key = String(name).trim();
   if(FIXED_COLORS[key]) return FIXED_COLORS[key];
-  // spezielle Namensvarianten (z.B. "Bus 1 Richtung ...")
   const norm = key.replace(/\s+Richtung.*/i,'').trim();
   if(FIXED_COLORS[norm]) return FIXED_COLORS[norm];
-  return colorFromHash(key);
+  // deterministische Auswahl aus der Palette
+  return FLAT_DEFO[ hashLine(key) % FLAT_DEFO.length ];
 }
 
 function iconForProduct(product, mode){
@@ -304,13 +318,11 @@ function renderJourneysInto(containerId, list, aToB){
     const changes = Math.max(0, legs.filter(l=>l.line).length - 1);
     const durHuman = isoDurToHuman(j.duration, dep, arr);
 
-    // Verspätung Chip (erste Abfahrt)
     let delayMin = 0; const l0 = legs.find(l => !!l.departure);
     if(l0 && l0.plannedDeparture && l0.departure) delayMin = Math.round((new Date(l0.departure) - new Date(l0.plannedDeparture))/60000);
     const delayChip = (delayMin!==0)
-      ? `<span class="badge" style="color:${delayMin>0?'#d22':'#0a8a3f'}"><i class="fa-solid fa-clock-rotate-left"></i> ${delayMin>0? '+'+delayMin: delayMin}′</span>` : '';
+      ? `<span class="badge" style="color:${delayMin>0?'#e74c3c':'#27ae60'}"><i class="fa-solid fa-clock-rotate-left"></i> ${delayMin>0? '+'+delayMin: delayMin}′</span>` : '';
 
-    // farbige Linienchips
     const chips = legs.filter(l => l.line).map(l => {
       const line = l.line?.name || l.mode || '';
       const color = lineColor(line);
@@ -345,11 +357,7 @@ function normalizeDepartures(raw){
   if(raw && Array.isArray(raw.departures)) return raw.departures;
   return [];
 }
-function deltaClass(m){
-  if(m>0) return 'late';
-  if(m<0) return 'early';
-  return 'ontime';
-}
+function deltaClass(m){ if(m>0) return 'late'; if(m<0) return 'early'; return 'ontime'; }
 function renderDeparturesInto(tbodyId, departures){
   const tbody = document.getElementById(tbodyId);
   tbody.innerHTML = '';
