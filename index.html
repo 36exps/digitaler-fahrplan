@@ -33,7 +33,8 @@
     --bad:#e53935;
 
     --shadow:0 1px 2px rgba(16,19,23,.04), 0 8px 24px rgba(16,19,23,.06);
-    --radius:14px;
+    /* Einheitlicher Radius */
+    --radius:12px;
     --font: ui-system, -apple-system, system-ui, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
   }
   [data-theme="dark"]{
@@ -68,21 +69,21 @@
   .tabs .left{display:flex; gap:8px; flex-wrap:wrap}
   .tab{
     appearance:none; border:1px solid var(--rule); background:var(--panel);
-    color:var(--muted); border-radius:12px; padding:10px 14px;
+    color:var(--muted); border-radius:var(--radius); padding:10px 14px;
     text-decoration:none; font-weight:600; font-size:15px;
   }
   .tab.active{color:var(--accent); box-shadow:var(--shadow); border-color:color-mix(in oklab, var(--accent) 40%, var(--rule))}
   .spacer{flex:1}
   .theme-btn{
     border:1px solid var(--rule); background:var(--panel); color:var(--text);
-    border-radius:12px; padding:9px 12px; display:flex; gap:8px; align-items:center; cursor:pointer;
+    border-radius:var(--radius); padding:9px 12px; display:flex; gap:8px; align-items:center; cursor:pointer;
   }
   .theme-btn i{font-size:18px}
 
   /* Hamburger (nur kleine Screens) */
   .hamburger{
     display:none; border:1px solid var(--rule); background:var(--panel); color:var(--text);
-    border-radius:12px; padding:10px 12px; cursor:pointer;
+    border-radius:var(--radius); padding:10px 12px; cursor:pointer;
   }
   @media (max-width:980px){
     #tabsInline{ display:none }
@@ -125,7 +126,7 @@
   .chip{
     display:inline-flex; gap:8px; align-items:center;
     background:var(--panel-2); border:1px solid var(--rule);
-    border-radius:10px; padding:6px 10px; font-weight:600; font-size:14px; color:var(--text);
+    border-radius:var(--radius); padding:6px 10px; font-weight:600; font-size:14px; color:var(--text);
     white-space:nowrap;
   }
   .line-chip{ font-weight:700 }
@@ -155,7 +156,7 @@
 
   /* Timeline */
   .timeline{
-    margin-top:10px; border:1px solid var(--rule); border-radius:12px; padding:10px 12px; background:var(--panel-2);
+    margin-top:10px; border:1px solid var(--rule); border-radius:var(--radius); padding:10px 12px; background:var(--panel-2);
     display:grid; grid-template-columns:22px 1fr auto; gap:8px 12px;
   }
   .tl-ico{ text-align:center; color:var(--muted) }
@@ -184,6 +185,7 @@
     display:grid; grid-template-columns:140px 140px 220px 1fr 120px 100px;
     padding:12px 16px; font-weight:700; color:var(--muted);
   }
+  .table-head i{ margin-right:8px; opacity:.8 }
   .rows{ margin:0 }
   .row-item{
     display:grid; grid-template-columns:140px 140px 220px 1fr 120px 100px; align-items:center;
@@ -205,13 +207,13 @@
 
   .footer{
     margin:16px; padding:10px 14px; color:var(--muted); font-size:13px;
-    background:var(--panel); border:1px solid var(--rule); border-radius:12px; box-shadow:var(--shadow);
+    background:var(--panel); border:1px solid var(--rule); border-radius:var(--radius); box-shadow:var(--shadow);
   }
   .footer-space{ height:64px }
 
   .more-wrap{ padding:10px 0 0; display:flex; justify-content:center; gap:8px; flex-wrap:wrap }
   .btn{
-    border:1px solid var(--rule); background:var(--panel); border-radius:10px; padding:10px 14px; font-weight:700; cursor:pointer;
+    border:1px solid var(--rule); background:var(--panel); border-radius:var(--radius); padding:10px 14px; font-weight:700; cursor:pointer;
   }
   .btn:disabled{ opacity:.6; cursor:not-allowed }
   .hint{padding:12px 14px; color:var(--muted)}
@@ -270,12 +272,12 @@
     <!-- ABFAHRTEN STADTEINWÄRTS -->
     <div id="view-abfahrten" class="panel-table" hidden>
       <div class="table-head">
-        <div>Abfahrt</div>
-        <div class="col-plan">Plan</div>
-        <div>Linie</div>
-        <div>Ziel</div>
-        <div class="col-steig">Steig</div>
-        <div>+-</div>
+        <div><i class="fa-solid fa-clock"></i> Abfahrt</div>
+        <div class="col-plan"><i class="fa-regular fa-calendar"></i> Plan</div>
+        <div><i class="fa-solid fa-train"></i> Linie</div>
+        <div><i class="fa-solid fa-location-dot"></i> Ziel</div>
+        <div class="col-steig"><i class="fa-solid fa-signs-post"></i> Steig</div>
+        <div><i class="fa-solid fa-clock-rotate-left"></i> +-</div>
       </div>
       <div id="rows" class="rows"><div style="padding:16px;color:var(--muted)">Lade Abfahrten …</div></div>
     </div>
@@ -283,12 +285,12 @@
     <!-- ABFAHRTEN HEIMWÄRTS -->
     <div id="view-homebound" class="panel-table" hidden>
       <div class="table-head">
-        <div>Abfahrt</div>
-        <div class="col-plan">Plan</div>
-        <div>Abfahrts­halt</div>
-        <div>Linie</div>
-        <div class="col-steig">Steig</div>
-        <div>+-</div>
+        <div><i class="fa-solid fa-clock"></i> Abfahrt</div>
+        <div class="col-plan"><i class="fa-regular fa-calendar"></i> Plan</div>
+        <div><i class="fa-solid fa-location-dot"></i> Haltestelle</div>
+        <div><i class="fa-solid fa-train"></i> Linie</div>
+        <div class="col-steig"><i class="fa-solid fa-signs-post"></i> Steig</div>
+        <div><i class="fa-solid fa-clock-rotate-left"></i> +-</div>
       </div>
       <div id="rows-home" class="rows"><div style="padding:16px;color:var(--muted)">Lade Abfahrten …</div></div>
     </div>
@@ -369,10 +371,10 @@ const FIXED_COLORS={'Bus 1':'#3498db','1':'#3498db','Bus 17':'#e67e22','17':'#e6
 const HUES=[168,145,204,282,48,28,6,210,320,260,100,36,14,190,230,75];
 function hashLine(s){let h=0; for(const ch of String(s)) h=((h<<5)-h)+ch.charCodeAt(0),h|=0; return Math.abs(h)}
 function lineColor(name){ if(!name) return '#7f8c8d'; const key=String(name).trim(); if(FIXED_COLORS[key]) return FIXED_COLORS[key]; const norm=key.replace(/\s+Richtung.*/i,'').trim(); if(FIXED_COLORS[norm]) return FIXED_COLORS[norm]; const hue=HUES[hashLine(key)%HUES.length]; const dark=(document.documentElement.getAttribute('data-theme')==='dark'); return `hsl(${hue} 78% ${dark?72:36}%)` }
-function iconForProduct(p,m){p=(p||'').toLowerCase(); m=(m||'').toLowerCase(); if(p.includes('bus')||m==='bus')return'<i class="fa-solid fa-bus"></i>'; if(p.includes('suburban')||p.includes('s-bahn')||m==='subway')return'<i class="fa-solid fa-train-subway"></i>'; if(p.includes('tram'))return'<i class="fa-solid fa-train-tram"></i>'; return'<i class="fa-solid fa-train"></i>';}
+function iconForProduct(p,m){p=(p||'').toLowerCase(); m=(m||'').toLowerCase(); if(p.includes('bus')||m==='bus')return'<i class="fa-solid fa-bus"></i>'; if(p.includes('suburban')||p.includes('s-bahn')||m==='subway')return'<i class="fa-solid fa-train-subway"></i>'; if(p.includes('tram'))return'<i class="fa-solid fa-train-tram"></i>'; return'<i class="fa-solid fa-train"></i>'}
 function prettyStop(n){return n==='Gießen'?'Gießen Bahnhof':n}
 
-/* ========= Timeline (geplante Zeit nur wenn abweichend) ========= */
+/* ========= Timeline (geplante Zeit nur wenn abweichend; Duplikate vermeiden) ========= */
 function buildTimeline(legs){
   if(!legs?.length) return '';
   function plannedIfDiff(actual, planned){
@@ -387,6 +389,7 @@ function buildTimeline(legs){
               n.type==='end'   ? '<i class="fa-solid fa-flag-checkered"></i>' :
               (!n.dep||!n.arr) ? '<i class="fa-solid fa-location-dot"></i>' :
               (/walk/i.test(n.product)?'<i class="fa-solid fa-person-walking"></i>':(/bus/i.test(n.product)?'<i class="fa-solid fa-bus"></i>':'<i class="fa-solid fa-train"></i>'));
+  const sameMinute=(a,b)=>{ if(!a||!b) return false; const A=new Date(a), B=new Date(b); return A.getHours()===B.getHours() && A.getMinutes()===B.getMinutes(); };
 
   const nodes=[];
   nodes.push({type:'start',name:prettyStop(legs[0]?.origin?.name||'—'),dep:legs[0]?.departure||null,pdep:legs[0]?.plannedDeparture||null,product:legs[0]?.line?.product||legs[0]?.mode||''});
@@ -409,11 +412,23 @@ function buildTimeline(legs){
     }else{
       const c1=cls(n.arr,n.parr), c2=cls(n.dep,n.pdep);
       const wait=(n.arr&&n.dep)?Math.max(0,Math.round((new Date(n.dep)-new Date(n.arr))/60000)):null;
-      const range=
-        `<span class="${c1}"><span class="actual">${fmt(n.arr)}</span>${plannedIfDiff(n.arr,n.parr)}</span>
-         ▸
-         <span class="${c2}"><span class="actual">${fmt(n.dep)}</span>${plannedIfDiff(n.dep,n.pdep)}</span>`;
-      right=`<span class="tl-meta">${range}</span>${(wait&&wait>0)?` <span class="tl-meta">• <i class="fa-solid fa-pause"></i> ${wait}′</span>`:''}`;
+
+      if(n.arr && n.dep && sameMinute(n.arr,n.dep)){
+        // Wunsch: bei gleicher Minute nur einmal anzeigen
+        right=`<span class="tl-meta ${c1}"><span class="actual">${fmt(n.arr)}</span>${plannedIfDiff(n.arr,n.parr)}</span>`;
+      } else if(n.arr && n.dep){
+        const range=
+          `<span class="${c1}"><span class="actual">${fmt(n.arr)}</span>${plannedIfDiff(n.arr,n.parr)}</span>
+           ▸
+           <span class="${c2}"><span class="actual">${fmt(n.dep)}</span>${plannedIfDiff(n.dep,n.pdep)}</span>`;
+        right=`<span class="tl-meta">${range}</span>${(wait&&wait>0)?` <span class="tl-meta">• <i class="fa-solid fa-pause"></i> ${wait}′</span>`:''}`;
+      } else if(n.arr){
+        right=`<span class="tl-meta ${c1}"><span class="actual">${fmt(n.arr)}</span>${plannedIfDiff(n.arr,n.parr)}</span>`;
+      } else if(n.dep){
+        right=`<span class="tl-meta ${c2}"><span class="actual">${fmt(n.dep)}</span>${plannedIfDiff(n.dep,n.pdep)}</span>`;
+      } else {
+        right=`<span class="tl-meta">—</span>`;
+      }
     }
     return `<div class="tl-ico">${ico(n)}</div><div class="tl-stop">${n.name}</div><div style="text-align:right">${right}</div>`;
   }).join('');
