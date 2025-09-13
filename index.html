@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>Pendler Dashboard</title>
 
-<!-- PWA / iOS Statusbar -->
+<!-- iOS/PWA -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Pendler Dashboard">
@@ -19,189 +19,199 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.2/css/all.min.css">
 
 <style>
-  /* ===== iOS-26 Glass Tokens ===== */
+  /* ===== Tokens — iPadOS 26 Anmutung ===== */
   :root{
-    --bg:linear-gradient(135deg,#f6f8ff 0%,#eef2ff 40%,#f9fbff 100%);
-    --panel:rgba(255,255,255,.55);
-    --panel-strong:rgba(255,255,255,.70);
-    --text:#0e1116; --muted:#5e6a7d; --rule:rgba(20,32,50,.08);
-    --chip:rgba(255,255,255,.50); --accent:#0a84ff;
-    --ok:#27ae60; --bad:#e74c3c; --warn:#f39c12;
-    --ring:0 0 0 1px rgba(10,132,255,.14), 0 8px 30px rgba(12,22,38,.08);
-    --font:ui-rounded, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
-    --blur:16px; --r-xl:18px; --r-lg:14px; --r-md:12px;
-    --glass-border:1px solid rgba(255,255,255,.40);
-    --glass-inset:inset 0 1px 0 rgba(255,255,255,.35), inset 0 -1px 0 rgba(0,0,0,.05);
+    --bg:#f5f7fb;
+    --panel:#ffffff;
+    --panel-2:#f1f4f9;
+    --bar:#eef2f7;
+    --text:#101317;
+    --muted:#5b6677;
+    --rule:#e4e8ef;
+    --accent:#0a84ff;
+    --ok:#27ae60;
+    --bad:#e53935;
+    --warn:#f39c12;
+
+    --shadow:0 1px 2px rgba(16,19,23,.04), 0 8px 24px rgba(16,19,23,.06);
+    --radius:14px;
+    --font: ui-system, -apple-system, system-ui, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
   }
   [data-theme="dark"]{
-    --bg:radial-gradient(1200px 800px at 10% -10%, #1a2230 0%, #0e141d 40%, #0a0f16 100%);
-    --panel:rgba(20,30,45,.45); --panel-strong:rgba(20,30,45,.65);
-    --text:#ecf2ff; --muted:#a2b0c6; --rule:rgba(255,255,255,.06);
-    --chip:rgba(255,255,255,.10); --accent:#2997ff;
-    --glass-border:1px solid rgba(255,255,255,.18);
-    --glass-inset:inset 0 1px 0 rgba(255,255,255,.12), inset 0 -1px 0 rgba(0,0,0,.25);
+    --bg:#0d1219;
+    --panel:#0f1621;
+    --panel-2:#111c2a;
+    --bar:#0c1521;
+    --text:#eaf1ff;
+    --muted:#9aa8bd;
+    --rule:#152233;
+    --shadow:none;
+    --accent:#2997ff;
   }
 
   html,body{height:100%}
   body{
-    margin:0; color:var(--text); font-family:var(--font);
-    background:var(--bg) fixed; -webkit-font-smoothing:antialiased;
-    padding-top: env(safe-area-inset-top); /* iOS Notch */
+    margin:0; background:var(--bg); color:var(--text);
+    font-family:var(--font); -webkit-font-smoothing:antialiased;
+    padding-top:env(safe-area-inset-top);
   }
 
-  /* ===== Theme-FAB (statt Header) ===== */
-  .theme-fab{
-    position:fixed; top: max(8px, env(safe-area-inset-top) + 6px); right:max(8px, env(safe-area-inset-right) + 6px);
-    z-index:70; border:var(--glass-border); background:var(--chip); color:var(--text);
-    border-radius:999px; padding:10px 12px; display:flex; gap:8px; align-items:center;
-    box-shadow:var(--glass-inset), var(--ring); cursor:pointer; backdrop-filter:saturate(140%) blur(10px);
-  }
-
-  /* ===== Tabs ===== */
+  /* ===== Tabs (mit Theme-Button rechts) ===== */
   .tabs{
-    position:sticky; top:0; z-index:55; display:flex; gap:10px; padding:12px 16px;
-    background:var(--panel-strong); backdrop-filter: blur(12px); border-bottom:var(--glass-border);
+    position:sticky; top:0; z-index:40;
+    display:flex; align-items:center; gap:10px;
+    padding:10px 14px; background:var(--bar); border-bottom:1px solid var(--rule);
   }
+  .tabs .left{display:flex; gap:8px; flex-wrap:wrap}
   .tab{
-    padding:10px 14px; border-radius:999px; border:var(--glass-border); color:var(--muted);
-    text-decoration:none; font-weight:800; white-space:nowrap; background:transparent;
+    appearance:none; border:1px solid var(--rule); background:var(--panel);
+    color:var(--muted); border-radius:12px; padding:10px 14px;
+    text-decoration:none; font-weight:600; font-size:15px;
   }
-  .tab.active{color:var(--text); background:var(--panel); box-shadow:var(--glass-inset)}
+  .tab.active{color:var(--accent); border-color:var(--accent + 10%); box-shadow:var(--shadow)}
+  .spacer{flex:1}
+  .theme-btn{
+    border:1px solid var(--rule); background:var(--panel); color:var(--text);
+    border-radius:12px; padding:9px 12px; display:flex; gap:8px; align-items:center; cursor:pointer;
+  }
+  .theme-btn i{font-size:18px}
 
-  /* ===== Layout ===== */
   .wrap{padding:16px; max-width:1920px; margin:0 auto}
-  .panel{background:transparent; border-radius:var(--r-xl)}
 
-  /* ===== Cards Grid ===== */
-  .cards{display:grid; gap:18px; grid-template-columns:1fr}
-  @media (min-width:1000px){ .cards{grid-template-columns:1fr 1fr} }
-  @media (min-width:1440px){ .cards{grid-template-columns:1fr 1fr 1fr} }
-  @media (min-width:1800px){ .cards{grid-template-columns:1fr 1fr 1fr 1fr} }
+  /* ===== Route-Karten ===== */
+  .cards{ display:grid; gap:14px; grid-template-columns:1fr }
+  @media (min-width:1000px){ .cards{ grid-template-columns:1fr 1fr } }
+  @media (min-width:1440px){ .cards{ grid-template-columns:1fr 1fr 1fr } }
+  @media (min-width:1800px){ .cards{ grid-template-columns:1fr 1fr 1fr 1fr } }
 
   .card{
-    position:relative; overflow:hidden; padding:16px 16px 12px; border-radius:var(--r-xl);
-    background:var(--panel); border:var(--glass-border); box-shadow:var(--ring); backdrop-filter:saturate(140%) blur(var(--blur));
-    transform:translateZ(0); will-change:transform;
+    background:var(--panel); border:1px solid var(--rule); border-radius:var(--radius);
+    padding:16px; box-shadow:var(--shadow);
   }
-  .card::after{content:''; position:absolute; inset:0; background:linear-gradient(180deg, rgba(255,255,255,.15), transparent 40%); pointer-events:none}
-  .row1{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
-  .dep,.arr{font-variant-numeric:tabular-nums; font-weight:900; font-size:20px}
-  .meta{color:var(--muted)}
-  .badge{display:inline-flex; gap:8px; align-items:center; background:var(--chip); border:var(--glass-border); border-radius:12px; padding:6px 10px; font-weight:800; box-shadow:var(--glass-inset)}
-  .chips{display:flex; gap:8px; margin-top:10px; flex-wrap:wrap}
-  .chip{display:inline-flex; gap:8px; align-items:center; background:var(--chip); border:var(--glass-border); border-radius:999px; padding:6px 10px; font-weight:800; box-shadow:var(--glass-inset)}
-  .chip.glow{ box-shadow:0 0 0 2px color-mix(in oklab, currentColor 35%, transparent), var(--glass-inset) }
-
-  .timeline{display:grid; grid-template-columns:22px 1fr auto; gap:8px 14px; margin-top:12px; padding:12px; border-radius:14px; background:linear-gradient(180deg, rgba(255,255,255,.35), rgba(255,255,255,.12)); border:var(--glass-border); box-shadow:var(--glass-inset); backdrop-filter:blur(10px)}
-  .tl-icon{text-align:center; color:var(--muted)}
-  .tl-stop{font-weight:800}
-  .tl-time,.tl-range{color:var(--muted); font-variant-numeric:tabular-nums; white-space:nowrap}
-  .tl-wait{margin-left:8px; color:var(--muted); font-size:12px}
-  .actual{font-weight:900}
-  .planned{font-size:12px; opacity:.70; margin-left:6px}
-  .late .actual{color:var(--bad)}
-  .early .actual{color:var(--ok)}
-
-  /* ===== Departures Tables ===== */
-  table{width:100%; border-collapse:separate; border-spacing:0 10px}
-  thead th{position:sticky; top:56px; z-index:50; text-align:left; padding:10px 12px; color:var(--muted);
-    backdrop-filter:blur(10px); background:var(--panel-strong); border:var(--glass-border); border-radius:12px}
-  thead th .hcell{display:flex; gap:8px; align-items:center}
-  tbody tr{background:var(--panel); border:var(--glass-border); box-shadow:var(--ring); backdrop-filter:blur(8px)}
-  tbody td{padding:12px 14px; vertical-align:middle}
-  tbody tr td:first-child{border-top-left-radius:12px; border-bottom-left-radius:12px}
-  tbody tr td:last-child{border-top-right-radius:12px; border-bottom-right-radius:12px}
-  .delta{font-variant-numeric:tabular-nums; font-weight:900}
-  .delta.late{color:var(--bad)} .delta.early{color:var(--ok)} .delta.ontime{color:var(--muted)}
-  .err{color:#ff4d4f; padding:12px 0}
-
-  /* ===== Footer + Extra Bottom Space ===== */
-  footer{
-    margin:16px; padding:10px 14px; color:var(--muted); font-size:13px; display:flex; gap:12px; align-items:center;
-    backdrop-filter:blur(10px); background:var(--panel); border:var(--glass-border); border-radius:12px; box-shadow:var(--ring)
+  .card .row{
+    display:flex; align-items:center; gap:12px; flex-wrap:wrap;
   }
-  footer .dot{opacity:.5}
-  .page-bottom{height:48px} /* Extra Luft */
+  .time{ font-variant-numeric:tabular-nums; font-weight:700; font-size:20px }
+  .sep{ color:var(--muted) }
+  .chip{
+    display:inline-flex; gap:8px; align-items:center;
+    background:var(--panel-2); border:1px solid var(--rule);
+    border-radius:10px; padding:6px 10px; font-weight:600; font-size:14px; color:var(--text);
+  }
+  .line-chip{ font-weight:700 }
+  .sub{ margin-top:8px; color:var(--muted); font-size:14px }
 
-  /* iPhone tweaks */
+  /* Timeline */
+  .timeline{
+    margin-top:10px; border:1px solid var(--rule); border-radius:12px; padding:10px 12px; background:var(--panel-2);
+    display:grid; grid-template-columns:22px 1fr auto; gap:8px 12px;
+  }
+  .tl-ico{ text-align:center; color:var(--muted) }
+  .tl-stop{ font-weight:600 }
+  .tl-meta{ color:var(--muted); font-variant-numeric:tabular-nums; white-space:nowrap }
+  .actual{ font-weight:700 }
+  .planned{ font-size:12px; opacity:.75; margin-left:6px }
+  .late .actual{ color:var(--bad) }
+  .early .actual{ color:var(--ok) }
+
+  /* ===== Tabellen (Abfahrten) ===== */
+  .panel-table{
+    background:var(--panel); border:1px solid var(--rule); border-radius:var(--radius); box-shadow:var(--shadow); overflow:hidden;
+  }
+  .table-head{
+    background:var(--bar); border-bottom:1px solid var(--rule);
+    display:grid; grid-template-columns:140px 140px 220px 1fr 120px 100px; gap:0;
+    padding:12px 16px; font-weight:700; color:var(--muted);
+    position:sticky; top:56px; z-index:30;
+  }
   @media (max-width:740px){
-    .tab{font-size:14px; padding:8px 10px}
-    thead th, tbody td{padding:10px 12px}
-    .col-steig,.col-plan{display:none}
-    .timeline{grid-template-columns:20px 1fr auto}
+    .table-head{ grid-template-columns:140px 1fr 120px 100px; }
+    .col-plan, .col-steig { display:none }
   }
+  .row-item{
+    display:grid; grid-template-columns:140px 140px 220px 1fr 120px 100px; gap:0;
+    padding:14px 16px; border-bottom:1px solid var(--rule);
+  }
+  @media (max-width:740px){
+    .row-item{ grid-template-columns:140px 1fr 120px 100px; }
+  }
+  .delta{ font-variant-numeric:tabular-nums; font-weight:700 }
+  .delta.late{ color:var(--bad) } .delta.early{ color:var(--ok) } .delta.ontime{ color:var(--muted) }
 
-  .more-wrap{padding:12px; display:flex; justify-content:center}
-  .more-btn{border:var(--glass-border); background:linear-gradient(180deg, rgba(255,255,255,.55), rgba(255,255,255,.25)); color:var(--text); border-radius:999px; padding:10px 16px; font-weight:900; cursor:pointer; box-shadow:var(--glass-inset), var(--ring)}
-  .more-btn:disabled{opacity:.6; cursor:not-allowed}
+  .footer{
+    margin:16px; padding:10px 14px; color:var(--muted); font-size:13px;
+    background:var(--panel); border:1px solid var(--rule); border-radius:12px; box-shadow:var(--shadow);
+  }
+  .footer-space{ height:64px } /* extra Luft */
+
+  .more-wrap{ padding:10px 0 0; display:flex; justify-content:center }
+  .btn{
+    border:1px solid var(--rule); background:var(--panel); border-radius:10px; padding:10px 14px; font-weight:700; cursor:pointer;
+  }
+  .btn:disabled{ opacity:.6; cursor:not-allowed }
 </style>
 </head>
 <body>
 
-  <!-- Theme Toggle (fixiert oben rechts) -->
-  <button id="themeBtn" class="theme-fab" aria-label="Theme umschalten">
-    <i class="fa-solid fa-sun" id="sunIcon"></i>
-    <i class="fa-solid fa-moon" id="moonIcon" style="display:none"></i>
-  </button>
-
-  <!-- Tabs -->
-  <nav class="tabs" role="tablist">
-    <a href="#route-a" class="tab active">Gießen → Frankfurt(Main) Hbf</a>
-    <a href="#route-b" class="tab">Frankfurt(Main) Hbf → Gießen</a>
-    <a href="#abfahrten" class="tab">Abfahrten (stadt­einwärts)</a>
-    <a href="#homebound" class="tab">Abfahrten (heimwärts)</a>
-  </nav>
-
-  <div class="wrap">
-    <div class="panel">
-      <!-- Routen -->
-      <div id="view-route" hidden>
-        <div id="cards" class="cards"><div class="card">Lade Verbindungen …</div></div>
-        <div class="more-wrap"><button id="moreBtn" class="more-btn">Weitere Verbindungen</button></div>
-      </div>
-
-      <!-- Abfahrten stadt­einwärts -->
-      <div id="view-abfahrten" hidden>
-        <table>
-          <thead><tr>
-            <th style="width:140px;"><div class="hcell"><i class="fa-solid fa-arrow-right-long"></i> Abfahrt</div></th>
-            <th class="col-plan" style="width:140px;"><div class="hcell"><i class="fa-regular fa-clock"></i> Plan</div></th>
-            <th style="width:220px;"><div class="hcell"><i class="fa-solid fa-train"></i> Linie</div></th>
-            <th><div class="hcell"><i class="fa-solid fa-location-dot"></i> Ziel</div></th>
-            <th class="col-steig" style="width:120px;"><div class="hcell"><i class="fa-solid fa-signs-post"></i> Steig</div></th>
-            <th style="width:100px;"><div class="hcell"><i class="fa-solid fa-clock-rotate-left"></i> +-</div></th>
-          </tr></thead>
-          <tbody id="rows"><tr><td colspan="6" style="padding:18px;color:var(--muted)">Lade Abfahrten …</td></tr></tbody>
-        </table>
-        <div class="err" id="depErr" hidden></div>
-      </div>
-
-      <!-- Abfahrten heimwärts -->
-      <div id="view-homebound" hidden>
-        <table>
-          <thead><tr>
-            <th style="width:140px;"><div class="hcell"><i class="fa-solid fa-arrow-right-long"></i> Abfahrt</div></th>
-            <th class="col-plan" style="width:140px;"><div class="hcell"><i class="fa-regular fa-clock"></i> Plan</div></th>
-            <th style="width:200px;"><div class="hcell"><i class="fa-solid fa-location-dot"></i> Abfahrts­halt</div></th>
-            <th style="width:200px;"><div class="hcell"><i class="fa-solid fa-train"></i> Linie</div></th>
-            <th><div class="hcell"><i class="fa-solid fa-flag-checkered"></i> Ziel</div></th>
-            <th class="col-steig" style="width:120px;"><div class="hcell"><i class="fa-solid fa-signs-post"></i> Steig</div></th>
-            <th style="width:100px;"><div class="hcell"><i class="fa-solid fa-clock-rotate-left"></i> +-</div></th>
-          </tr></thead>
-          <tbody id="rows-home"><tr><td colspan="7" style="padding:18px;color:var(--muted)">Lade Abfahrten …</td></tr></tbody>
-        </table>
-        <div class="err" id="homeErr" hidden></div>
-      </div>
+  <!-- Tabs + Theme -->
+  <div class="tabs">
+    <div class="left">
+      <a href="#route-a" class="tab active">Gießen → Frankfurt(Main) Hbf</a>
+      <a href="#route-b" class="tab">Frankfurt(Main) Hbf → Gießen</a>
+      <a href="#abfahrten" class="tab">Abfahrten (stadt­einwärts)</a>
+      <a href="#homebound" class="tab">Abfahrten (heimwärts)</a>
     </div>
+    <div class="spacer"></div>
+    <button id="themeBtn" class="theme-btn" aria-label="Theme umschalten">
+      <i class="fa-solid fa-sun" id="sunIcon"></i>
+      <i class="fa-solid fa-moon" id="moonIcon" style="display:none"></i>
+    </button>
   </div>
 
-  <footer>
-    <span id="refreshInfo">Aktualisierung: —</span><span class="dot">•</span><span id="lastUpdated">Zuletzt: —</span>
-  </footer>
-  <div class="page-bottom"></div>
+  <div class="wrap">
+
+    <!-- ROUTEN -->
+    <div id="view-route" hidden>
+      <div id="cards" class="cards"><div class="card">Lade Verbindungen …</div></div>
+      <div class="more-wrap"><button id="moreBtn" class="btn">Weitere Verbindungen</button></div>
+    </div>
+
+    <!-- ABFAHRTEN STADTEINWÄRTS -->
+    <div id="view-abfahrten" class="panel-table" hidden>
+      <div class="table-head">
+        <div>Abfahrt</div>
+        <div class="col-plan">Plan</div>
+        <div>Linie</div>
+        <div>Ziel</div>
+        <div class="col-steig">Steig</div>
+        <div>+-</div>
+      </div>
+      <div id="rows"><div style="padding:16px;color:var(--muted)">Lade Abfahrten …</div></div>
+    </div>
+
+    <!-- ABFAHRTEN HEIMWÄRTS -->
+    <div id="view-homebound" class="panel-table" hidden>
+      <div class="table-head">
+        <div>Abfahrt</div>
+        <div class="col-plan">Plan</div>
+        <div>Abfahrts­halt</div>
+        <div>Linie</div>
+        <div class="col-steig">Steig</div>
+        <div>+-</div>
+      </div>
+      <div id="rows-home"><div style="padding:16px;color:var(--muted)">Lade Abfahrten …</div></div>
+    </div>
+
+    <div class="footer">
+      <span id="refreshInfo">Aktualisierung: —</span>
+      <span style="margin:0 8px; opacity:.6">•</span>
+      <span id="lastUpdated">Zuletzt: —</span>
+    </div>
+    <div class="footer-space"></div>
+  </div>
 
 <script>
-/* ===== Config ===== */
+/* ========= Config ========= */
 const API='https://v6.db.transport.rest';
 const Q_SCHOOL='Sophie-Scholl-Schule Gießen', Q_FFMHBF='Frankfurt(Main) Hbf', Q_FRIEDR='Friedrichstraße Gießen', Q_GIESSEN='Gießen Bahnhof';
 const REFRESH_ROUTE_MS=60000, REFRESH_DEPS_MS=30000;
@@ -209,41 +219,50 @@ const EXCLUDE_DIRECTIONS=[/rödgen/i,/coleman\s*str/i];
 
 let ids={school:null,ffm:null,friedr:null,giessenBhf:null};
 let activeTab='route-a', timer=null, lastUpdated=null;
-let moreLong=false;           // „Weitere Verbindungen“ – bleibt bei Auto-Refresh
-let currentFetchAbort=null;   // Überlagerungen verhindern
+let moreLong=false;         // „Weitere Verbindungen“ bleibt lang bis Tabwechsel/Reload
+let inflight=null;          // AbortController gegen Überschreiben
 
-/* ===== Theme (auto + toggle) ===== */
+/* ========= Theme ========= */
 const mediaDark=window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)');
 const sunIcon=document.getElementById('sunIcon'), moonIcon=document.getElementById('moonIcon'), themeBtn=document.getElementById('themeBtn');
 function applyTheme(m){document.documentElement.setAttribute('data-theme',m); if(m==='dark'){sunIcon.style.display='none';moonIcon.style.display='inline-block'} else {moonIcon.style.display='none';sunIcon.style.display='inline-block'}}
 applyTheme(mediaDark?.matches?'dark':'light'); mediaDark?.addEventListener?.('change',e=>applyTheme(e.matches?'dark':'light'));
 themeBtn.addEventListener('click',()=>applyTheme((document.documentElement.getAttribute('data-theme')==='light')?'dark':'light'));
 
-/* ===== Helpers ===== */
-const fmtHM=d=>new Date(d).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
-const fmtHMS=d=>new Date(d).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
-function isoDurToHuman(iso,dep,arr){ if(iso){const h=(iso.match(/(\d+)H/)||[])[1]|0,m=(iso.match(/(\d+)M/)||[])[1]|0;return (h?`${h} h `:'')+String(m).padStart(2,'0')+' min'} if(dep&&arr){const diff=Math.max(0,Math.round((new Date(arr)-new Date(dep))/60000)); const h=Math.floor(diff/60),m=diff%60; return (h?`${h} h `:'')+String(m).padStart(2,'0')+' min'} return '–'}
-function setFooter(ms){document.getElementById('refreshInfo').textContent='Aktualisierung: alle '+Math.round(ms/1000)+' s'; document.getElementById('lastUpdated').textContent='Zuletzt: '+(lastUpdated?fmtHMS(lastUpdated):'—')}
+/* ========= Helpers ========= */
+const fmtHM = d => new Date(d).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
+const fmtHMS= d => new Date(d).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+function isoDurToHuman(iso,dep,arr){
+  if(iso){ const h=(iso.match(/(\d+)H/)||[])[1]|0, m=(iso.match(/(\d+)M/)||[])[1]|0; return (h?`${h} h `:'')+String(m).padStart(2,'0')+' min'; }
+  if(dep&&arr){ const diff=Math.max(0,Math.round((new Date(arr)-new Date(dep))/60000)); const h=Math.floor(diff/60), m=diff%60; return (h?`${h} h `:'')+String(m).padStart(2,'0')+' min'; }
+  return '–';
+}
+function setFooter(ms){
+  document.getElementById('refreshInfo').textContent='Aktualisierung: alle '+Math.round(ms/1000)+' s';
+  document.getElementById('lastUpdated').textContent='Zuletzt: '+(lastUpdated?fmtHMS(lastUpdated):'—');
+}
 async function fetchJSON(url){
-  if(currentFetchAbort) currentFetchAbort.abort();
-  currentFetchAbort=new AbortController();
-  const r=await fetch(url,{signal:currentFetchAbort.signal});
-  if(!r.ok) throw new Error(`${url} → ${r.status}`);
+  inflight?.abort?.(); inflight=new AbortController();
+  const r=await fetch(url,{signal:inflight.signal}); if(!r.ok) throw new Error(`${url} → ${r.status}`);
   lastUpdated=Date.now(); setFooter((activeTab==='abfahrten'||activeTab==='homebound')?REFRESH_DEPS_MS:REFRESH_ROUTE_MS);
   return r.json();
 }
-async function findStopId(q,rx){ const data=await fetchJSON(`${API}/locations?query=${encodeURIComponent(q)}&results=10&stops=true`); if(rx){const hit=data.find(x=>(x.type==='stop'||x.type==='station') && rx.test((x.name||'')+' '+(x.address?.city||''))); if(hit) return hit.id} const first=data.find(x=>x.type==='stop'||x.type==='station'); return first?.id||null}
+async function findStopId(q,rx){
+  const data=await fetchJSON(`${API}/locations?query=${encodeURIComponent(q)}&results=10&stops=true`);
+  if(rx){const hit=data.find(x=>(x.type==='stop'||x.type==='station') && rx.test((x.name||'')+' '+(x.address?.city||''))); if(hit) return hit.id}
+  const first=data.find(x=>x.type==='stop'||x.type==='station'); return first?.id||null;
+}
 
-/* ===== Linienfarben/Icons ===== */
+/* ========= Linienfarben / Icons ========= */
 const FIXED_COLORS={'Bus 1':'#3498db','1':'#3498db','Bus 17':'#e67e22','17':'#e67e22','RB40':'#9b59b6','RB41':'#1abc9c','RE30':'#f1c40f','S6':'#2ecc71','ICE':'#2c3e50','IC':'#34495e'};
 const HUES=[168,145,204,282,48,28,6,210,320,260,100,36,14,190,230,75];
 function hashLine(s){let h=0; for(const ch of String(s)) h=((h<<5)-h)+ch.charCodeAt(0),h|=0; return Math.abs(h)}
-function lineColor(name){ if(!name) return '#7f8c8d'; const key=String(name).trim(); if(FIXED_COLORS[key]) return FIXED_COLORS[key]; const norm=key.replace(/\s+Richtung.*/i,'').trim(); if(FIXED_COLORS[norm]) return FIXED_COLORS[norm]; const hue=HUES[hashLine(key)%HUES.length]; const dark=(document.documentElement.getAttribute('data-theme')==='dark'); return `hsl(${hue} 80% ${dark?70:35}%)` }
+function lineColor(name){ if(!name) return '#7f8c8d'; const key=String(name).trim(); if(FIXED_COLORS[key]) return FIXED_COLORS[key]; const norm=key.replace(/\s+Richtung.*/i,'').trim(); if(FIXED_COLORS[norm]) return FIXED_COLORS[norm]; const hue=HUES[hashLine(key)%HUES.length]; const dark=(document.documentElement.getAttribute('data-theme')==='dark'); return `hsl(${hue} 78% ${dark?72:36}%)` }
 function iconForProduct(p,m){p=(p||'').toLowerCase(); m=(m||'').toLowerCase(); if(p.includes('bus')||m==='bus')return'<i class="fa-solid fa-bus"></i>'; if(p.includes('suburban')||p.includes('s-bahn')||m==='subway')return'<i class="fa-solid fa-train-subway"></i>'; if(p.includes('tram'))return'<i class="fa-solid fa-train-tram"></i>'; return'<i class="fa-solid fa-train"></i>';}
 function prettyStop(n){return n==='Gießen'?'Gießen Bahnhof':n}
 
-/* ===== Timeline mit geplanten Zeiten ===== */
-function buildCompactTimeline(legs){
+/* ========= Timeline (mit geplanter Uhrzeit) ========= */
+function buildTimeline(legs){
   if(!legs?.length) return '';
   const nodes=[];
   nodes.push({type:'start',name:prettyStop(legs[0]?.origin?.name||'—'),dep:legs[0]?.departure||null,pdep:legs[0]?.plannedDeparture||null,product:legs[0]?.line?.product||legs[0]?.mode||''});
@@ -255,30 +274,28 @@ function buildCompactTimeline(legs){
   }
   nodes[nodes.length-1].type='end';
   const fmt=v=>v?fmtHM(v):'—';
-  const cls=(act,plan)=>{ if(!act||!plan) return ''; const m=Math.round((new Date(act)-new Date(plan))/60000); return m>0?'late':(m<0?'early':'') };
-  const icon=n=> n.type==='start' ? iconForProduct(n.product,'') :
-                n.type==='end'   ? '<i class="fa-solid fa-flag-checkered"></i>' :
-                (!n.dep||!n.arr) ? '<i class="fa-solid fa-location-dot"></i>' :
-                (/walk/i.test(n.product)?'<i class="fa-solid fa-person-walking"></i>':(/bus/i.test(n.product)?'<i class="fa-solid fa-bus"></i>':'<i class="fa-solid fa-train"></i>'));
+  const cls=(a,p)=>{ if(!a||!p) return ''; const m=Math.round((new Date(a)-new Date(p))/60000); return m>0?'late':(m<0?'early':'') };
+  const ico=n=> n.type==='start' ? iconForProduct(n.product,'') :
+              n.type==='end'   ? '<i class="fa-solid fa-flag-checkered"></i>' :
+              (!n.dep||!n.arr) ? '<i class="fa-solid fa-location-dot"></i>' :
+              (/walk/i.test(n.product)?'<i class="fa-solid fa-person-walking"></i>':(/bus/i.test(n.product)?'<i class="fa-solid fa-bus"></i>':'<i class="fa-solid fa-train"></i>'));
   return nodes.map(n=>{
     let right='';
     if(n.type==='start'){
-      const c=cls(n.dep,n.pdep);
-      right=`<span class="${c}"><span class="actual">${fmt(n.dep)}</span>${n.pdep?`<span class="planned">(${fmt(n.pdep)})</span>`:''}</span>`;
+      const c=cls(n.dep,n.pdep); right=`<span class="${c}"><span class="actual">${fmt(n.dep)}</span>${n.pdep?`<span class="planned">(${fmt(n.pdep)})</span>`:''}</span>`;
     }else if(n.type==='end'){
-      const c=cls(n.arr,n.parr);
-      right=`<span class="${c}"><span class="actual">${fmt(n.arr)}</span>${n.parr?`<span class="planned">(${fmt(n.parr)})</span>`:''}</span>`;
+      const c=cls(n.arr,n.parr); right=`<span class="${c}"><span class="actual">${fmt(n.arr)}</span>${n.parr?`<span class="planned">(${fmt(n.parr)})</span>`:''}</span>`;
     }else{
       const c1=cls(n.arr,n.parr), c2=cls(n.dep,n.pdep);
       const wait=(n.arr&&n.dep)?Math.max(0,Math.round((new Date(n.dep)-new Date(n.arr))/60000)):null;
       const range=`<span class="${c1}"><span class="actual">${fmt(n.arr)}</span>${n.parr?`<span class="planned">(${fmt(n.parr)})</span>`:''}</span> ▸ <span class="${c2}"><span class="actual">${fmt(n.dep)}</span>${n.pdep?`<span class="planned">(${fmt(n.pdep)})</span>`:''}</span>`;
-      right=`<span class="tl-range">${range}</span>${(wait&&wait>0)?`<span class="tl-wait">• Wartezeit ${wait}′</span>`:''}`;
+      right=`<span class="tl-meta">${range}</span>${(wait&&wait>0)?` <span class="tl-meta">• Wartezeit ${wait}′</span>`:''}`;
     }
-    return `<div class="tl-icon">${icon(n)}</div><div class="tl-stop">${n.name}</div><div style="text-align:right">${right}</div>`;
+    return `<div class="tl-ico">${ico(n)}</div><div class="tl-stop">${n.name}</div><div style="text-align:right">${right}</div>`;
   }).join('');
 }
 
-/* ===== Journeys (Cards) ===== */
+/* ========= Journeys Renderer ========= */
 function renderJourneysInto(containerId, list, aToB){
   const wrap=document.getElementById(containerId); wrap.innerHTML='';
   const journeys=list?.journeys||[]; if(!journeys.length){wrap.innerHTML=`<div class="card">Keine Verbindungen gefunden.</div>`; return;}
@@ -286,65 +303,63 @@ function renderJourneysInto(containerId, list, aToB){
     const legs=j.legs||[]; const dep=j.departure||legs[0]?.departure; const arr=j.arrival||legs[legs.length-1]?.arrival;
     const changes=Math.max(0, legs.filter(l=>l.line).length - 1); const dur=isoDurToHuman(j.duration,dep,arr);
     let delay=0; const l0=legs.find(l=>!!l.departure); if(l0&&l0.plannedDeparture&&l0.departure) delay=Math.round((new Date(l0.departure)-new Date(l0.plannedDeparture))/60000);
-    const delayChip=(delay!==0)?`<span class="badge" style="color:${delay>0?'var(--bad)':'var(--ok)'}"><i class="fa-solid fa-clock-rotate-left"></i> ${delay>0?`+${delay}`:delay}′</span>`:'';
-    const chips=legs.filter(l=>l.line).map(l=>`<span class="chip glow" style="color:${lineColor(l.line?.name||l.mode||'')}}">${iconForProduct(l.line?.product,l.mode)} ${l.line?.name||l.mode||''}</span>`).join('');
-    const el=document.createElement('div'); el.className='card parallax';
+    const chipDelay=(delay!==0)?`<span class="chip" style="color:${delay>0?'var(--bad)':'var(--ok)'}"><i class="fa-solid fa-clock-rotate-left"></i> ${delay>0?`+${delay}`:delay}′</span>`:'';
+    const chips=legs.filter(l=>l.line).map(l=>`<span class="chip line-chip" style="color:${lineColor(l.line?.name||l.mode||'')}">${iconForProduct(l.line?.product,l.mode)} ${l.line?.name||l.mode||''}</span>`).join('');
+
+    const el=document.createElement('div'); el.className='card';
     el.innerHTML=`
-      <div class="row1">
-        <div class="dep">${fmtHM(dep)}</div><div class="meta">→</div><div class="arr">${fmtHM(arr)}</div>
-        <span class="badge"><i class="fa-regular fa-clock"></i> ${dur}</span>
-        <span class="badge"><i class="fa-solid fa-right-left"></i> ${changes}</span>
-        ${delayChip}
+      <div class="row">
+        <div class="time">${fmtHM(dep)}</div>
+        <div class="sep">→</div>
+        <div class="time">${fmtHM(arr)}</div>
+        <span class="chip"><i class="fa-regular fa-clock"></i> ${dur}</span>
+        <span class="chip"><i class="fa-solid fa-right-left"></i> ${changes}</span>
+        ${chipDelay}
       </div>
-      <div class="chips">${chips || '<span class="chip"><i class="fa-solid fa-person-walking"></i> Fußweg</span>'}</div>
-      <div class="timeline">${buildCompactTimeline(legs)}</div>
-      <div class="meta" style="margin-top:8px">${aToB?'Sophie-Scholl-Schule → Frankfurt(Main) Hbf':'Frankfurt(Main) Hbf → Sophie-Scholl-Schule'}</div>
+      <div class="row" style="gap:8px; margin-top:8px">${chips || '<span class="chip"><i class="fa-solid fa-person-walking"></i> Fußweg</span>'}</div>
+      <div class="timeline">${buildTimeline(legs)}</div>
+      <div class="sub">${aToB?'Sophie-Scholl-Schule → Frankfurt(Main) Hbf':'Frankfurt(Main) Hbf → Sophie-Scholl-Schule'}</div>
     `;
     wrap.appendChild(el);
   }
-  parallaxBind();
 }
 
-/* ===== Departures (Tables) ===== */
+/* ========= Departures Renderer ========= */
 function normalizeDepartures(raw){ if(Array.isArray(raw)) return raw; if(raw?.departures) return raw.departures; return [] }
 function deltaClass(m){ if(m>0) return 'late'; if(m<0) return 'early'; return 'ontime' }
-function renderDeparturesInto(tbodyId, deps){
-  const tbody=document.getElementById(tbodyId); tbody.innerHTML='';
-  if(!deps.length){tbody.innerHTML=`<tr><td colspan="6" style="padding:18px;color:var(--muted)">Keine passenden Abfahrten.</td></tr>`; return;}
+
+function renderDeparturesInto(containerId, deps, mode){
+  const box=document.getElementById(containerId); box.innerHTML='';
+  if(!deps.length){ box.innerHTML=`<div style="padding:16px;color:var(--muted)">Keine passenden Abfahrten.</div>`; return; }
   for(const d of deps){
-    const line=d.line?.name||d.line?.id||'–', dir=prettyStop(d.direction||d.destination||'–'), pl=d.platform||d.prognosedPlatform||d.plannedPlatform||'–';
+    const line=d.line?.name||d.line?.id||'–';
+    const dir = mode==='home' ? 'Sophie-Scholl-Schule, Gießen' : prettyStop(d.direction||d.destination||'–');
+    const origin = (mode==='home') ? (d.originLabel||'–') : null;
+    const pl=d.platform||d.prognosedPlatform||d.plannedPlatform||'–';
     const tPl=d.plannedWhen||d.when||d.scheduledWhen, tRt=d.prognosedWhen||d.when||null;
-    let deltaTxt='–', cls='ontime'; if(tPl&&tRt){const m=Math.round((new Date(tRt)-new Date(tPl))/60000); deltaTxt=(m>0?`+${m}`:m)+'′'; cls=deltaClass(m)}
+    let deltaTxt='–', cls='ontime'; if(tPl&&tRt){ const m=Math.round((new Date(tRt)-new Date(tPl))/60000); deltaTxt=(m>0?`+${m}`:m)+'′'; cls=deltaClass(m); }
     const color=lineColor(line);
-    const tr=document.createElement('tr'); tr.innerHTML=`
-      <td>${tRt?fmtHM(tRt):(tPl?fmtHM(tPl):'–')}</td>
-      <td class="col-plan">${tPl?fmtHM(tPl):'–'}</td>
-      <td class="line"><span class="chip glow" style="color:${color}">${iconForProduct(d.line?.product,d.line?.mode)} ${line}</span></td>
-      <td>${dir}</td><td class="col-steig">${pl}</td><td class="delta ${cls}">${deltaTxt}</td>`;
-    tbody.appendChild(tr);
-  }
-}
-function renderHomeDeparturesInto(tbodyId, rows){
-  const tbody=document.getElementById(tbodyId); tbody.innerHTML='';
-  if(!rows.length){tbody.innerHTML=`<tr><td colspan="7" style="padding:18px;color:var(--muted)">Keine passenden Abfahrten.</td></tr>`; return;}
-  for(const d of rows){
-    const line=d.line?.name||d.line?.id||'–', origin=d.originLabel||'–', pl=d.platform||'–';
-    const tPl=d.plannedWhen||d.when, tRt=d.prognosedWhen||d.when||null;
-    let deltaTxt='–', cls='ontime'; if(tPl&&tRt){const m=Math.round((new Date(tRt)-new Date(tPl))/60000); deltaTxt=(m>0?`+${m}`:m)+'′'; cls=deltaClass(m)}
-    const color=lineColor(line);
-    const tr=document.createElement('tr'); tr.innerHTML=`
-      <td>${tRt?fmtHM(tRt):(tPl?fmtHM(tPl):'–')}</td>
-      <td class="col-plan">${tPl?fmtHM(tPl):'–'}</td>
-      <td>${origin}</td>
-      <td class="line"><span class="chip glow" style="color:${color}">${iconForProduct(d.line?.product,d.line?.mode)} ${line}</span></td>
-      <td>Sophie-Scholl-Schule, Gießen</td>
-      <td class="col-steig">${pl}</td>
-      <td class="delta ${cls}">${deltaTxt}</td>`;
-    tbody.appendChild(tr);
+    const row=document.createElement('div'); row.className='row-item';
+    row.innerHTML = (mode==='home')
+      ? `
+        <div>${tRt?fmtHM(tRt):(tPl?fmtHM(tPl):'–')}</div>
+        <div class="col-plan">${tPl?fmtHM(tPl):'–'}</div>
+        <div>${origin}</div>
+        <div><span class="chip" style="color:${color}">${iconForProduct(d.line?.product,d.line?.mode)} ${line}</span></div>
+        <div class="col-steig">–</div>
+        <div class="delta ${cls}">${deltaTxt}</div>`
+      : `
+        <div>${tRt?fmtHM(tRt):(tPl?fmtHM(tPl):'–')}</div>
+        <div class="col-plan">${tPl?fmtHM(tPl):'–'}</div>
+        <div><span class="chip" style="color:${color}">${iconForProduct(d.line?.product,d.line?.mode)} ${line}</span></div>
+        <div>${dir}</div>
+        <div class="col-steig">${pl}</div>
+        <div class="delta ${cls}">${deltaTxt}</div>`;
+    box.appendChild(row);
   }
 }
 
-/* ===== Loaders ===== */
+/* ========= Loaders ========= */
 async function ensureIds(){
   if(!ids.school)     ids.school     = await findStopId(Q_SCHOOL, /(sophie|scholl).*(gie(s|ß)en)/i);
   if(!ids.ffm)        ids.ffm        = await findStopId(Q_FFMHBF, /(frankfurt).*(hbf)/i);
@@ -352,9 +367,8 @@ async function ensureIds(){
   if(!ids.giessenBhf) ids.giessenBhf = await findStopId(Q_GIESSEN, /(gie(s|ß)en).*(bahnhof|hbf)/i);
 }
 
-/* Spaltenzählung -> Mindestanzahl Verbindungen */
 function gridCols(){
-  const w = window.innerWidth;
+  const w=window.innerWidth;
   if(w>=1800) return 4;
   if(w>=1440) return 3;
   if(w>=1000) return 2;
@@ -365,12 +379,11 @@ async function loadRoute(aToB=true, extra=false){
   try{
     await ensureIds();
     const from=aToB?ids.school:ids.ffm, to=aToB?ids.ffm:ids.school;
-    const cols = gridCols();
-    const minShort = (cols>=4) ? 8 : 6;        // deine Vorgabe
-    const results = extra ? 24 : Math.max(minShort, 12); // etwas höher anfragen für Puffer
+    const cols=gridCols();
+    const minShort = (cols>=4)?8:6;
+    const results = extra ? 30 : Math.max(minShort, 12); // Puffer
     const data=await fetchJSON(`${API}/journeys?from=${from}&to=${to}&results=${results}&stopovers=true&language=de`);
-    // „Kurz“ = exakt minShort; „Lang“ = alle (bis 24)
-    const list = extra ? data : { journeys: (data.journeys||[]).slice(0, minShort) };
+    const list = extra ? data : {journeys:(data.journeys||[]).slice(0,minShort)};
     renderJourneysInto('cards', list, aToB);
   }catch(e){ document.getElementById('cards').innerHTML=`<div class="card">Fehler: ${e.message}</div>`; }
 }
@@ -379,9 +392,9 @@ async function loadInbound(){
   try{
     await ensureIds();
     const deps=normalizeDepartures(await fetchJSON(`${API}/stops/${ids.school}/departures?duration=120&language=de`));
-    renderDeparturesInto('rows', deps.filter(d=>!EXCLUDE_DIRECTIONS.some(rx=>rx.test(String(d.direction||d.destination||'')))));
-    document.getElementById('depErr').hidden=true;
-  }catch(e){ const el=document.getElementById('depErr'); el.hidden=false; el.textContent=e.message }
+    const filtered=deps.filter(d=>!EXCLUDE_DIRECTIONS.some(rx=>rx.test(String(d.direction||d.destination||''))));
+    renderDeparturesInto('rows', filtered, 'in');
+  }catch(e){ document.getElementById('rows').innerHTML=`<div style="padding:16px;color:var(--bad)">${e.message}</div>`; }
 }
 
 async function loadHomebound(){
@@ -392,60 +405,48 @@ async function loadHomebound(){
       fetchJSON(`${API}/journeys?from=${ids.friedr}&to=${ids.school}&results=20&language=de`)
     ]);
     const rows=[];
-    function pushRows(data,rx,origin){ for(const j of (data?.journeys||[])){ const l=(j.legs||[]).find(x=>x.line && (x.departure||x.plannedDeparture)); if(!l) continue; const name=l.line?.name||''; if(!rx.test(name)) continue; rows.push({originLabel:origin,line:{name,product:l.line?.product},when:l.departure||l.plannedDeparture,plannedWhen:l.plannedDeparture||l.departure,prognosedWhen:l.departure||null,platform:l.platform||l.plannedPlatform||l.prognosedPlatform||'–'}) } }
-    pushRows(j17,/\b(17|Bus\s*17)\b/i,'Gießen Bahnhof'); pushRows(j1,/\b(1|Bus\s*1)\b/i,'Friedrichstraße, Gießen');
+    function pushRows(data,rx,origin){ for(const j of (data?.journeys||[])){ const l=(j.legs||[]).find(x=>x.line && (x.departure||x.plannedDeparture)); if(!l) continue; const name=l.line?.name||''; if(!rx.test(name)) continue; rows.push({originLabel:origin,line:{name,product:l.line?.product},when:l.departure||l.plannedDeparture,plannedWhen:l.plannedDeparture||l.departure,prognosedWhen:l.departure||null}) } }
+    pushRows(j17,/\b(17|Bus\s*17)\b/i,'Gießen Bahnhof');
+    pushRows(j1, /\b(1|Bus\s*1)\b/i,'Friedrichstraße, Gießen');
+
     rows.sort((a,b)=>new Date(a.when||a.plannedWhen)-new Date(b.when||b.plannedWhen));
     const out=[], seen=new Set(); for(const r of rows){const k=(r.originLabel||'')+'|'+(r.line?.name||'')+'|'+(r.when||r.plannedWhen); if(!seen.has(k)){seen.add(k); out.push(r)}}
-    renderHomeDeparturesInto('rows-home', out.slice(0,20));
-    document.getElementById('homeErr').hidden=true;
-  }catch(e){ const el=document.getElementById('homeErr'); el.hidden=false; el.textContent=e.message }
+    renderDeparturesInto('rows-home', out.slice(0,20), 'home');
+  }catch(e){ document.getElementById('rows-home').innerHTML=`<div style="padding:16px;color:var(--bad)">${e.message}</div>`; }
 }
 
-/* ===== Tabs/Refresh ===== */
+/* ========= Tabs / Refresh ========= */
 function setTabs(tab){
-  activeTab=tab; moreLong=false; // Tabwechsel -> wieder Kurzliste
-  for(const a of document.querySelectorAll('.tab')){ const act=a.getAttribute('href')==='#'+tab; a.classList.toggle('active',act); a.setAttribute('aria-selected', String(act)); }
+  activeTab=tab; moreLong=false;
+  document.querySelectorAll('.tab').forEach(a=>{
+    const act=a.getAttribute('href')==='#'+tab; a.classList.toggle('active',act); a.setAttribute('aria-selected',String(act));
+  });
   document.getElementById('view-route').hidden=!(tab==='route-a'||tab==='route-b');
   document.getElementById('view-abfahrten').hidden=(tab!=='abfahrten');
   document.getElementById('view-homebound').hidden=(tab!=='homebound');
 }
 function startRefresh(){
   if(timer) clearInterval(timer);
-  if(activeTab==='abfahrten'){ setFooter(REFRESH_DEPS_MS); loadInbound(); timer=setInterval(loadInbound,REFRESH_DEPS_MS); }
+  if(activeTab==='abfahrten'){ setFooter(REFRESH_DEPS_MS); loadInbound();  timer=setInterval(loadInbound,REFRESH_DEPS_MS); }
   else if(activeTab==='homebound'){ setFooter(REFRESH_DEPS_MS); loadHomebound(); timer=setInterval(loadHomebound,REFRESH_DEPS_MS); }
   else { const aToB=(activeTab==='route-a'); setFooter(REFRESH_ROUTE_MS); loadRoute(aToB, moreLong); timer=setInterval(()=>loadRoute(aToB, moreLong), REFRESH_ROUTE_MS); }
 }
-function handleHash(){ const hash=(location.hash||'#route-a').replace('#',''); const allowed=['route-a','route-b','abfahrten','homebound']; setTabs(allowed.includes(hash)?hash:'route-a'); startRefresh(); }
+function handleHash(){ const h=(location.hash||'#route-a').replace('#',''); const ok=['route-a','route-b','abfahrten','homebound']; setTabs(ok.includes(h)?h:'route-a'); startRefresh(); }
 window.addEventListener('hashchange',handleHash);
-for(const a of document.querySelectorAll('.tab')) a.addEventListener('click',e=>{e.preventDefault(); history.replaceState(null,'',a.getAttribute('href')); handleHash();});
+document.querySelectorAll('.tab').forEach(a=>a.addEventListener('click',e=>{e.preventDefault(); history.replaceState(null,'',a.getAttribute('href')); handleHash();}));
 
-/* ===== Weitere Verbindungen ===== */
-const moreBtn=document.getElementById('moreBtn');
-moreBtn.addEventListener('click', async ()=>{
+/* ========= Weitere Verbindungen (stabil) ========= */
+document.getElementById('moreBtn').addEventListener('click', async ()=>{
   if(!(activeTab==='route-a'||activeTab==='route-b')) return;
-  moreLong=true; // auf lang schalten – bleibt bei Auto-Refresh
-  const aToB=(activeTab==='route-a'); const prev=moreBtn.innerHTML;
-  moreBtn.disabled=true; moreBtn.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i> Lädt…';
-  try{ await loadRoute(aToB,true); } finally { moreBtn.disabled=false; moreBtn.innerHTML=prev; }
+  moreLong=true;
+  const btn=e.target||document.getElementById('moreBtn');
+  const prev=btn.innerHTML; btn.disabled=true; btn.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i> Lädt…';
+  try{ await loadRoute(activeTab==='route-a', true); } finally { btn.disabled=false; btn.innerHTML=prev; }
 });
 
-/* ===== Parallax (sanft) ===== */
-let pxNodes=[], ticking=false;
-function parallaxBind(){ pxNodes=[...document.querySelectorAll('.parallax')]; }
-function onScroll(){ if(!ticking){ window.requestAnimationFrame(()=>{ const y=window.scrollY||0; for(let i=0;i<pxNodes.length;i++){ const d=(i%3+1)*0.06; pxNodes[i].style.transform=`translateY(${(y*d)%6}px)`; } ticking=false;}); ticking=true; } }
-window.addEventListener('scroll', onScroll, {passive:true});
-
-/* ===== Init ===== */
+/* ========= Init & Resize ========= */
 (function init(){ handleHash(); })();
-
-/* ===== Re-Request correct minShort when resizing ===== */
-window.addEventListener('resize', ()=>{
-  if(activeTab==='route-a' || activeTab==='route-b'){
-    // Bei Größenwechsel bleibt Lang-Modus erhalten, sonst Kurz neu nach minShort
-    const aToB=(activeTab==='route-a');
-    loadRoute(aToB, moreLong);
-  }
-});
+window.addEventListener('resize', ()=>{ if(activeTab==='route-a'||activeTab==='route-b') loadRoute(activeTab==='route-a', moreLong); });
 </script>
 </body>
 </html>
