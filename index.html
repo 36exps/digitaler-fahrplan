@@ -1,0 +1,427 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <meta http-equiv="Content-Style-Type" content="text/css">
+  <title></title>
+  <meta name="Generator" content="Cocoa HTML Writer">
+  <meta name="CocoaVersion" content="2575.7">
+  <style type="text/css">
+    p.p1 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px Helvetica}
+    p.p2 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px Helvetica; min-height: 14.0px}
+  </style>
+</head>
+<body>
+<p class="p1">&lt;!doctype html&gt;</p>
+<p class="p1">&lt;html lang="de" data-theme="light"&gt;</p>
+<p class="p1">&lt;head&gt;</p>
+<p class="p1">&lt;meta charset="utf-8" /&gt;</p>
+<p class="p1">&lt;meta name="viewport" content="width=device-width, initial-scale=1" /&gt;</p>
+<p class="p1">&lt;title&gt;Digitaler Fahrplan&lt;/title&gt;</p>
+<p class="p2"><br></p>
+<p class="p1">&lt;!-- Font Awesome (kostenlos, ohne Account) für Sonne/Mond + Fahrzeug-Icons --&gt;</p>
+<p class="p1">&lt;link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.2/css/all.min.css"&gt;</p>
+<p class="p2"><br></p>
+<p class="p1">&lt;meta name="apple-mobile-web-app-capable" content="yes"&gt;</p>
+<p class="p1">&lt;meta name="apple-mobile-web-app-title" content="Digitaler Fahrplan"&gt;</p>
+<p class="p2"><br></p>
+<p class="p1">&lt;style&gt;</p>
+<p class="p1"><span class="Apple-converted-space">  </span>/* ========= Design-System (DB-inspiriert) ========= */</p>
+<p class="p1"><span class="Apple-converted-space">  </span>:root{</p>
+<p class="p1"><span class="Apple-converted-space">    </span>--accent:#ec0016;<span class="Apple-converted-space">        </span>/* DB-Rot */</p>
+<p class="p1"><span class="Apple-converted-space">    </span>--bg:#f8f9fb;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>--panel:#ffffff;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>--text:#181c22;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>--muted:#667486;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>--rule:#e5eaf0;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>--chip:#f3f6f9;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>--shadow:0 0 0 1px rgba(0,0,0,.02), 0 10px 30px rgba(0,0,0,.08);</p>
+<p class="p1"><span class="Apple-converted-space">    </span>--font: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;</p>
+<p class="p1"><span class="Apple-converted-space">  </span>}</p>
+<p class="p1"><span class="Apple-converted-space">  </span>[data-theme="dark"]{</p>
+<p class="p1"><span class="Apple-converted-space">    </span>--bg:#0b0f14;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>--panel:#0f1620;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>--text:#eaf2ff;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>--muted:#9aa8bd;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>--rule:#16202c;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>--chip:#111c28;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>--shadow:none;</p>
+<p class="p1"><span class="Apple-converted-space">  </span>}</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">  </span>html,body{height:100%}</p>
+<p class="p1"><span class="Apple-converted-space">  </span>body{margin:0; background:var(--bg); color:var(--text); font-family:var(--font); -webkit-font-smoothing:antialiased;}</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">  </span>/* ========= Header ========= */</p>
+<p class="p1"><span class="Apple-converted-space">  </span>.hdr{</p>
+<p class="p1"><span class="Apple-converted-space">    </span>position:sticky; top:0; z-index:40;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>display:flex; align-items:center; gap:16px;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>padding:16px 20px; background:var(--panel);</p>
+<p class="p1"><span class="Apple-converted-space">    </span>border-bottom:1px solid var(--rule); box-shadow:var(--shadow);</p>
+<p class="p1"><span class="Apple-converted-space">  </span>}</p>
+<p class="p1"><span class="Apple-converted-space">  </span>.brand{ font-weight:800; letter-spacing:.2px; font-size:22px; }</p>
+<p class="p1"><span class="Apple-converted-space">  </span>.spacer{ flex:1 }</p>
+<p class="p1"><span class="Apple-converted-space">  </span>.iconbtn{</p>
+<p class="p1"><span class="Apple-converted-space">    </span>border:1px solid var(--rule); background:var(--chip); color:var(--text);</p>
+<p class="p1"><span class="Apple-converted-space">    </span>border-radius:12px; padding:10px 12px; display:inline-flex; align-items:center; gap:10px;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>cursor:pointer; user-select:none; font-weight:700;</p>
+<p class="p1"><span class="Apple-converted-space">  </span>}</p>
+<p class="p1"><span class="Apple-converted-space">  </span>.iconbtn i{ font-size:18px }</p>
+<p class="p1"><span class="Apple-converted-space">  </span>.iconbtn:hover{ filter:brightness(.98); }</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">  </span>/* ========= Tabs ========= */</p>
+<p class="p1"><span class="Apple-converted-space">  </span>.tabs{</p>
+<p class="p1"><span class="Apple-converted-space">    </span>display:flex; gap:10px; padding:10px 16px; overflow:auto hidden;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>background:var(--panel); border-bottom:1px solid var(--rule);</p>
+<p class="p1"><span class="Apple-converted-space">  </span>}</p>
+<p class="p1"><span class="Apple-converted-space">  </span>.tab{</p>
+<p class="p1"><span class="Apple-converted-space">    </span>padding:10px 14px; border-radius:10px; white-space:nowrap; text-decoration:none;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>color:var(--muted); border:1px solid transparent; flex:0 0 auto; font-weight:800; font-size:16px;</p>
+<p class="p1"><span class="Apple-converted-space">  </span>}</p>
+<p class="p1"><span class="Apple-converted-space">  </span>.tab.active{ color:var(--accent); background:var(--panel); border-color:var(--rule); }</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">  </span>/* ========= Content Wrapper ========= */</p>
+<p class="p1"><span class="Apple-converted-space">  </span>.wrap{ padding:12px 16px 18px; max-width:1920px; margin:0 auto; }</p>
+<p class="p1"><span class="Apple-converted-space">  </span>.panel{</p>
+<p class="p1"><span class="Apple-converted-space">    </span>background:var(--panel); border:1px solid var(--rule); border-radius:14px; overflow:hidden; box-shadow:var(--shadow);</p>
+<p class="p1"><span class="Apple-converted-space">  </span>}</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">  </span>/* ========= Journeys (Routen) ========= */</p>
+<p class="p1"><span class="Apple-converted-space">  </span>.cards{ display:grid; grid-template-columns: 1fr; }</p>
+<p class="p1"><span class="Apple-converted-space">  </span>.card{ padding:18px; border-top:1px solid var(--rule); }</p>
+<p class="p1"><span class="Apple-converted-space">  </span>.card:first-child{ border-top:none; }</p>
+<p class="p1"><span class="Apple-converted-space">  </span>.row1{ display:flex; gap:10px; align-items:baseline; flex-wrap:wrap; }</p>
+<p class="p1"><span class="Apple-converted-space">  </span>.dep,.arr,.dur,.chg{ font-variant-numeric:tabular-nums; font-weight:800; }</p>
+<p class="p1"><span class="Apple-converted-space">  </span>.meta{ color:var(--muted); }</p>
+<p class="p1"><span class="Apple-converted-space">  </span>.chips{ display:flex; gap:10px; margin-top:10px; flex-wrap:wrap; }</p>
+<p class="p1"><span class="Apple-converted-space">  </span>.chip{</p>
+<p class="p1"><span class="Apple-converted-space">    </span>display:inline-flex; align-items:center; gap:10px;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>background:var(--chip); border:1px solid var(--rule); border-radius:10px;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>padding:8px 12px; font-weight:800;</p>
+<p class="p1"><span class="Apple-converted-space">  </span>}</p>
+<p class="p1"><span class="Apple-converted-space">  </span>.chip i{ opacity:.9 }</p>
+<p class="p1"><span class="Apple-converted-space">  </span>.sub{ margin-top:6px; color:var(--muted); }</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">  </span>@media (min-width:1100px){</p>
+<p class="p1"><span class="Apple-converted-space">    </span>.cards{ grid-template-columns: 1fr 1fr; }</p>
+<p class="p1"><span class="Apple-converted-space">    </span>.card{ min-height:92px; }</p>
+<p class="p1"><span class="Apple-converted-space">  </span>}</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">  </span>/* ========= Abfahrten-Tabelle ========= */</p>
+<p class="p1"><span class="Apple-converted-space">  </span>table{ width:100%; border-collapse:collapse; }</p>
+<p class="p1"><span class="Apple-converted-space">  </span>thead th{</p>
+<p class="p1"><span class="Apple-converted-space">    </span>text-align:left; background:var(--panel); position:sticky; top:126px; z-index:5;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>padding:14px 16px; color:var(--muted); border-bottom:1px solid var(--rule);</p>
+<p class="p1"><span class="Apple-converted-space">  </span>}</p>
+<p class="p1"><span class="Apple-converted-space">  </span>tbody td{</p>
+<p class="p1"><span class="Apple-converted-space">    </span>padding:14px 16px; border-bottom:1px solid var(--rule);</p>
+<p class="p1"><span class="Apple-converted-space">  </span>}</p>
+<p class="p1"><span class="Apple-converted-space">  </span>.line{ font-weight:900; }</p>
+<p class="p1"><span class="Apple-converted-space">  </span>.delta{ font-variant-numeric:tabular-nums; font-weight:800; }</p>
+<p class="p1"><span class="Apple-converted-space">  </span>.late{ color:#b40000; }</p>
+<p class="p1"><span class="Apple-converted-space">  </span>.early{ color:#0a8a3f; }</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">  </span>.hint{ padding:10px 12px; color:var(--muted); font-size:14px; }</p>
+<p class="p1"><span class="Apple-converted-space">  </span>.err{ color:#b40000; padding:14px 16px; }</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">  </span>/* ========= Footer (klein) ========= */</p>
+<p class="p1"><span class="Apple-converted-space">  </span>footer{</p>
+<p class="p1"><span class="Apple-converted-space">    </span>padding:10px 16px; color:var(--muted); font-size:13px; display:flex; gap:12px; align-items:center;</p>
+<p class="p1"><span class="Apple-converted-space">  </span>}</p>
+<p class="p1"><span class="Apple-converted-space">  </span>footer .dot{ opacity:.5 }</p>
+<p class="p1">&lt;/style&gt;</p>
+<p class="p1">&lt;/head&gt;</p>
+<p class="p1">&lt;body&gt;</p>
+<p class="p1"><span class="Apple-converted-space">  </span>&lt;!-- Header --&gt;</p>
+<p class="p1"><span class="Apple-converted-space">  </span>&lt;div class="hdr" role="banner"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;div class="brand"&gt;Digitaler Fahrplan&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;div class="spacer"&gt;&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;button id="themeBtn" class="iconbtn" aria-label="Design umschalten" title="Design umschalten"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;i class="fa-solid fa-sun" id="sunIcon"&gt;&lt;/i&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;i class="fa-solid fa-moon" id="moonIcon" style="display:none"&gt;&lt;/i&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;span id="themeLabel"&gt;Hell&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;/button&gt;</p>
+<p class="p1"><span class="Apple-converted-space">  </span>&lt;/div&gt;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">  </span>&lt;!-- Tabs --&gt;</p>
+<p class="p1"><span class="Apple-converted-space">  </span>&lt;nav class="tabs" role="tablist" aria-label="Ansichten"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;a href="#route-a" class="tab active" role="tab" aria-selected="true" id="tab-a"&gt;Gießen → Frankfurt(Main) Hbf&lt;/a&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;a href="#route-b" class="tab" role="tab" aria-selected="false" id="tab-b"&gt;Frankfurt(Main) Hbf → Gießen&lt;/a&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;a href="#abfahrten" class="tab" role="tab" aria-selected="false" id="tab-c"&gt;Abfahrten (stadt­einwärts)&lt;/a&gt;</p>
+<p class="p1"><span class="Apple-converted-space">  </span>&lt;/nav&gt;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">  </span>&lt;div class="wrap"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;div class="panel" id="panel"&gt;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;!-- Route Cards --&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div id="view-route" hidden&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;div class="hint"&gt;Nächste Verbindungen. Quelle: transport.rest (DB/HAFAS). Aktualisiert alle 60 s.&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;div id="cards" class="cards"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">          </span>&lt;div class="card meta"&gt;Lade Verbindungen …&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;!-- Departures Table --&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div id="view-abfahrten" hidden&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;div class="hint"&gt;Nur stadt­einwärts (Ziele Richtung Innenstadt/Bahnhof). „Rödgen“ und „Coleman Str.“ werden ausgeblendet. Aktualisiert alle 30 s.&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;table&gt;</p>
+<p class="p1"><span class="Apple-converted-space">          </span>&lt;thead&gt;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>&lt;tr&gt;</p>
+<p class="p1"><span class="Apple-converted-space">              </span>&lt;th style="width:120px;"&gt;Abfahrt&lt;/th&gt;</p>
+<p class="p1"><span class="Apple-converted-space">              </span>&lt;th style="width:120px;"&gt;Plan&lt;/th&gt;</p>
+<p class="p1"><span class="Apple-converted-space">              </span>&lt;th style="width:120px;"&gt;Linie&lt;/th&gt;</p>
+<p class="p1"><span class="Apple-converted-space">              </span>&lt;th&gt;Ziel&lt;/th&gt;</p>
+<p class="p1"><span class="Apple-converted-space">              </span>&lt;th style="width:120px;"&gt;Steig&lt;/th&gt;</p>
+<p class="p1"><span class="Apple-converted-space">              </span>&lt;th style="width:100px;"&gt;∆&lt;/th&gt;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>&lt;/tr&gt;</p>
+<p class="p1"><span class="Apple-converted-space">          </span>&lt;/thead&gt;</p>
+<p class="p1"><span class="Apple-converted-space">          </span>&lt;tbody id="rows"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>&lt;tr&gt;&lt;td colspan="6" class="meta" style="padding:18px"&gt;Lade Abfahrten …&lt;/td&gt;&lt;/tr&gt;</p>
+<p class="p1"><span class="Apple-converted-space">          </span>&lt;/tbody&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;/table&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;div class="err" id="depErr" hidden&gt;&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">  </span>&lt;/div&gt;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">  </span>&lt;footer&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;span id="refreshInfo"&gt;Aktualisierung: —&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;span class="dot"&gt;•&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;span id="lastUpdated"&gt;Zuletzt: —&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">  </span>&lt;/footer&gt;</p>
+<p class="p2"><br></p>
+<p class="p1">&lt;script&gt;</p>
+<p class="p1">/* ========= Config ========= */</p>
+<p class="p1">const API = 'https://v6.db.transport.rest';</p>
+<p class="p1">const Q_SCHOOL = 'Sophie-Scholl-Schule Gießen';</p>
+<p class="p1">const Q_FFMHBF = 'Frankfurt(Main) Hbf';</p>
+<p class="p1">const REFRESH_ROUTE_MS = 60000;<span class="Apple-converted-space">  </span>// 60 s</p>
+<p class="p1">const REFRESH_DEPS_MS<span class="Apple-converted-space">  </span>= 30000;<span class="Apple-converted-space">  </span>// 30 s</p>
+<p class="p2"><br></p>
+<p class="p1">// Stadteinwärts: bekannte Gegenrichtungen ausschließen</p>
+<p class="p1">const EXCLUDE_DIRECTIONS = [/rödgen/i, /coleman/i];</p>
+<p class="p2"><br></p>
+<p class="p1">/* ========= State ========= */</p>
+<p class="p1">let ids = { school:null, ffm:null };</p>
+<p class="p1">let activeTab = 'route-a';</p>
+<p class="p1">let timer = null;</p>
+<p class="p1">let lastUpdated = null;</p>
+<p class="p2"><br></p>
+<p class="p1">/* ========= Utilities ========= */</p>
+<p class="p1">function fmtHM(d){ return new Date(d).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'}); }</p>
+<p class="p1">function fmtHMS(d){ return new Date(d).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit',second:'2-digit'}); }</p>
+<p class="p1">function setFooter(infoMs){</p>
+<p class="p1"><span class="Apple-converted-space">  </span>document.getElementById('refreshInfo').textContent = 'Aktualisierung: alle ' + Math.round(infoMs/1000) + ' s';</p>
+<p class="p1"><span class="Apple-converted-space">  </span>document.getElementById('lastUpdated').textContent = 'Zuletzt: ' + (lastUpdated ? fmtHMS(lastUpdated) : '—');</p>
+<p class="p1">}</p>
+<p class="p1">async function fetchJSON(url){</p>
+<p class="p1"><span class="Apple-converted-space">  </span>const r = await fetch(url);</p>
+<p class="p1"><span class="Apple-converted-space">  </span>if(!r.ok) throw new Error(`${url} → ${r.status}`);</p>
+<p class="p1"><span class="Apple-converted-space">  </span>lastUpdated = Date.now();</p>
+<p class="p1"><span class="Apple-converted-space">  </span>setFooter(activeTab==='abfahrten' ? REFRESH_DEPS_MS : REFRESH_ROUTE_MS);</p>
+<p class="p1"><span class="Apple-converted-space">  </span>return r.json();</p>
+<p class="p1">}</p>
+<p class="p1">async function findStopId(query){</p>
+<p class="p1"><span class="Apple-converted-space">  </span>const url = `${API}/locations?query=${encodeURIComponent(query)}&amp;results=8&amp;stops=true`;</p>
+<p class="p1"><span class="Apple-converted-space">  </span>const data = await fetchJSON(url);</p>
+<p class="p1"><span class="Apple-converted-space">  </span>const first = data.find(x =&gt; x.type==='stop' || x.type==='station');</p>
+<p class="p1"><span class="Apple-converted-space">  </span>return first?.id || null;</p>
+<p class="p1">}</p>
+<p class="p2"><br></p>
+<p class="p1">/* ========= Theme ========= */</p>
+<p class="p1">function setTheme(mode){</p>
+<p class="p1"><span class="Apple-converted-space">  </span>document.documentElement.setAttribute('data-theme', mode);</p>
+<p class="p1"><span class="Apple-converted-space">  </span>localStorage.setItem('fahrplan-theme', mode);</p>
+<p class="p1"><span class="Apple-converted-space">  </span>const sun = document.getElementById('sunIcon');</p>
+<p class="p1"><span class="Apple-converted-space">  </span>const moon= document.getElementById('moonIcon');</p>
+<p class="p1"><span class="Apple-converted-space">  </span>const lab = document.getElementById('themeLabel');</p>
+<p class="p1"><span class="Apple-converted-space">  </span>if(mode==='dark'){ sun.style.display='none'; moon.style.display='inline-block'; lab.textContent='Dunkel'; }</p>
+<p class="p1"><span class="Apple-converted-space">  </span>else { moon.style.display='none'; sun.style.display='inline-block'; lab.textContent='Hell'; }</p>
+<p class="p1">}</p>
+<p class="p1">document.getElementById('themeBtn').addEventListener('click', ()=&gt;{</p>
+<p class="p1"><span class="Apple-converted-space">  </span>const cur = document.documentElement.getAttribute('data-theme') || 'light';</p>
+<p class="p1"><span class="Apple-converted-space">  </span>setTheme(cur==='light' ? 'dark':'light');</p>
+<p class="p1">});</p>
+<p class="p1">setTheme(localStorage.getItem('fahrplan-theme') || 'light');</p>
+<p class="p2"><br></p>
+<p class="p1">/* ========= Icon Mapper ========= */</p>
+<p class="p1">function iconForProduct(product, mode){</p>
+<p class="p1"><span class="Apple-converted-space">  </span>const p = (product||'').toLowerCase();</p>
+<p class="p1"><span class="Apple-converted-space">  </span>const m = (mode||'').toLowerCase();</p>
+<p class="p1"><span class="Apple-converted-space">  </span>if(p.includes('bus') || m==='bus') return '&lt;i class="fa-solid fa-bus"&gt;&lt;/i&gt;';</p>
+<p class="p1"><span class="Apple-converted-space">  </span>if(p.includes('suburban') || p.includes('s-bahn') || m==='subway') return '&lt;i class="fa-solid fa-train-subway"&gt;&lt;/i&gt;';</p>
+<p class="p1"><span class="Apple-converted-space">  </span>if(p.includes('tram')) return '&lt;i class="fa-solid fa-train-tram"&gt;&lt;/i&gt;'; /* falls nicht vorhanden, nutzt FA Fallback auf square */</p>
+<p class="p1"><span class="Apple-converted-space">  </span>return '&lt;i class="fa-solid fa-train"&gt;&lt;/i&gt;'; // Regional, RE/RB, IC/ICE</p>
+<p class="p1">}</p>
+<p class="p2"><br></p>
+<p class="p1">/* ========= Renderers ========= */</p>
+<p class="p1">// Journeys</p>
+<p class="p1">function renderJourneys(list, aToB){</p>
+<p class="p1"><span class="Apple-converted-space">  </span>const wrap = document.getElementById('cards');</p>
+<p class="p1"><span class="Apple-converted-space">  </span>wrap.innerHTML = '';</p>
+<p class="p1"><span class="Apple-converted-space">  </span>if(!list?.journeys?.length){</p>
+<p class="p1"><span class="Apple-converted-space">    </span>wrap.innerHTML = `&lt;div class="card meta"&gt;Keine Verbindungen gefunden.&lt;/div&gt;`;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>return;</p>
+<p class="p1"><span class="Apple-converted-space">  </span>}</p>
+<p class="p1"><span class="Apple-converted-space">  </span>for(const j of list.journeys.slice(0, 8)){</p>
+<p class="p1"><span class="Apple-converted-space">    </span>const legs = (j.legs||[]);</p>
+<p class="p1"><span class="Apple-converted-space">    </span>const dep = j.departure || legs[0]?.departure;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>const arr = j.arrival || legs[legs.length-1]?.arrival;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>const changes = Math.max(0, legs.filter(l=&gt;l.line).length - 1);</p>
+<p class="p1"><span class="Apple-converted-space">    </span>const dur = (j.duration||'').replace('PT','').toLowerCase();</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">    </span>const chips = legs</p>
+<p class="p1"><span class="Apple-converted-space">      </span>.filter(l =&gt; l.line) // nur echte Fahrten, keine Fußwege</p>
+<p class="p1"><span class="Apple-converted-space">      </span>.map(l =&gt; {</p>
+<p class="p1"><span class="Apple-converted-space">        </span>const line = l.line?.name || l.mode || '';</p>
+<p class="p1"><span class="Apple-converted-space">        </span>const icn<span class="Apple-converted-space">  </span>= iconForProduct(l.line?.product, l.mode);</p>
+<p class="p1"><span class="Apple-converted-space">        </span>return `&lt;span class="chip"&gt;${icn} ${line}&lt;/span&gt;`;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>}).join('');</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">    </span>const subtitle = aToB</p>
+<p class="p1"><span class="Apple-converted-space">      </span>? 'Sophie-Scholl-Schule → Frankfurt(Main) Hbf'</p>
+<p class="p1"><span class="Apple-converted-space">      </span>: 'Frankfurt(Main) Hbf → Sophie-Scholl-Schule';</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">    </span>const el = document.createElement('div');</p>
+<p class="p1"><span class="Apple-converted-space">    </span>el.className = 'card';</p>
+<p class="p1"><span class="Apple-converted-space">    </span>el.innerHTML = `</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="row1"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;div class="dep"&gt;${fmtHM(dep)}&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;div class="meta"&gt;→&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;div class="arr"&gt;${fmtHM(arr)}&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;div class="meta"&gt;•&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;div class="dur"&gt;${dur}&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;div class="meta"&gt;• Umstiege:&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;div class="chg"&gt;${changes}&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="chips"&gt;${chips || '&lt;span class="chip"&gt;&lt;i class="fa-solid fa-person-walking"&gt;&lt;/i&gt; Fußweg&lt;/span&gt;'}&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="sub"&gt;${subtitle}&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>`;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>wrap.appendChild(el);</p>
+<p class="p1"><span class="Apple-converted-space">  </span>}</p>
+<p class="p1">}</p>
+<p class="p2"><br></p>
+<p class="p1">// Departures (stadt­einwärts)</p>
+<p class="p1">function renderDepartures(deps){</p>
+<p class="p1"><span class="Apple-converted-space">  </span>const tbody = document.getElementById('rows');</p>
+<p class="p1"><span class="Apple-converted-space">  </span>tbody.innerHTML = '';</p>
+<p class="p1"><span class="Apple-converted-space">  </span>const filtered = (deps||[]).filter(d=&gt;{</p>
+<p class="p1"><span class="Apple-converted-space">    </span>const dir = (d.direction || d.destination || '').toString();</p>
+<p class="p1"><span class="Apple-converted-space">    </span>return !EXCLUDE_DIRECTIONS.some(rx =&gt; rx.test(dir));</p>
+<p class="p1"><span class="Apple-converted-space">  </span>});</p>
+<p class="p1"><span class="Apple-converted-space">  </span>if(filtered.length===0){</p>
+<p class="p1"><span class="Apple-converted-space">    </span>tbody.innerHTML = `&lt;tr&gt;&lt;td colspan="6" class="meta" style="padding:18px"&gt;Keine passenden Abfahrten.&lt;/td&gt;&lt;/tr&gt;`;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>return;</p>
+<p class="p1"><span class="Apple-converted-space">  </span>}</p>
+<p class="p1"><span class="Apple-converted-space">  </span>for(const d of filtered){</p>
+<p class="p1"><span class="Apple-converted-space">    </span>const line = d.line?.name || d.line?.id || '–';</p>
+<p class="p1"><span class="Apple-converted-space">    </span>const dir = d.direction || d.destination || '–';</p>
+<p class="p1"><span class="Apple-converted-space">    </span>const pl<span class="Apple-converted-space">  </span>= d.platform || d.prognosedPlatform || d.plannedPlatform || '–';</p>
+<p class="p1"><span class="Apple-converted-space">    </span>const tPl = d.plannedWhen || d.when || d.scheduledWhen;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>const tRt = d.prognosedWhen || d.when || null;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>let delta = '–', cls='';</p>
+<p class="p1"><span class="Apple-converted-space">    </span>if(tPl &amp;&amp; tRt){</p>
+<p class="p1"><span class="Apple-converted-space">      </span>const m = Math.round((new Date(tRt) - new Date(tPl))/60000);</p>
+<p class="p1"><span class="Apple-converted-space">      </span>delta = (m&gt;0? '+'+m: m) + '′';</p>
+<p class="p1"><span class="Apple-converted-space">      </span>if(m&gt;=2) cls='late'; else if(m&lt;=-2) cls='early';</p>
+<p class="p1"><span class="Apple-converted-space">    </span>}</p>
+<p class="p1"><span class="Apple-converted-space">    </span>const tr = document.createElement('tr');</p>
+<p class="p1"><span class="Apple-converted-space">    </span>tr.innerHTML = `</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;td&gt;${tRt ? fmtHM(tRt) : (tPl?fmtHM(tPl):'–')}&lt;/td&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;td&gt;${tPl ? fmtHM(tPl) : '–'}&lt;/td&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;td class="line"&gt;${line}&lt;/td&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;td&gt;${dir}&lt;/td&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;td&gt;${pl}&lt;/td&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;td class="delta ${cls}"&gt;${delta}&lt;/td&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>`;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>tbody.appendChild(tr);</p>
+<p class="p1"><span class="Apple-converted-space">  </span>}</p>
+<p class="p1">}</p>
+<p class="p2"><br></p>
+<p class="p1">/* ========= Loaders ========= */</p>
+<p class="p1">async function ensureIds(){</p>
+<p class="p1"><span class="Apple-converted-space">  </span>if(!ids.school) ids.school = await findStopId(Q_SCHOOL);</p>
+<p class="p1"><span class="Apple-converted-space">  </span>if(!ids.ffm)<span class="Apple-converted-space">    </span>ids.ffm<span class="Apple-converted-space">    </span>= await findStopId(Q_FFMHBF);</p>
+<p class="p1">}</p>
+<p class="p2"><br></p>
+<p class="p1">async function loadRoute(aToB=true){</p>
+<p class="p1"><span class="Apple-converted-space">  </span>try{</p>
+<p class="p1"><span class="Apple-converted-space">    </span>await ensureIds();</p>
+<p class="p1"><span class="Apple-converted-space">    </span>const from = aToB ? ids.school : ids.ffm;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>const to <span class="Apple-converted-space">  </span>= aToB ? ids.ffm<span class="Apple-converted-space">    </span>: ids.school;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>if(!from || !to) throw new Error('Haltestellen nicht gefunden.');</p>
+<p class="p1"><span class="Apple-converted-space">    </span>const url = `${API}/journeys?from=${from}&amp;to=${to}&amp;results=8&amp;stopovers=false&amp;language=de`;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>const data = await fetchJSON(url);</p>
+<p class="p1"><span class="Apple-converted-space">    </span>renderJourneys(data, aToB);</p>
+<p class="p1"><span class="Apple-converted-space">  </span>}catch(e){</p>
+<p class="p1"><span class="Apple-converted-space">    </span>document.getElementById('cards').innerHTML = `&lt;div class="card err"&gt;${e.message}&lt;/div&gt;`;</p>
+<p class="p1"><span class="Apple-converted-space">  </span>}</p>
+<p class="p1">}</p>
+<p class="p2"><br></p>
+<p class="p1">async function loadDepartures(){</p>
+<p class="p1"><span class="Apple-converted-space">  </span>try{</p>
+<p class="p1"><span class="Apple-converted-space">    </span>await ensureIds();</p>
+<p class="p1"><span class="Apple-converted-space">    </span>const url = `${API}/stops/${ids.school}/departures?duration=90&amp;language=de`;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>const deps = await fetchJSON(url);</p>
+<p class="p1"><span class="Apple-converted-space">    </span>renderDepartures(deps);</p>
+<p class="p1"><span class="Apple-converted-space">    </span>document.getElementById('depErr').hidden = true;</p>
+<p class="p1"><span class="Apple-converted-space">  </span>}catch(e){</p>
+<p class="p1"><span class="Apple-converted-space">    </span>document.getElementById('depErr').hidden = false;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>document.getElementById('depErr').textContent = e.message;</p>
+<p class="p1"><span class="Apple-converted-space">  </span>}</p>
+<p class="p1">}</p>
+<p class="p2"><br></p>
+<p class="p1">/* ========= Tabs &amp; Intervals ========= */</p>
+<p class="p1">function setTabs(tab){</p>
+<p class="p1"><span class="Apple-converted-space">  </span>activeTab = tab;</p>
+<p class="p1"><span class="Apple-converted-space">  </span>for(const a of document.querySelectorAll('.tab')){</p>
+<p class="p1"><span class="Apple-converted-space">    </span>const act = a.getAttribute('href') === '#'+tab;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>a.classList.toggle('active', act);</p>
+<p class="p1"><span class="Apple-converted-space">    </span>a.setAttribute('aria-selected', String(act));</p>
+<p class="p1"><span class="Apple-converted-space">  </span>}</p>
+<p class="p1"><span class="Apple-converted-space">  </span>const viewRoute = document.getElementById('view-route');</p>
+<p class="p1"><span class="Apple-converted-space">  </span>const viewDeps<span class="Apple-converted-space">  </span>= document.getElementById('view-abfahrten');</p>
+<p class="p1"><span class="Apple-converted-space">  </span>if(tab === 'abfahrten'){ viewRoute.hidden = true; viewDeps.hidden = false; }</p>
+<p class="p1"><span class="Apple-converted-space">  </span>else { viewRoute.hidden = false; viewDeps.hidden = true; }</p>
+<p class="p1">}</p>
+<p class="p2"><br></p>
+<p class="p1">function startRefresh(){</p>
+<p class="p1"><span class="Apple-converted-space">  </span>if(timer) clearInterval(timer);</p>
+<p class="p1"><span class="Apple-converted-space">  </span>if(activeTab==='abfahrten'){</p>
+<p class="p1"><span class="Apple-converted-space">    </span>setFooter(REFRESH_DEPS_MS);</p>
+<p class="p1"><span class="Apple-converted-space">    </span>loadDepartures();</p>
+<p class="p1"><span class="Apple-converted-space">    </span>timer = setInterval(loadDepartures, REFRESH_DEPS_MS);</p>
+<p class="p1"><span class="Apple-converted-space">  </span>}else{</p>
+<p class="p1"><span class="Apple-converted-space">    </span>const aToB = activeTab==='route-a';</p>
+<p class="p1"><span class="Apple-converted-space">    </span>setFooter(REFRESH_ROUTE_MS);</p>
+<p class="p1"><span class="Apple-converted-space">    </span>loadRoute(aToB);</p>
+<p class="p1"><span class="Apple-converted-space">    </span>timer = setInterval(()=&gt;loadRoute(aToB), REFRESH_ROUTE_MS);</p>
+<p class="p1"><span class="Apple-converted-space">  </span>}</p>
+<p class="p1">}</p>
+<p class="p2"><br></p>
+<p class="p1">function handleHash(){</p>
+<p class="p1"><span class="Apple-converted-space">  </span>const hash = (location.hash || '#route-a').replace('#','');</p>
+<p class="p1"><span class="Apple-converted-space">  </span>const allowed = ['route-a','route-b','abfahrten'];</p>
+<p class="p1"><span class="Apple-converted-space">  </span>setTabs(allowed.includes(hash) ? hash : 'route-a');</p>
+<p class="p1"><span class="Apple-converted-space">  </span>startRefresh();</p>
+<p class="p1">}</p>
+<p class="p1">window.addEventListener('hashchange', handleHash);</p>
+<p class="p2"><br></p>
+<p class="p1">// Tab clicks (verhindert Scroll-Jump auf iOS)</p>
+<p class="p1">for(const a of document.querySelectorAll('.tab')){</p>
+<p class="p1"><span class="Apple-converted-space">  </span>a.addEventListener('click', (e)=&gt;{</p>
+<p class="p1"><span class="Apple-converted-space">    </span>e.preventDefault();</p>
+<p class="p1"><span class="Apple-converted-space">    </span>const h = a.getAttribute('href');</p>
+<p class="p1"><span class="Apple-converted-space">    </span>history.replaceState(null,'',h);</p>
+<p class="p1"><span class="Apple-converted-space">    </span>handleHash();</p>
+<p class="p1"><span class="Apple-converted-space">  </span>});</p>
+<p class="p1">}</p>
+<p class="p2"><br></p>
+<p class="p1">/* ========= Init ========= */</p>
+<p class="p1">(function init(){</p>
+<p class="p1"><span class="Apple-converted-space">  </span>handleHash();</p>
+<p class="p1">})();</p>
+<p class="p1">&lt;/script&gt;</p>
+<p class="p1">&lt;/body&gt;</p>
+<p class="p1">&lt;/html&gt;</p>
+</body>
+</html>
