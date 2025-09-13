@@ -14,75 +14,202 @@
 <meta name="apple-mobile-web-app-title" content="Pendler Dashboard">
 
 <style>
+  /* ================== Design Tokens (iOS-like, Glass) ================== */
   :root{
-    --accent:#ec0016; --bg:#f8f9fb; --panel:#ffffff; --text:#181c22; --muted:#667486;
-    --rule:#e5eaf0; --chip:#f3f6f9; --shadow:0 0 0 1px rgba(0,0,0,.02), 0 10px 30px rgba(0,0,0,.08);
-    --font: system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+    --bg:            linear-gradient(135deg,#f6f8ff 0%,#eef2ff 40%,#f9fbff 100%);
+    --panel:         rgba(255,255,255,.55);
+    --panel-strong:  rgba(255,255,255,.7);
+    --text:          #0e1116;
+    --muted:         #5e6a7d;
+    --rule:          rgba(20,32,50,.08);
+    --chip:          rgba(255,255,255,.45);
+    --accent:        #0a84ff; /* iOS accent */
+    --ok:            #27ae60;
+    --warn:          #e67e22;
+    --bad:           #e74c3c;
+    --ring:          0 0 0 1px rgba(10,132,255,.14), 0 8px 30px rgba(12,22,38,.08);
+    --font:          ui-rounded, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+    --radius-xl:     18px;
+    --radius-lg:     14px;
+    --radius-md:     12px;
+    --blur:          16px;
+    --glass-border:  1px solid rgba(255,255,255,.35);
+    --glass-inset:   inset 0 1px 0 rgba(255,255,255,.35), inset 0 -1px 0 rgba(0,0,0,.03);
   }
-  [data-theme="dark"]{ --bg:#0b0f14; --panel:#0f1620; --text:#eaf2ff; --muted:#9aa8bd; --rule:#16202c; --chip:#111c28; --shadow:none; }
+  [data-theme="dark"]{
+    --bg:            radial-gradient(1200px 800px at 10% -10%, #1a2230 0%, #0e141d 40%, #0a0f16 100%);
+    --panel:         rgba(20,30,45,.45);
+    --panel-strong:  rgba(20,30,45,.6);
+    --text:          #ecf2ff;
+    --muted:         #a2b0c6;
+    --rule:          rgba(255,255,255,.06);
+    --chip:          rgba(255,255,255,.07);
+    --accent:        #2997ff;
+    --ring:          0 0 0 1px rgba(41,151,255,.20), 0 10px 40px rgba(3,10,20,.6);
+    --glass-border:  1px solid rgba(255,255,255,.18);
+    --glass-inset:   inset 0 1px 0 rgba(255,255,255,.12), inset 0 -1px 0 rgba(0,0,0,.25);
+  }
+
   html,body{height:100%}
-  body{margin:0; background:var(--bg); color:var(--text); font-family:var(--font); -webkit-font-smoothing:antialiased;}
+  body{
+    margin:0; color:var(--text); font-family:var(--font);
+    background:var(--bg) fixed; -webkit-font-smoothing:antialiased;
+  }
 
-  .hdr{position:sticky; top:0; z-index:40; display:flex; align-items:center; gap:16px; padding:16px 20px; background:var(--panel); border-bottom:1px solid var(--rule); box-shadow:var(--shadow);}
-  .brand{ font-weight:800; letter-spacing:.2px; font-size:22px; }
+  /* ================== Header & Tabs (Glass) ================== */
+  .hdr{
+    position:sticky; top:0; z-index:60;
+    display:flex; align-items:center; gap:16px; padding:14px 18px;
+    backdrop-filter:saturate(140%) blur(14px);
+    background:var(--panel-strong);
+    border-bottom: var(--glass-border);
+    box-shadow: var(--ring);
+  }
+  .brand{ font-weight:900; letter-spacing:.2px; font-size:22px; }
   .spacer{flex:1}
-  .iconbtn{ border:1px solid var(--rule); background:var(--chip); color:var(--text); border-radius:12px; padding:10px 12px; display:inline-flex; align-items:center; gap:10px; cursor:pointer; user-select:none; }
+  .iconbtn{
+    border:var(--glass-border); background:var(--chip); color:var(--text);
+    border-radius: 100px; padding:10px 12px;
+    display:inline-flex; align-items:center; gap:10px; cursor:pointer; user-select:none;
+    box-shadow: var(--glass-inset), var(--ring);
+  }
   .iconbtn i{ font-size:18px }
-  .tabs{ display:flex; gap:10px; padding:10px 16px; overflow:auto hidden; background:var(--panel); border-bottom:1px solid var(--rule); }
-  .tab{ padding:10px 14px; border-radius:10px; white-space:nowrap; text-decoration:none; color:var(--muted); border:1px solid transparent; flex:0 0 auto; font-weight:800; font-size:16px; }
-  .tab.active{ color:var(--accent); background:var(--panel); border-color:var(--rule); }
 
-  .wrap{ padding:12px 16px 18px; max-width:1920px; margin:0 auto; }
-  .panel{ background:var(--panel); border:1px solid var(--rule); border-radius:14px; overflow:hidden; box-shadow:var(--shadow); }
+  .tabs{
+    position:sticky; top:56px; z-index:55;
+    display:flex; gap:10px; padding:10px 16px;
+    overflow:auto hidden; backdrop-filter: blur(10px);
+    background:var(--panel);
+    border-bottom: var(--glass-border);
+  }
+  .tab{
+    padding:10px 14px; border-radius: 999px; white-space:nowrap; text-decoration:none;
+    color:var(--muted); border:var(--glass-border); background:transparent;
+    flex:0 0 auto; font-weight:800; font-size:15px;
+  }
+  .tab.active{ color:var(--text); background:var(--panel-strong); box-shadow: var(--glass-inset); }
 
-  /* Routen-Karten – immer EINSPALTIG */
-  .cards{ display:grid; grid-template-columns:1fr; }
-  .card{ padding:18px; border-top:1px solid var(--rule); }
-  .card:first-child{ border-top:none; }
-  .row1{ display:flex; gap:10px; align-items:baseline; flex-wrap:wrap; }
-  .dep,.arr,.dur,.chg{ font-variant-numeric:tabular-nums; font-weight:800; }
+  /* ================== Canvas / Panels ================== */
+  .wrap{ padding:16px; max-width:1600px; margin:0 auto; }
+  .panel{
+    background: transparent; /* wir lassen die Cards „schweben“ */
+    border-radius: var(--radius-xl);
+    overflow: hidden;
+  }
+
+  /* ================== Journey Cards (Glass Tiles) ================== */
+  .cards{
+    display:grid; grid-template-columns:1fr; gap:16px;
+  }
+  @media (min-width: 1000px){ .cards{ grid-template-columns:1fr 1fr; } }
+  @media (min-width: 1440px){ .cards{ grid-template-columns:1fr 1fr 1fr; } }
+
+  .card{
+    position:relative; overflow:hidden;
+    padding:16px 16px 12px;
+    border-radius: var(--radius-xl);
+    background: var(--panel);
+    border: var(--glass-border);
+    box-shadow: var(--ring);
+    backdrop-filter: saturate(140%) blur(var(--blur));
+  }
+  .card::after{ /* sanfter Glanz */
+    content:''; position:absolute; inset:0;
+    background: linear-gradient(180deg, rgba(255,255,255,.18), transparent 40%);
+    pointer-events:none;
+  }
+  .card:hover{ transform: translateY(-1px); transition: transform .25s ease; }
+
+  .row1{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+  .dep,.arr{ font-variant-numeric:tabular-nums; font-weight:900; font-size:20px; }
   .meta{ color:var(--muted); }
-  .badge{ display:inline-flex; align-items:center; gap:8px; background:var(--chip); border:1px solid var(--rule); border-radius:10px; padding:6px 10px; font-weight:800; }
-  .chips{ display:flex; gap:10px; margin-top:10px; flex-wrap:wrap; }
-  .chip{ display:inline-flex; align-items:center; gap:10px; background:var(--chip); border:1px solid var(--rule); border-radius:10px; padding:8px 12px; font-weight:700; }
-  .chip i{ opacity:.95 }
-  .chip.sm{ padding:4px 8px; border-radius:8px; font-weight:800; }
-  .sub{ margin-top:6px; color:var(--muted); }
+  .badge{
+    display:inline-flex; align-items:center; gap:8px;
+    background: var(--chip);
+    border: var(--glass-border);
+    border-radius: 12px; padding:6px 10px; font-weight:800;
+    box-shadow: var(--glass-inset);
+  }
+  .badge i{ opacity:.95 }
 
-  .timeline{ display:grid; grid-template-columns:24px 1fr auto; gap:8px 16px; margin-top:12px; padding:12px; border:1px dashed var(--rule); border-radius:12px; background:color-mix(in oklab, var(--chip) 65%, transparent); }
+  .chips{ display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; }
+  .chip{
+    display:inline-flex; align-items:center; gap:8px;
+    background: var(--chip);
+    border: var(--glass-border);
+    border-radius: 999px; padding:6px 10px; font-weight:800;
+    box-shadow: var(--glass-inset); font-size:13px;
+  }
+  .chip.sm{ padding:4px 8px; font-size:12px; }
+
+  /* Compact timeline – noch cleaner */
+  .timeline{
+    display:grid; grid-template-columns:22px 1fr auto; gap:8px 14px;
+    margin-top:12px; padding:12px;
+    border-radius: 14px;
+    background: linear-gradient(180deg, rgba(255,255,255,.35), rgba(255,255,255,.12));
+    border: var(--glass-border);
+    box-shadow: var(--glass-inset);
+    backdrop-filter: blur(10px);
+  }
   .tl-icon{ text-align:center; color:var(--muted); }
-  .tl-stop{ font-weight:700; }
+  .tl-stop{ font-weight:800; }
   .tl-time,.tl-range{ color:var(--muted); font-variant-numeric:tabular-nums; white-space:nowrap; }
-  .tl-wait{ margin-left:8px; color:var(--muted); font-size:13px; }
-  .late{ color:#e74c3c !important; font-weight:800; }
-  .early{ color:#27ae60 !important; font-weight:800; }
+  .tl-wait{ margin-left:8px; color:var(--muted); font-size:12px; }
+  .late{ color:var(--bad) !important; font-weight:900; }
+  .early{ color:var(--ok) !important; font-weight:900; }
 
-  table{ width:100%; border-collapse:collapse; }
-  thead th{ text-align:left; background:var(--panel); position:sticky; top:0; z-index:5; padding:14px 16px; color:var(--muted); border-bottom:1px solid var(--rule); }
+  /* ================== Tables (Departures) ================== */
+  table{ width:100%; border-collapse:separate; border-spacing:0 10px; }
+  thead th{
+    position:sticky; top: calc(56px + 48px); z-index:5;
+    text-align:left; padding:10px 12px; color:var(--muted);
+    backdrop-filter: blur(10px); background: var(--panel-strong);
+    border: var(--glass-border); border-radius:12px;
+  }
   thead th .hcell{ display:flex; align-items:center; gap:8px; }
-  tbody td{ padding:14px 16px; border-bottom:1px solid var(--rule); vertical-align:middle; }
-  .line{ font-weight:500; }
-  .delta{ font-variant-numeric:tabular-nums; font-weight:800; }
-  .delta.late{ color:#e74c3c; }
-  .delta.early{ color:#27ae60; }
-  .delta.ontime{ color:var(--muted);}
-  .err{ color:#b40000; padding:14px 16px; }
+  tbody tr{
+    background: var(--panel); border: var(--glass-border);
+    box-shadow: var(--ring); backdrop-filter: blur(8px);
+  }
+  tbody td{
+    padding:12px 14px; vertical-align:middle;
+  }
+  tbody tr td:first-child{ border-top-left-radius:12px; border-bottom-left-radius:12px; }
+  tbody tr td:last-child{ border-top-right-radius:12px; border-bottom-right-radius:12px; }
+  .line{ font-weight:600; }
+  .delta{ font-variant-numeric:tabular-nums; font-weight:900; }
+  .delta.late{ color:var(--bad); }
+  .delta.early{ color:var(--ok); }
+  .delta.ontime{ color:var(--muted); }
+  .err{ color:#ff4d4f; padding:12px 0; }
 
-  footer{ padding:10px 16px; color:var(--muted); font-size:13px; display:flex; gap:12px; align-items:center;}
+  /* ================== Footer ================== */
+  footer{
+    margin:16px; padding:10px 14px; color:var(--muted); font-size:13px; display:flex; gap:12px; align-items:center;
+    backdrop-filter: blur(10px); background: var(--panel); border: var(--glass-border); border-radius: 12px; box-shadow: var(--ring);
+  }
   footer .dot{ opacity:.5 }
 
+  /* iPhone tweaks */
   @media (max-width: 740px){
     .hdr{ padding:12px 14px; }
     .brand{ font-size:18px; }
     .tab{ font-size:14px; padding:8px 10px; }
-    .card{ padding:14px; }
     .badge{ padding:4px 8px; }
     thead th, tbody td{ padding:10px 12px; }
     .col-steig, .col-plan{ display:none; }
+    .timeline{ grid-template-columns:20px 1fr auto; }
   }
 
+  /* CTA Button */
   .more-wrap{ padding:12px; display:flex; justify-content:center; }
-  .more-btn{ border:1px solid var(--rule); background:var(--chip); color:var(--text); border-radius:10px; padding:10px 14px; font-weight:800; cursor:pointer; }
+  .more-btn{
+    border:var(--glass-border); background: linear-gradient(180deg, rgba(255,255,255,.55), rgba(255,255,255,.25));
+    color:var(--text); border-radius: 999px; padding:10px 16px; font-weight:900; cursor:pointer;
+    box-shadow: var(--glass-inset), var(--ring);
+  }
+  .more-btn:disabled{ opacity:.6; cursor:not-allowed; }
 </style>
 </head>
 <body>
@@ -106,10 +233,8 @@
     <div class="panel" id="panel">
       <!-- Routen -->
       <div id="view-route" hidden>
-        <div id="cards" class="cards"><div class="card meta">Lade Verbindungen …</div></div>
-        <div class="more-wrap">
-          <button id="moreBtn" class="more-btn">Weitere Verbindungen</button>
-        </div>
+        <div id="cards" class="cards"><div class="card">Lade Verbindungen …</div></div>
+        <div class="more-wrap"><button id="moreBtn" class="more-btn">Weitere Verbindungen</button></div>
       </div>
 
       <!-- Abfahrten stadt­einwärts -->
@@ -125,14 +250,12 @@
               <th style="width:100px;"><div class="hcell"><i class="fa-solid fa-clock-rotate-left"></i> +-</div></th>
             </tr>
           </thead>
-          <tbody id="rows">
-            <tr><td colspan="6" style="padding:18px;color:var(--muted)">Lade Abfahrten …</td></tr>
-          </tbody>
+          <tbody id="rows"><tr><td colspan="6" style="padding:18px;color:var(--muted)">Lade Abfahrten …</td></tr></tbody>
         </table>
         <div class="err" id="depErr" hidden></div>
       </div>
 
-      <!-- Abfahrten heimwärts (mit Abfahrts-Haltestelle) -->
+      <!-- Abfahrten heimwärts -->
       <div id="view-homebound" hidden>
         <table>
           <thead>
@@ -154,9 +277,7 @@
   </div>
 
   <footer>
-    <span id="refreshInfo">Aktualisierung: —</span>
-    <span class="dot">•</span>
-    <span id="lastUpdated">Zuletzt: —</span>
+    <span id="refreshInfo">Aktualisierung: —</span><span class="dot">•</span><span id="lastUpdated">Zuletzt: —</span>
   </footer>
 
 <script>
@@ -177,55 +298,32 @@ let activeTab = 'route-a';
 let timer = null;
 let lastUpdated = null;
 
-/* bleibt lang bei Auto-Refresh; Reset bei Tabwechsel/Reload */
+/* Lang/Kurz – bleibt lang bei Auto-Refresh; Reset bei Tabwechsel/Reload */
 let moreShownOnce = false;
 
 /* ========= Theme ========= */
-const THEME_KEY = 'pd-theme';
-const THEME_OVERRIDE_KEY = 'pd-theme-override';
 const mediaDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)');
 const sunIcon = document.getElementById('sunIcon');
 const moonIcon= document.getElementById('moonIcon');
 const themeBtn= document.getElementById('themeBtn');
-
 function systemTheme(){ return mediaDark && mediaDark.matches ? 'dark' : 'light'; }
 function applyTheme(mode){
   document.documentElement.setAttribute('data-theme', mode);
   if(mode==='dark'){ sunIcon.style.display='none'; moonIcon.style.display='inline-block'; }
   else { moonIcon.style.display='none'; sunIcon.style.display='inline-block'; }
 }
-function initTheme(){
-  const override = localStorage.getItem(THEME_OVERRIDE_KEY) === '1';
-  if(override){
-    const saved = localStorage.getItem(THEME_KEY) || systemTheme();
-    applyTheme(saved);
-  }else{
-    applyTheme(systemTheme());
-    if(mediaDark && mediaDark.addEventListener){
-      mediaDark.addEventListener('change', e => applyTheme(e.matches ? 'dark':'light'));
-    }else if(mediaDark && mediaDark.addListener){
-      mediaDark.addListener(e => applyTheme(e.matches ? 'dark':'light'));
-    }
-  }
-}
+(function initTheme(){
+  applyTheme(systemTheme());
+  if(mediaDark?.addEventListener) mediaDark.addEventListener('change', e => applyTheme(e.matches ? 'dark':'light'));
+})();
 themeBtn.addEventListener('click', ()=>{
   const cur = document.documentElement.getAttribute('data-theme') || systemTheme();
-  const next = (cur === 'light') ? 'dark' : 'light';
-  localStorage.setItem(THEME_OVERRIDE_KEY, '1');
-  localStorage.setItem(THEME_KEY, next);
-  applyTheme(next);
+  applyTheme(cur==='light'?'dark':'light');
 });
-themeBtn.addEventListener('dblclick', ()=>{
-  localStorage.removeItem(THEME_OVERRIDE_KEY);
-  localStorage.removeItem(THEME_KEY);
-  applyTheme(systemTheme());
-});
-initTheme();
 
 /* ========= Helpers ========= */
 const fmtHM  = d => new Date(d).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
 const fmtHMS = d => new Date(d).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
-
 function isoDurToHuman(iso, dep, arr){
   if(iso){ const h=(iso.match(/(\d+)H/)||[])[1]|0, m=(iso.match(/(\d+)M/)||[])[1]|0; return (h?`${h} h `:'')+String(m).padStart(2,'0')+' min'; }
   if(dep&&arr){ const diff=Math.max(0,Math.round((new Date(arr)-new Date(dep))/60000)); const h=Math.floor(diff/60), m=diff%60; return (h?`${h} h `:'')+String(m).padStart(2,'0')+' min'; }
@@ -271,11 +369,9 @@ function lineColor(name){
   if (FIXED_COLORS[norm]) return FIXED_COLORS[norm];
   const hue = HUES[ hashLine(key) % HUES.length ];
   const isDark = (document.documentElement.getAttribute('data-theme') === 'dark');
-  const sat = 80;
-  const light = isDark ? 65 : 40;
+  const sat = 80; const light = isDark ? 70 : 35;
   return `hsl(${hue} ${sat}% ${light}%)`;
 }
-
 function iconForProduct(product, mode){
   const p = (product||'').toLowerCase(), m = (mode||'').toLowerCase();
   if(p.includes('bus') || m==='bus') return '<i class="fa-solid fa-bus"></i>';
@@ -293,17 +389,8 @@ function buildCompactTimeline(legs){
   for(let i=0;i<legs.length;i++){
     const l=legs[i], next=legs[i+1];
     const destName=prettyStopName(l.destination?.name||'—');
-    const node = {
-      type:'mid',
-      name:destName,
-      arr:l.arrival||null, parr:l.plannedArrival||null,
-      dep:null, pdep:null,
-      product:(next?.line?.product||next?.mode||l?.line?.product||l?.mode||'')
-    };
-    if(next && next.origin?.name === l.destination?.name){
-      node.dep  = next.departure || null;
-      node.pdep = next.plannedDeparture || null;
-    }
+    const node = { type:'mid', name:destName, arr:l.arrival||null, parr:l.plannedArrival||null, dep:null, pdep:null, product:(next?.line?.product||next?.mode||l?.line?.product||l?.mode||'') };
+    if(next && next.origin?.name === l.destination?.name){ node.dep = next.departure || null; node.pdep = next.plannedDeparture || null; }
     nodes.push(node);
   }
   nodes[nodes.length-1].type='end';
@@ -311,9 +398,7 @@ function buildCompactTimeline(legs){
   function cls(actual, planned){
     if(!actual || !planned) return '';
     const m = Math.round((new Date(actual) - new Date(planned))/60000);
-    if(m>0) return 'late';
-    if(m<0) return 'early';
-    return '';
+    if(m>0) return 'late'; if(m<0) return 'early'; return '';
   }
   function chooseIcon(n){
     if(n.type==='start') return iconForProduct(n.product,'');
@@ -324,33 +409,29 @@ function buildCompactTimeline(legs){
     return '<i class="fa-solid fa-train"></i>';
   }
 
+  const fmt = v=>v?fmtHM(v):'—';
   return nodes.map(n=>{
-    const icon = chooseIcon(n);
     let right='';
-    const fmt = v=>v?fmtHM(v):'—';
     if(n.type==='start'){
-      const c = cls(n.dep, n.pdep);
-      right = `<span class="tl-time ${c}">${fmt(n.dep)}</span>`;
+      const c = cls(n.dep, n.pdep); right = `<span class="tl-time ${c}">${fmt(n.dep)}</span>`;
     } else if(n.type==='end'){
-      const c = cls(n.arr, n.parr);
-      right = `<span class="tl-time ${c}">${fmt(n.arr)}</span>`;
+      const c = cls(n.arr, n.parr); right = `<span class="tl-time ${c}">${fmt(n.arr)}</span>`;
     } else {
       const wait = (n.arr && n.dep) ? Math.max(0,Math.round((new Date(n.dep)-new Date(n.arr))/60000)) : null;
-      const c1 = cls(n.arr, n.parr);
-      const c2 = cls(n.dep, n.pdep);
+      const c1 = cls(n.arr, n.parr), c2 = cls(n.dep, n.pdep);
       const range = `<span class="${c1}">${fmt(n.arr)}</span> ▸ <span class="${c2}">${fmt(n.dep)}</span>`;
-      right = `<span class="tl-range">${range}</span>${(wait&&wait>0)?`<span class="tl-wait">• Wartezeit ${wait}′</span>`:''}`;
+      right = `<span class="tl-range">${range}</span>${(wait&&wait>0)?`<span class="tl-wait">• ${wait}′ Umstieg</span>`:''}`;
     }
-    return `<div class="tl-icon">${icon}</div><div class="tl-stop">${n.name}</div><div style="text-align:right">${right}</div>`;
+    return `<div class="tl-icon">${chooseIcon(n)}</div><div class="tl-stop">${n.name}</div><div style="text-align:right">${right}</div>`;
   }).join('');
 }
 
-/* ========= Journeys renderer ========= */
+/* ========= Journeys renderer (Cards) ========= */
 function renderJourneysInto(containerId, list, aToB){
   const wrap = document.getElementById(containerId);
   wrap.innerHTML = '';
   const journeys = list?.journeys || [];
-  if(!journeys.length){ wrap.innerHTML = `<div class="card meta">Keine Verbindungen gefunden.</div>`; return; }
+  if(!journeys.length){ wrap.innerHTML = `<div class="card">Keine Verbindungen gefunden.</div>`; return; }
 
   for(const j of journeys){
     const legs = j.legs || [];
@@ -362,12 +443,11 @@ function renderJourneysInto(containerId, list, aToB){
     let delayMin = 0; const l0 = legs.find(l => !!l.departure);
     if(l0 && l0.plannedDeparture && l0.departure) delayMin = Math.round((new Date(l0.departure) - new Date(l0.plannedDeparture))/60000);
     const delayChip = (delayMin!==0)
-      ? `<span class="badge" style="color:${delayMin>0?'#e74c3c':'#27ae60'}"><i class="fa-solid fa-clock-rotate-left"></i> ${delayMin>0? '+'+delayMin: delayMin}′</span>` : '';
+      ? `<span class="badge" style="color:${delayMin>0?'var(--bad)':'var(--ok)'}"><i class="fa-solid fa-clock-rotate-left"></i> ${delayMin>0? '+'+delayMin: delayMin}′</span>` : '';
 
     const chips = legs.filter(l => l.line).map(l => {
       const line = l.line?.name || l.mode || '';
-      const color = lineColor(line);
-      return `<span class="chip" style="color:${color}">${iconForProduct(l.line?.product, l.mode)} ${line}</span>`;
+      return `<span class="chip" style="color:${lineColor(line)}">${iconForProduct(l.line?.product, l.mode)} ${line}</span>`;
     }).join('');
 
     const subtitle = aToB ? 'Sophie-Scholl-Schule → Frankfurt(Main) Hbf'
@@ -377,27 +457,23 @@ function renderJourneysInto(containerId, list, aToB){
     el.className = 'card';
     el.innerHTML = `
       <div class="row1">
-        <div class="dep">${fmtHM(dep)}</div><div class="meta">→</div><div class="arr">${fmtHM(arr)}</div>
-        <div class="meta">•</div><div class="dur"><span class="badge"><i class="fa-regular fa-clock"></i> ${durHuman}</span></div>
-        <div class="meta">•</div><div class="chg"><span class="badge"><i class="fa-solid fa-right-left"></i> ${changes}</span></div>
-        ${delayChip? `<div class="meta">•</div>${delayChip}` : ''}
+        <div class="dep">${fmtHM(dep)}</div>
+        <div class="meta">→</div>
+        <div class="arr">${fmtHM(arr)}</div>
+        <span class="badge" title="Dauer"><i class="fa-regular fa-clock"></i> ${durHuman}</span>
+        <span class="badge" title="Umstiege"><i class="fa-solid fa-right-left"></i> ${changes}</span>
+        ${delayChip || ''}
       </div>
       <div class="chips">${chips || '<span class="chip"><i class="fa-solid fa-person-walking"></i> Fußweg</span>'}</div>
-      <div class="sub">${subtitle}</div>
-      <div class="timeline" role="list">
-        ${buildCompactTimeline(legs)}
-      </div>
+      <div class="timeline" role="list">${buildCompactTimeline(legs)}</div>
+      <div class="meta" style="margin-top:8px">${subtitle}</div>
     `;
     wrap.appendChild(el);
   }
 }
 
-/* ========= Departures helpers ========= */
-function normalizeDepartures(raw){
-  if(Array.isArray(raw)) return raw;
-  if(raw && Array.isArray(raw.departures)) return raw.departures;
-  return [];
-}
+/* ========= Departures (Tables) ========= */
+function normalizeDepartures(raw){ if(Array.isArray(raw)) return raw; if(raw && Array.isArray(raw.departures)) return raw.departures; return []; }
 function deltaClass(m){ if(m>0) return 'late'; if(m<0) return 'early'; return 'ontime'; }
 function renderDeparturesInto(tbodyId, departures){
   const tbody = document.getElementById(tbodyId);
@@ -415,19 +491,14 @@ function renderDeparturesInto(tbodyId, departures){
     const tRt  = d.prognosedWhen || d.when || null;
 
     let deltaTxt = '–', cls='ontime';
-    if(tPl && tRt){
-      const m = Math.round((new Date(tRt) - new Date(tPl))/60000);
-      deltaTxt = (m>0? '+'+m : m) + '′';
-      cls = deltaClass(m);
-    }
+    if(tPl && tRt){ const m = Math.round((new Date(tRt) - new Date(tPl))/60000); deltaTxt = (m>0? '+'+m : m) + '′'; cls = deltaClass(m); }
+
     const color = lineColor(line);
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td>${tRt ? fmtHM(tRt) : (tPl?fmtHM(tPl):'–')}</td>
       <td class="col-plan">${tPl ? fmtHM(tPl) : '–'}</td>
-      <td class="line">
-        <span class="chip sm" style="color:${color}">${iconForProduct(d.line?.product, d.line?.mode)} ${line}</span>
-      </td>
+      <td class="line"><span class="chip sm" style="color:${color}">${iconForProduct(d.line?.product, d.line?.mode)} ${line}</span></td>
       <td>${dir}</td>
       <td class="col-steig">${pl}</td>
       <td class="delta ${cls}">${deltaTxt}</td>
@@ -436,7 +507,7 @@ function renderDeparturesInto(tbodyId, departures){
   }
 }
 
-/* NEU: Renderer für Heimwärts mit eigener Spalte „Abfahrts­halt“ */
+/* Heimwärts Renderer mit Abfahrts-Halt */
 function renderHomeDeparturesInto(tbodyId, departures){
   const tbody = document.getElementById(tbodyId);
   tbody.innerHTML = '';
@@ -453,20 +524,15 @@ function renderHomeDeparturesInto(tbodyId, departures){
     const tRt  = d.prognosedWhen || d.when || null;
 
     let deltaTxt = '–', cls='ontime';
-    if(tPl && tRt){
-      const m = Math.round((new Date(tRt) - new Date(tPl))/60000);
-      deltaTxt = (m>0? '+'+m : m) + '′';
-      cls = deltaClass(m);
-    }
+    if(tPl && tRt){ const m = Math.round((new Date(tRt) - new Date(tPl))/60000); deltaTxt = (m>0? '+'+m : m) + '′'; cls = deltaClass(m); }
+
     const color = lineColor(line);
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td>${tRt ? fmtHM(tRt) : (tPl?fmtHM(tPl):'–')}</td>
       <td class="col-plan">${tPl ? fmtHM(tPl) : '–'}</td>
       <td>${origin}</td>
-      <td class="line">
-        <span class="chip sm" style="color:${color}">${iconForProduct(d.line?.product, d.line?.mode)} ${line}</span>
-      </td>
+      <td class="line"><span class="chip sm" style="color:${color}">${iconForProduct(d.line?.product, d.line?.mode)} ${line}</span></td>
       <td>${dir}</td>
       <td class="col-steig">${pl}</td>
       <td class="delta ${cls}">${deltaTxt}</td>
@@ -483,7 +549,7 @@ async function ensureIds(){
   if(!ids.giessenBhf)  ids.giessenBhf  = await findStopId(Q_GIESSEN, /(gie(s|ß)en).*(bahnhof|hbf)/i);
 }
 
-/* Routen */
+/* Routen (Kurz/Lang – lang bleibt bei Auto-Refresh) */
 async function loadRoute(aToB=true, extra=false){
   try{
     await ensureIds();
@@ -494,7 +560,7 @@ async function loadRoute(aToB=true, extra=false){
     const data = await fetchJSON(url);
     if(extra){ renderJourneysInto('cards', data, aToB); }
     else { renderJourneysInto('cards', {journeys:(data.journeys||[]).slice(0,8)}, aToB); }
-  }catch(e){ document.getElementById('cards').innerHTML = `<div class="card err">${e.message}</div>`; }
+  }catch(e){ document.getElementById('cards').innerHTML = `<div class="card">Fehler: ${e.message}</div>`; }
 }
 
 /* Stadteinwärts */
@@ -509,7 +575,7 @@ async function loadInbound(){
   }catch(e){ const el=document.getElementById('depErr'); el.hidden=false; el.textContent=e.message; }
 }
 
-/* Heimwärts: nur Bus 17 (Bhf → Schule) & Bus 1 (Friedrichstraße → Schule), plus Abfahrts-Haltestelle */
+/* Heimwärts: nur Bus 17 (Bhf → Schule) & Bus 1 (Friedrichstraße → Schule) */
 async function loadHomebound(){
   try{
     await ensureIds();
@@ -519,8 +585,7 @@ async function loadHomebound(){
     ]);
 
     const rows = [];
-
-    function pushRowsFromJourneys(data, requiredLineRegex, originLabel){
+    function pushRows(data, requiredLineRegex, originLabel){
       const journeys = data?.journeys || [];
       for(const j of journeys){
         const legs = j.legs || [];
@@ -538,9 +603,8 @@ async function loadHomebound(){
         });
       }
     }
-
-    pushRowsFromJourneys(j17, /\b(17|Bus\s*17)\b/i, 'Gießen Bahnhof');
-    pushRowsFromJourneys(j1,  /\b(1|Bus\s*1)\b/i,  'Friedrichstraße, Gießen');
+    pushRows(j17, /\b(17|Bus\s*17)\b/i, 'Gießen Bahnhof');
+    pushRows(j1,  /\b(1|Bus\s*1)\b/i,  'Friedrichstraße, Gießen');
 
     rows.sort((a,b)=> new Date(a.when||a.plannedWhen) - new Date(b.when||b.plannedWhen));
     const out=[], seen=new Set();
@@ -548,7 +612,6 @@ async function loadHomebound(){
       const k=(r.originLabel||'')+'|'+(r.line?.name||'')+'|'+(r.when||r.plannedWhen);
       if(!seen.has(k)){ seen.add(k); out.push(r); }
     }
-
     renderHomeDeparturesInto('rows-home', out.slice(0,20));
     document.getElementById('homeErr').hidden = true;
   }catch(e){ const el=document.getElementById('homeErr'); el.hidden=false; el.textContent=e.message; }
@@ -557,7 +620,7 @@ async function loadHomebound(){
 /* ========= Tabs & Intervals ========= */
 function setTabs(tab){
   activeTab = tab;
-  moreShownOnce = false; // bei Tabwechsel zurück zur Kurzliste
+  moreShownOnce = false; // Tabwechsel -> wieder Kurzliste
 
   for(const a of document.querySelectorAll('.tab')){
     const act = a.getAttribute('href') === '#'+tab;
@@ -589,20 +652,20 @@ for(const a of document.querySelectorAll('.tab')){
   a.addEventListener('click', (e)=>{ e.preventDefault(); history.replaceState(null,'',a.getAttribute('href')); handleHash(); });
 }
 
-/* „Weitere Verbindungen“ – bleibt bei Auto-Refresh lang */
+/* „Weitere Verbindungen“ */
 const moreBtn = document.getElementById('moreBtn');
 moreBtn.addEventListener('click', async ()=>{
   if(!(activeTab==='route-a' || activeTab==='route-b')) return;
   const aToB = activeTab==='route-a';
-  const prevLabel = moreBtn.innerHTML;
+  const prev = moreBtn.innerHTML;
   moreBtn.disabled = true;
   moreBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Lädt…';
   try{
     moreShownOnce = true;
-    await loadRoute(aToB, /*extra*/ true);
+    await loadRoute(aToB, true);
   }finally{
     moreBtn.disabled = false;
-    moreBtn.innerHTML = prevLabel;
+    moreBtn.innerHTML = prev;
   }
 });
 
