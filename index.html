@@ -92,11 +92,13 @@
 
   /* Drawer */
   .drawer[hidden]{ display:none !important; }
+  /* Drawer Layering fix */
+  .drawer{ position:fixed; inset:0; z-index:1200; }
   .drawer-backdrop{
-    position:fixed; inset:0; background:rgba(0,0,0,.3); backdrop-filter:saturate(130%) blur(2px);
+    position:fixed; inset:0; background:rgba(0,0,0,.3); backdrop-filter:saturate(130%) blur(2px); z-index:1
   }
   .drawer-panel{
-    position:fixed; inset:0 auto 0 0; width:min(86vw, 340px);
+    position:fixed; inset:0 auto 0 0; width:min(86vw, 340px); z-index:2;
     background:var(--panel); border-right:1px solid var(--rule);
     padding:16px; padding-top:calc(16px + env(safe-area-inset-top));
     box-shadow:var(--shadow); display:flex; flex-direction:column; gap:10px;
@@ -133,7 +135,7 @@
   .sub{ margin-top:8px; color:var(--muted); font-size:14px }
 
   /* ===== Glas-Badge: Losgeh-Zeit (oben links, dezent) ===== */
-  .leave-badge{
+  .leave-badge{ position:relative; z-index:0;
     display:inline-flex; align-items:center; gap:8px;
     padding:6px 10px; border-radius:999px;
     border:1px solid var(--rule);
@@ -218,6 +220,8 @@
   .btn:disabled{ opacity:.6; cursor:not-allowed }
   .hint{padding:12px 14px; color:var(--muted)}
   .badge{ font-size:12px; opacity:.8; }
+
+  body.drawer-open{ overflow:hidden }
 </style>
 </head>
 <body>
@@ -334,8 +338,9 @@ const drawer=document.getElementById('drawer');
 const menuBtn=document.getElementById('menuBtn');
 const drawerBackdrop=document.getElementById('drawerBackdrop');
 const drawerClose=document.getElementById('drawerClose');
-function openDrawer(){ drawer.hidden=false; menuBtn.setAttribute('aria-expanded','true'); }
-function closeDrawer(){ drawer.hidden=true; menuBtn.setAttribute('aria-expanded','false'); }
+function openDrawer(){ drawer.hidden=false; menuBtn.setAttribute('aria-expanded','true'); document.body.classList.add('drawer-open');
+    const h=document.querySelector('.tabs')?.offsetHeight||0; drawer.querySelector('.drawer-panel').style.paddingTop=(h+16)+'px'; }
+function closeDrawer(){ drawer.hidden=true; menuBtn.setAttribute('aria-expanded','false'); document.body.classList.remove('drawer-open'); }
 menuBtn.addEventListener('click', ()=> (drawer.hidden?openDrawer():closeDrawer()));
 drawerBackdrop.addEventListener('click', closeDrawer);
 drawerClose.addEventListener('click', closeDrawer);
