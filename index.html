@@ -5,12 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Pendler Dashboard</title>
 
-<!-- Homescreen/Browser-Icons -->
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="alternate icon" type="image/png" sizes="512x512" href="apple-touch-icon.png">
-
-<!-- Font Awesome Free -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.2/css/all.min.css">
 
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -26,7 +23,6 @@
   html,body{height:100%}
   body{margin:0; background:var(--bg); color:var(--text); font-family:var(--font); -webkit-font-smoothing:antialiased;}
 
-  /* Header + Tabs */
   .hdr{position:sticky; top:0; z-index:40; display:flex; align-items:center; gap:16px; padding:16px 20px; background:var(--panel); border-bottom:1px solid var(--rule); box-shadow:var(--shadow);}
   .brand{ font-weight:800; letter-spacing:.2px; font-size:22px; }
   .spacer{flex:1}
@@ -36,11 +32,10 @@
   .tab{ padding:10px 14px; border-radius:10px; white-space:nowrap; text-decoration:none; color:var(--muted); border:1px solid transparent; flex:0 0 auto; font-weight:800; font-size:16px; }
   .tab.active{ color:var(--accent); background:var(--panel); border-color:var(--rule); }
 
-  /* Content */
   .wrap{ padding:12px 16px 18px; max-width:1920px; margin:0 auto; }
   .panel{ background:var(--panel); border:1px solid var(--rule); border-radius:14px; overflow:hidden; box-shadow:var(--shadow); }
 
-  /* Journey cards – immer EINSPALTIG */
+  /* Routen-Karten – immer EINSPALTIG */
   .cards{ display:grid; grid-template-columns:1fr; }
   .card{ padding:18px; border-top:1px solid var(--rule); }
   .card:first-child{ border-top:none; }
@@ -54,7 +49,6 @@
   .chip.sm{ padding:4px 8px; border-radius:8px; font-weight:800; }
   .sub{ margin-top:6px; color:var(--muted); }
 
-  /* Compact timeline */
   .timeline{ display:grid; grid-template-columns:24px 1fr auto; gap:8px 16px; margin-top:12px; padding:12px; border:1px dashed var(--rule); border-radius:12px; background:color-mix(in oklab, var(--chip) 65%, transparent); }
   .tl-icon{ text-align:center; color:var(--muted); }
   .tl-stop{ font-weight:700; }
@@ -63,7 +57,6 @@
   .late{ color:#e74c3c !important; font-weight:800; }
   .early{ color:#27ae60 !important; font-weight:800; }
 
-  /* Departures table */
   table{ width:100%; border-collapse:collapse; }
   thead th{ text-align:left; background:var(--panel); position:sticky; top:0; z-index:5; padding:14px 16px; color:var(--muted); border-bottom:1px solid var(--rule); }
   thead th .hcell{ display:flex; align-items:center; gap:8px; }
@@ -78,7 +71,6 @@
   footer{ padding:10px 16px; color:var(--muted); font-size:13px; display:flex; gap:12px; align-items:center;}
   footer .dot{ opacity:.5 }
 
-  /* Responsive iPhone */
   @media (max-width: 740px){
     .hdr{ padding:12px 14px; }
     .brand{ font-size:18px; }
@@ -89,7 +81,6 @@
     .col-steig, .col-plan{ display:none; }
   }
 
-  /* Button unter Karten */
   .more-wrap{ padding:12px; display:flex; justify-content:center; }
   .more-btn{ border:1px solid var(--rule); background:var(--chip); color:var(--text); border-radius:10px; padding:10px 14px; font-weight:800; cursor:pointer; }
 </style>
@@ -117,7 +108,7 @@
       <div id="view-route" hidden>
         <div id="cards" class="cards"><div class="card meta">Lade Verbindungen …</div></div>
         <div class="more-wrap">
-          <button id="moreBtn" class="more-btn"><i class="fa-solid fa-plus"></i> Weitere Verbindungen</button>
+          <button id="moreBtn" class="more-btn">Weitere Verbindungen</button>
         </div>
       </div>
 
@@ -141,20 +132,21 @@
         <div class="err" id="depErr" hidden></div>
       </div>
 
-      <!-- Abfahrten heimwärts -->
+      <!-- Abfahrten heimwärts (mit Abfahrts-Haltestelle) -->
       <div id="view-homebound" hidden>
         <table>
           <thead>
             <tr>
               <th style="width:140px;"><div class="hcell"><i class="fa-solid fa-arrow-right-long"></i> Abfahrt</div></th>
               <th class="col-plan" style="width:140px;"><div class="hcell"><i class="fa-regular fa-clock"></i> Plan</div></th>
-              <th style="width:220px;"><div class="hcell"><i class="fa-solid fa-train"></i> Linie</div></th>
-              <th><div class="hcell"><i class="fa-solid fa-location-dot"></i> Ziel</div></th>
+              <th style="width:200px;"><div class="hcell"><i class="fa-solid fa-location-dot"></i> Abfahrts­halt</div></th>
+              <th style="width:200px;"><div class="hcell"><i class="fa-solid fa-train"></i> Linie</div></th>
+              <th><div class="hcell"><i class="fa-solid fa-flag-checkered"></i> Ziel</div></th>
               <th class="col-steig" style="width:120px;"><div class="hcell"><i class="fa-solid fa-signs-post"></i> Steig</div></th>
               <th style="width:100px;"><div class="hcell"><i class="fa-solid fa-clock-rotate-left"></i> +-</div></th>
             </tr>
           </thead>
-          <tbody id="rows-home"><tr><td colspan="6" style="padding:18px;color:var(--muted)">Lade Abfahrten …</td></tr></tbody>
+          <tbody id="rows-home"><tr><td colspan="7" style="padding:18px;color:var(--muted)">Lade Abfahrten …</td></tr></tbody>
         </table>
         <div class="err" id="homeErr" hidden></div>
       </div>
@@ -185,10 +177,10 @@ let activeTab = 'route-a';
 let timer = null;
 let lastUpdated = null;
 
-/* Lang/Kurz – bleibt lang bei Auto-Refresh, wird bei Reload/Tabwechsel zurückgesetzt */
+/* bleibt lang bei Auto-Refresh; Reset bei Tabwechsel/Reload */
 let moreShownOnce = false;
 
-/* ========= Theme (Auto + Override) ========= */
+/* ========= Theme ========= */
 const THEME_KEY = 'pd-theme';
 const THEME_OVERRIDE_KEY = 'pd-theme-override';
 const mediaDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)');
@@ -293,7 +285,7 @@ function iconForProduct(product, mode){
 }
 function prettyStopName(name){ return name==='Gießen' ? 'Gießen Bahnhof' : name; }
 
-/* ========= Timeline mit Delay-Highlight ========= */
+/* ========= Timeline ========= */
 function buildCompactTimeline(legs){
   if(!legs?.length) return '';
   const nodes = [];
@@ -323,7 +315,6 @@ function buildCompactTimeline(legs){
     if(m<0) return 'early';
     return '';
   }
-
   function chooseIcon(n){
     if(n.type==='start') return iconForProduct(n.product,'');
     if(n.type==='end')  return '<i class="fa-solid fa-flag-checkered"></i>';
@@ -336,17 +327,18 @@ function buildCompactTimeline(legs){
   return nodes.map(n=>{
     const icon = chooseIcon(n);
     let right='';
+    const fmt = v=>v?fmtHM(v):'—';
     if(n.type==='start'){
       const c = cls(n.dep, n.pdep);
-      right = `<span class="tl-time ${c}">${n.dep?fmtHM(n.dep):'—'}</span>`;
+      right = `<span class="tl-time ${c}">${fmt(n.dep)}</span>`;
     } else if(n.type==='end'){
       const c = cls(n.arr, n.parr);
-      right = `<span class="tl-time ${c}">${n.arr?fmtHM(n.arr):'—'}</span>`;
+      right = `<span class="tl-time ${c}">${fmt(n.arr)}</span>`;
     } else {
       const wait = (n.arr && n.dep) ? Math.max(0,Math.round((new Date(n.dep)-new Date(n.arr))/60000)) : null;
       const c1 = cls(n.arr, n.parr);
       const c2 = cls(n.dep, n.pdep);
-      const range = `<span class="${c1}">${n.arr?fmtHM(n.arr):'—'}</span> ▸ <span class="${c2}">${n.dep?fmtHM(n.dep):'—'}</span>`;
+      const range = `<span class="${c1}">${fmt(n.arr)}</span> ▸ <span class="${c2}">${fmt(n.dep)}</span>`;
       right = `<span class="tl-range">${range}</span>${(wait&&wait>0)?`<span class="tl-wait">• Wartezeit ${wait}′</span>`:''}`;
     }
     return `<div class="tl-icon">${icon}</div><div class="tl-stop">${n.name}</div><div style="text-align:right">${right}</div>`;
@@ -444,6 +436,45 @@ function renderDeparturesInto(tbodyId, departures){
   }
 }
 
+/* NEU: Renderer für Heimwärts mit eigener Spalte „Abfahrts­halt“ */
+function renderHomeDeparturesInto(tbodyId, departures){
+  const tbody = document.getElementById(tbodyId);
+  tbody.innerHTML = '';
+  if(!departures.length){
+    tbody.innerHTML = `<tr><td colspan="7" style="padding:18px;color:var(--muted)">Keine passenden Abfahrten.</td></tr>`;
+    return;
+  }
+  for(const d of departures){
+    const line = d.line?.name || d.line?.id || '–';
+    const origin = d.originLabel || '–';
+    const dir  = 'Sophie-Scholl-Schule, Gießen';
+    const pl   = d.platform || d.prognosedPlatform || d.plannedPlatform || '–';
+    const tPl  = d.plannedWhen || d.when || d.scheduledWhen;
+    const tRt  = d.prognosedWhen || d.when || null;
+
+    let deltaTxt = '–', cls='ontime';
+    if(tPl && tRt){
+      const m = Math.round((new Date(tRt) - new Date(tPl))/60000);
+      deltaTxt = (m>0? '+'+m : m) + '′';
+      cls = deltaClass(m);
+    }
+    const color = lineColor(line);
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${tRt ? fmtHM(tRt) : (tPl?fmtHM(tPl):'–')}</td>
+      <td class="col-plan">${tPl ? fmtHM(tPl) : '–'}</td>
+      <td>${origin}</td>
+      <td class="line">
+        <span class="chip sm" style="color:${color}">${iconForProduct(d.line?.product, d.line?.mode)} ${line}</span>
+      </td>
+      <td>${dir}</td>
+      <td class="col-steig">${pl}</td>
+      <td class="delta ${cls}">${deltaTxt}</td>
+    `;
+    tbody.appendChild(tr);
+  }
+}
+
 /* ========= Loaders ========= */
 async function ensureIds(){
   if(!ids.school)      ids.school      = await findStopId(Q_SCHOOL, /(sophie|scholl).*(gie(s|ß)en)/i);
@@ -452,13 +483,13 @@ async function ensureIds(){
   if(!ids.giessenBhf)  ids.giessenBhf  = await findStopId(Q_GIESSEN, /(gie(s|ß)en).*(bahnhof|hbf)/i);
 }
 
-/* Routen (Kurz/Lang, Lang bleibt bei Auto-Refresh bestehen) */
+/* Routen */
 async function loadRoute(aToB=true, extra=false){
   try{
     await ensureIds();
     const from = aToB ? ids.school : ids.ffm;
     const to   = aToB ? ids.ffm    : ids.school;
-    const results = extra ? 24 : 8; // Lang ≈ +60 min
+    const results = extra ? 24 : 8;
     const url = `${API}/journeys?from=${from}&to=${to}&results=${results}&stopovers=true&language=de`;
     const data = await fetchJSON(url);
     if(extra){ renderJourneysInto('cards', data, aToB); }
@@ -478,7 +509,7 @@ async function loadInbound(){
   }catch(e){ const el=document.getElementById('depErr'); el.hidden=false; el.textContent=e.message; }
 }
 
-/* Heimwärts: NUR Linie 17 (Bhf → Schule) und Linie 1 (Friedrichstraße → Schule) */
+/* Heimwärts: nur Bus 17 (Bhf → Schule) & Bus 1 (Friedrichstraße → Schule), plus Abfahrts-Haltestelle */
 async function loadHomebound(){
   try{
     await ensureIds();
@@ -489,7 +520,7 @@ async function loadHomebound(){
 
     const rows = [];
 
-    function pushRowsFromJourneys(data, requiredLineRegex){
+    function pushRowsFromJourneys(data, requiredLineRegex, originLabel){
       const journeys = data?.journeys || [];
       for(const j of journeys){
         const legs = j.legs || [];
@@ -498,27 +529,27 @@ async function loadHomebound(){
         const lineName = firstLineLeg.line?.name || '';
         if(!requiredLineRegex.test(lineName)) continue;
         rows.push({
+          originLabel,
           line:{name:lineName, product:firstLineLeg.line?.product},
           when:firstLineLeg.departure || firstLineLeg.plannedDeparture,
           plannedWhen:firstLineLeg.plannedDeparture || firstLineLeg.departure,
           prognosedWhen:firstLineLeg.departure || null,
-          platform:firstLineLeg.platform || firstLineLeg.plannedPlatform || firstLineLeg.prognosedPlatform || '–',
-          direction:'Sophie-Scholl-Schule, Gießen'
+          platform:firstLineLeg.platform || firstLineLeg.plannedPlatform || firstLineLeg.prognosedPlatform || '–'
         });
       }
     }
 
-    pushRowsFromJourneys(j17, /\b(17|Bus\s*17)\b/i); // ab Bhf
-    pushRowsFromJourneys(j1,  /\b(1|Bus\s*1)\b/i);   // ab Friedrichstraße
+    pushRowsFromJourneys(j17, /\b(17|Bus\s*17)\b/i, 'Gießen Bahnhof');
+    pushRowsFromJourneys(j1,  /\b(1|Bus\s*1)\b/i,  'Friedrichstraße, Gießen');
 
     rows.sort((a,b)=> new Date(a.when||a.plannedWhen) - new Date(b.when||b.plannedWhen));
     const out=[], seen=new Set();
     for(const r of rows){
-      const k=(r.line?.name||'')+'|'+(r.when||r.plannedWhen);
+      const k=(r.originLabel||'')+'|'+(r.line?.name||'')+'|'+(r.when||r.plannedWhen);
       if(!seen.has(k)){ seen.add(k); out.push(r); }
     }
 
-    renderDeparturesInto('rows-home', out.slice(0,20));
+    renderHomeDeparturesInto('rows-home', out.slice(0,20));
     document.getElementById('homeErr').hidden = true;
   }catch(e){ const el=document.getElementById('homeErr'); el.hidden=false; el.textContent=e.message; }
 }
@@ -526,7 +557,7 @@ async function loadHomebound(){
 /* ========= Tabs & Intervals ========= */
 function setTabs(tab){
   activeTab = tab;
-  moreShownOnce = false; // bei Tabwechsel immer zurück auf Kurzliste
+  moreShownOnce = false; // bei Tabwechsel zurück zur Kurzliste
 
   for(const a of document.querySelectorAll('.tab')){
     const act = a.getAttribute('href') === '#'+tab;
@@ -544,7 +575,6 @@ function startRefresh(){
   else {
     const aToB = activeTab==='route-a';
     setFooter(REFRESH_ROUTE_MS);
-    /* wichtig: respektiere aktuellen Status (kurz/lang) */
     loadRoute(aToB, /*extra*/ moreShownOnce);
     timer=setInterval(()=>loadRoute(aToB, /*extra*/ moreShownOnce), REFRESH_ROUTE_MS);
   }
@@ -568,8 +598,8 @@ moreBtn.addEventListener('click', async ()=>{
   moreBtn.disabled = true;
   moreBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Lädt…';
   try{
-    moreShownOnce = true;                  // Status aktivieren
-    await loadRoute(aToB, /*extra*/ true); // lange Liste laden
+    moreShownOnce = true;
+    await loadRoute(aToB, /*extra*/ true);
   }finally{
     moreBtn.disabled = false;
     moreBtn.innerHTML = prevLabel;
