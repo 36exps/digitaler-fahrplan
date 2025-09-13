@@ -19,7 +19,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.2/css/all.min.css">
 
 <style>
-  /* ===== Tokens — iPadOS 26 Anmutung ===== */
+  /* ===== iPadOS-ähnliche Tokens ===== */
   :root{
     --bg:#f5f7fb;
     --panel:#ffffff;
@@ -31,7 +31,6 @@
     --accent:#0a84ff;
     --ok:#27ae60;
     --bad:#e53935;
-    --warn:#f39c12;
 
     --shadow:0 1px 2px rgba(16,19,23,.04), 0 8px 24px rgba(16,19,23,.06);
     --radius:14px;
@@ -56,7 +55,7 @@
     padding-top:env(safe-area-inset-top);
   }
 
-  /* ===== Tabs (mit Theme-Button rechts) ===== */
+  /* ===== Tabs + Theme-Schalter ===== */
   .tabs{
     position:sticky; top:0; z-index:40;
     display:flex; align-items:center; gap:10px;
@@ -68,7 +67,7 @@
     color:var(--muted); border-radius:12px; padding:10px 14px;
     text-decoration:none; font-weight:600; font-size:15px;
   }
-  .tab.active{color:var(--accent); border-color:var(--accent + 10%); box-shadow:var(--shadow)}
+  .tab.active{color:var(--accent); box-shadow:var(--shadow); border-color:color-mix(in oklab, var(--accent) 40%, var(--rule))}
   .spacer{flex:1}
   .theme-btn{
     border:1px solid var(--rule); background:var(--panel); color:var(--text);
@@ -88,9 +87,7 @@
     background:var(--panel); border:1px solid var(--rule); border-radius:var(--radius);
     padding:16px; box-shadow:var(--shadow);
   }
-  .card .row{
-    display:flex; align-items:center; gap:12px; flex-wrap:wrap;
-  }
+  .card .row{ display:flex; align-items:center; gap:12px; flex-wrap:wrap }
   .time{ font-variant-numeric:tabular-nums; font-weight:700; font-size:20px }
   .sep{ color:var(--muted) }
   .chip{
@@ -114,13 +111,16 @@
   .late .actual{ color:var(--bad) }
   .early .actual{ color:var(--ok) }
 
-  /* ===== Tabellen (Abfahrten) ===== */
+  /* ===== Tabellen (kompakte Leiste oben, kein Leerraum) ===== */
   .panel-table{
-    background:var(--panel); border:1px solid var(--rule); border-radius:var(--radius); box-shadow:var(--shadow); overflow:hidden;
+    background:var(--panel); border:1px solid var(--rule); border-radius:var(--radius);
+    box-shadow:var(--shadow); overflow:hidden; /* WICHTIG gegen „Luft“ */
+    padding:0; margin:0;
   }
   .table-head{
+    margin:0; /* WICHTIG: kein Außenabstand */
     background:var(--bar); border-bottom:1px solid var(--rule);
-    display:grid; grid-template-columns:140px 140px 220px 1fr 120px 100px; gap:0;
+    display:grid; grid-template-columns:140px 140px 220px 1fr 120px 100px;
     padding:12px 16px; font-weight:700; color:var(--muted);
     position:sticky; top:56px; z-index:30;
   }
@@ -128,9 +128,10 @@
     .table-head{ grid-template-columns:140px 1fr 120px 100px; }
     .col-plan, .col-steig { display:none }
   }
+  .rows{ margin:0 } /* kein Abstand zwischen Kopf und erstem Eintrag */
   .row-item{
-    display:grid; grid-template-columns:140px 140px 220px 1fr 120px 100px; gap:0;
-    padding:14px 16px; border-bottom:1px solid var(--rule);
+    display:grid; grid-template-columns:140px 140px 220px 1fr 120px 100px;
+    padding:14px 16px; border-bottom:1px solid var(--rule); background:var(--panel);
   }
   @media (max-width:740px){
     .row-item{ grid-template-columns:140px 1fr 120px 100px; }
@@ -142,7 +143,7 @@
     margin:16px; padding:10px 14px; color:var(--muted); font-size:13px;
     background:var(--panel); border:1px solid var(--rule); border-radius:12px; box-shadow:var(--shadow);
   }
-  .footer-space{ height:64px } /* extra Luft */
+  .footer-space{ height:64px } /* extra Luft unten */
 
   .more-wrap{ padding:10px 0 0; display:flex; justify-content:center }
   .btn{
@@ -186,7 +187,7 @@
         <div class="col-steig">Steig</div>
         <div>+-</div>
       </div>
-      <div id="rows"><div style="padding:16px;color:var(--muted)">Lade Abfahrten …</div></div>
+      <div id="rows" class="rows"><div style="padding:16px;color:var(--muted)">Lade Abfahrten …</div></div>
     </div>
 
     <!-- ABFAHRTEN HEIMWÄRTS -->
@@ -199,7 +200,7 @@
         <div class="col-steig">Steig</div>
         <div>+-</div>
       </div>
-      <div id="rows-home"><div style="padding:16px;color:var(--muted)">Lade Abfahrten …</div></div>
+      <div id="rows-home" class="rows"><div style="padding:16px;color:var(--muted)">Lade Abfahrten …</div></div>
     </div>
 
     <div class="footer">
@@ -261,34 +262,48 @@ function lineColor(name){ if(!name) return '#7f8c8d'; const key=String(name).tri
 function iconForProduct(p,m){p=(p||'').toLowerCase(); m=(m||'').toLowerCase(); if(p.includes('bus')||m==='bus')return'<i class="fa-solid fa-bus"></i>'; if(p.includes('suburban')||p.includes('s-bahn')||m==='subway')return'<i class="fa-solid fa-train-subway"></i>'; if(p.includes('tram'))return'<i class="fa-solid fa-train-tram"></i>'; return'<i class="fa-solid fa-train"></i>';}
 function prettyStop(n){return n==='Gießen'?'Gießen Bahnhof':n}
 
-/* ========= Timeline (mit geplanter Uhrzeit) ========= */
+/* ========= Timeline (geplante Zeit nur wenn abweichend) ========= */
 function buildTimeline(legs){
   if(!legs?.length) return '';
-  const nodes=[];
-  nodes.push({type:'start',name:prettyStop(legs[0]?.origin?.name||'—'),dep:legs[0]?.departure||null,pdep:legs[0]?.plannedDeparture||null,product:legs[0]?.line?.product||legs[0]?.mode||''});
-  for(let i=0;i<legs.length;i++){
-    const l=legs[i], next=legs[i+1], dest=prettyStop(l.destination?.name||'—');
-    const node={type:'mid',name:dest,arr:l.arrival||null,parr:l.plannedArrival||null,dep:null,pdep:null,product:(next?.line?.product||next?.mode||l?.line?.product||l?.mode||'')};
-    if(next && next.origin?.name===l.destination?.name){node.dep=next.departure||null; node.pdep=next.plannedDeparture||null}
-    nodes.push(node);
+
+  function plannedIfDiff(actual, planned){
+    if(!actual || !planned) return '';
+    const a=new Date(actual), p=new Date(planned);
+    const diffMin=Math.round((a-p)/60000);
+    return diffMin!==0 ? ` <span class="planned">(${fmtHM(planned)})</span>` : '';
   }
-  nodes[nodes.length-1].type='end';
   const fmt=v=>v?fmtHM(v):'—';
   const cls=(a,p)=>{ if(!a||!p) return ''; const m=Math.round((new Date(a)-new Date(p))/60000); return m>0?'late':(m<0?'early':'') };
   const ico=n=> n.type==='start' ? iconForProduct(n.product,'') :
               n.type==='end'   ? '<i class="fa-solid fa-flag-checkered"></i>' :
               (!n.dep||!n.arr) ? '<i class="fa-solid fa-location-dot"></i>' :
               (/walk/i.test(n.product)?'<i class="fa-solid fa-person-walking"></i>':(/bus/i.test(n.product)?'<i class="fa-solid fa-bus"></i>':'<i class="fa-solid fa-train"></i>'));
+
+  const nodes=[];
+  nodes.push({type:'start',name:prettyStop(legs[0]?.origin?.name||'—'),dep:legs[0]?.departure||null,pdep:legs[0]?.plannedDeparture||null,product:legs[0]?.line?.product||legs[0]?.mode||''});
+  for(let i=0;i<legs.length;i++){
+    const l=legs[i], next=legs[i+1], dest=prettyStop(l.destination?.name||'—');
+    const node={type:'mid',name:dest,arr:l.arrival||null,parr:l.plannedArrival||null,dep:null,pdep:null,product:(next?.line?.product||next?.mode||l?.line?.product||l?.mode||'')};
+    if(next && next.origin?.name===l.destination?.name){ node.dep=next.departure||null; node.pdep=next.plannedDeparture||null; }
+    nodes.push(node);
+  }
+  nodes[nodes.length-1].type='end';
+
   return nodes.map(n=>{
     let right='';
     if(n.type==='start'){
-      const c=cls(n.dep,n.pdep); right=`<span class="${c}"><span class="actual">${fmt(n.dep)}</span>${n.pdep?`<span class="planned">(${fmt(n.pdep)})</span>`:''}</span>`;
+      const c=cls(n.dep,n.pdep);
+      right=`<span class="${c}"><span class="actual">${fmt(n.dep)}</span>${plannedIfDiff(n.dep,n.pdep)}</span>`;
     }else if(n.type==='end'){
-      const c=cls(n.arr,n.parr); right=`<span class="${c}"><span class="actual">${fmt(n.arr)}</span>${n.parr?`<span class="planned">(${fmt(n.parr)})</span>`:''}</span>`;
+      const c=cls(n.arr,n.parr);
+      right=`<span class="${c}"><span class="actual">${fmt(n.arr)}</span>${plannedIfDiff(n.arr,n.parr)}</span>`;
     }else{
       const c1=cls(n.arr,n.parr), c2=cls(n.dep,n.pdep);
       const wait=(n.arr&&n.dep)?Math.max(0,Math.round((new Date(n.dep)-new Date(n.arr))/60000)):null;
-      const range=`<span class="${c1}"><span class="actual">${fmt(n.arr)}</span>${n.parr?`<span class="planned">(${fmt(n.parr)})</span>`:''}</span> ▸ <span class="${c2}"><span class="actual">${fmt(n.dep)}</span>${n.pdep?`<span class="planned">(${fmt(n.pdep)})</span>`:''}</span>`;
+      const range=
+        `<span class="${c1}"><span class="actual">${fmt(n.arr)}</span>${plannedIfDiff(n.arr,n.parr)}</span>
+         ▸
+         <span class="${c2}"><span class="actual">${fmt(n.dep)}</span>${plannedIfDiff(n.dep,n.pdep)}</span>`;
       right=`<span class="tl-meta">${range}</span>${(wait&&wait>0)?` <span class="tl-meta">• Wartezeit ${wait}′</span>`:''}`;
     }
     return `<div class="tl-ico">${ico(n)}</div><div class="tl-stop">${n.name}</div><div style="text-align:right">${right}</div>`;
@@ -380,8 +395,8 @@ async function loadRoute(aToB=true, extra=false){
     await ensureIds();
     const from=aToB?ids.school:ids.ffm, to=aToB?ids.ffm:ids.school;
     const cols=gridCols();
-    const minShort = (cols>=4)?8:6;
-    const results = extra ? 30 : Math.max(minShort, 12); // Puffer
+    const minShort = (cols>=4)?8:6;                         // dein Mindestumfang
+    const results = extra ? 30 : Math.max(minShort, 12);    // Puffer anfragen
     const data=await fetchJSON(`${API}/journeys?from=${from}&to=${to}&results=${results}&stopovers=true&language=de`);
     const list = extra ? data : {journeys:(data.journeys||[]).slice(0,minShort)};
     renderJourneysInto('cards', list, aToB);
@@ -417,7 +432,7 @@ async function loadHomebound(){
 
 /* ========= Tabs / Refresh ========= */
 function setTabs(tab){
-  activeTab=tab; moreLong=false;
+  activeTab=tab; moreLong=false; // Tabwechsel -> Kurzliste
   document.querySelectorAll('.tab').forEach(a=>{
     const act=a.getAttribute('href')==='#'+tab; a.classList.toggle('active',act); a.setAttribute('aria-selected',String(act));
   });
@@ -438,8 +453,8 @@ document.querySelectorAll('.tab').forEach(a=>a.addEventListener('click',e=>{e.pr
 /* ========= Weitere Verbindungen (stabil) ========= */
 document.getElementById('moreBtn').addEventListener('click', async ()=>{
   if(!(activeTab==='route-a'||activeTab==='route-b')) return;
-  moreLong=true;
-  const btn=e.target||document.getElementById('moreBtn');
+  moreLong=true; // bleibt aktiv bis Tabwechsel/Reload
+  const btn=document.getElementById('moreBtn');
   const prev=btn.innerHTML; btn.disabled=true; btn.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i> Lädt…';
   try{ await loadRoute(activeTab==='route-a', true); } finally { btn.disabled=false; btn.innerHTML=prev; }
 });
