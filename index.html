@@ -1,3 +1,6 @@
+Hier ist dein aktualisiertes `index.html` – jetzt mit **iPadOS-26 Glass-Look + „Shelf“-Glanz** und **Skeleton-Loadern** (Shimmer) sowie **Infinite Scroll** und den bereits gefixten Punkten (Batch-Zählung, Header-Icons, `fa-sun`).
+
+```html
 <!doctype html>
 <html lang="de" data-theme="light">
 <head>
@@ -66,7 +69,7 @@
     overflow-x:hidden; /* iPhone Cutoff Fix */
   }
 
-  /* ===== Glass Primitive ===== */
+  /* ===== Glass + Shelf ===== */
   .glass{
     background: var(--glass-bg);
     backdrop-filter: blur(18px) saturate(180%);
@@ -74,9 +77,24 @@
     border: 1px solid var(--glass-border);
     box-shadow: var(--shadow);
   }
-  .glass-inner{
-    background: var(--glass-inner);
-    border: 1px solid var(--glass-border);
+  .shelf{ position:relative; }
+  .shelf::before{
+    content:""; pointer-events:none;
+    position:absolute; left:0; right:0; top:0; height:22px;
+    background: linear-gradient(to bottom,
+      rgba(255,255,255,.65),
+      rgba(255,255,255,.35) 45%,
+      rgba(255,255,255,0) 100%);
+    border-top-left-radius: inherit; border-top-right-radius: inherit;
+    mix-blend-mode: screen;
+    opacity:.9;
+  }
+  [data-theme="dark"] .shelf::before{
+    background: linear-gradient(to bottom,
+      rgba(255,255,255,.25),
+      rgba(255,255,255,.10) 50%,
+      rgba(255,255,255,0) 100%);
+    opacity:.7;
   }
 
   /* ===== Topbar ===== */
@@ -84,10 +102,8 @@
     position:sticky; top:0; z-index:40;
     display:flex; align-items:center; gap:10px;
     padding:10px 14px;
-    border-bottom:1px solid var(--rule);
+    border-bottom:1px solid var(--glass-border);
   }
-  .tabs.glass{ border-bottom: 1px solid var(--glass-border); }
-
   .tabs .left{display:flex; gap:8px; flex-wrap:wrap}
   .app-title{display:none; font-weight:800; letter-spacing:.2px}
   .tab{
@@ -111,6 +127,7 @@
   .theme-btn,.hamburger{
     border:1px solid var(--glass-border);
     border-radius:12px; padding:9px 12px; display:flex; align-items:center; gap:8px; cursor:pointer;
+    background:var(--chip-bg);
   }
   .theme-btn i, .hamburger i{font-size:18px}
   .hamburger{ display:none }
@@ -219,10 +236,37 @@
   }
   .footer-space{ height:64px }
 
+  /* ===== Skeleton / Shimmer ===== */
+  @keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
+  .sk{
+    background: linear-gradient(90deg,
+      rgba(255,255,255,.25) 0%,
+      rgba(255,255,255,.55) 50%,
+      rgba(255,255,255,.25) 100%);
+    background-size: 200% 100%;
+    animation: shimmer 1.1s linear infinite;
+    border-radius: 10px;
+  }
+  [data-theme="dark"] .sk{
+    background: linear-gradient(90deg,
+      rgba(255,255,255,.10) 0%,
+      rgba(255,255,255,.20) 50%,
+      rgba(255,255,255,.10) 100%);
+  }
+  @media (prefers-reduced-motion: reduce){
+    .sk{ animation: none; }
+  }
+  .sk-line{ height:12px; margin:8px 0; }
+  .sk-line.lg{ height:18px; }
+  .sk-chip{ height:26px; width:120px; border-radius:12px; margin:6px 8px 6px 0; }
+  .sk-row{ display:flex; flex-wrap:wrap; align-items:center; gap:8px; }
+  .sk-timeline{ height:56px; border-radius:12px; margin-top:10px; }
+
   /* Apply glass to components */
   .tabs, .card, .panel-table, .drawer-panel, .theme-btn, .hamburger, .timeline, .footer { box-shadow: var(--shadow); }
-  .tabs.glass, .card.glass, .panel-table.glass, .drawer-panel.glass, .theme-btn.glass, .hamburger.glass, .timeline.glass, .footer.glass { }
-
   /* Actually apply glass backgrounds */
   .tabs{ background: var(--glass-bg); backdrop-filter: blur(18px) saturate(180%); -webkit-backdrop-filter: blur(18px) saturate(180%); }
   .card{ background: var(--glass-bg); border: 1px solid var(--glass-border); }
@@ -236,8 +280,8 @@
 <body>
 
   <!-- Topbar -->
-  <div class="tabs glass" role="navigation" aria-label="Navigation">
-    <button id="navToggle" class="hamburger glass" aria-label="Menü öffnen">
+  <div class="tabs glass shelf" role="navigation" aria-label="Navigation">
+    <button id="navToggle" class="hamburger glass shelf" aria-label="Menü öffnen">
       <i class="fa-solid fa-bars"></i>
     </button>
     <div class="app-title">Digitaler Fahrplan</div>
@@ -253,7 +297,7 @@
     <div class="spacer"></div>
 
     <!-- Theme Switch -->
-    <button id="themeBtn" class="theme-btn glass" aria-label="Theme umschalten">
+    <button id="themeBtn" class="theme-btn glass shelf" aria-label="Theme umschalten">
       <i class="fa-solid fa-sun" id="sunIcon" aria-hidden="true"></i>
       <i class="fa-solid fa-moon" id="moonIcon" style="display:none" aria-hidden="true"></i>
     </button>
@@ -262,7 +306,7 @@
   <!-- Drawer Menu (mobil) -->
   <div id="drawer" class="drawer" aria-hidden="true">
     <div class="drawer-backdrop" id="drawerBackdrop"></div>
-    <nav class="drawer-panel glass" aria-label="Menü">
+    <nav class="drawer-panel glass shelf" aria-label="Menü">
       <div class="drawer-title">Menü</div>
       <a href="#route-a" class="tablink active" data-key="route-a">Gießen → Frankfurt(Main) Hbf</a>
       <a href="#route-b" class="tablink" data-key="route-b">Frankfurt(Main) Hbf → Gießen</a>
@@ -275,15 +319,15 @@
 
     <!-- ROUTEN -->
     <div id="view-route" hidden>
-      <div id="cards" class="cards"><div class="card glass">Lade Verbindungen …</div></div>
+      <div id="cards" class="cards"></div>
       <!-- Sentinel für Infinite Scroll -->
       <div id="sentinel" style="height:1px"></div>
       <div id="noJourneys" class="hint" style="display:none">Keine Verbindungen gefunden.</div>
     </div>
 
     <!-- ABFAHRTEN STADTEINWÄRTS -->
-    <div id="view-abfahrten" class="panel-table glass" hidden>
-      <div class="table-head">
+    <div id="view-abfahrten" class="panel-table glass shelf" hidden>
+      <div class="table-head shelf">
         <div><i class="fa-regular fa-clock"></i> Abfahrt</div>
         <div class="col-plan"><i class="fa-regular fa-calendar"></i> Plan</div>
         <div><i class="fa-solid fa-route"></i> Linie</div>
@@ -291,12 +335,12 @@
         <div class="col-steig"><i class="fa-solid fa-signs-post"></i> Steig</div>
         <div><i class="fa-solid fa-clock-rotate-left"></i> ±</div>
       </div>
-      <div id="rows" class="rows"><div style="padding:16px;color:var(--muted)">Lade Abfahrten …</div></div>
+      <div id="rows" class="rows"></div>
     </div>
 
     <!-- ABFAHRTEN HEIMWÄRTS -->
-    <div id="view-homebound" class="panel-table glass" hidden>
-      <div class="table-head">
+    <div id="view-homebound" class="panel-table glass shelf" hidden>
+      <div class="table-head shelf">
         <div><i class="fa-regular fa-clock"></i> Abfahrt</div>
         <div class="col-plan"><i class="fa-regular fa-calendar"></i> Plan</div>
         <div><i class="fa-solid fa-location-dot"></i> Abfahrts­halt</div>
@@ -304,10 +348,10 @@
         <div class="col-steig"><i class="fa-solid fa-signs-post"></i> Steig</div>
         <div><i class="fa-solid fa-clock-rotate-left"></i> ±</div>
       </div>
-      <div id="rows-home" class="rows"><div style="padding:16px;color:var(--muted)">Lade Abfahrten …</div></div>
+      <div id="rows-home" class="rows"></div>
     </div>
 
-    <div class="footer glass">
+    <div class="footer glass shelf">
       <span id="refreshInfo">Aktualisierung: —</span>
       <span style="margin:0 8px; opacity:.6">•</span>
       <span id="lastUpdated">Zuletzt: —</span>
@@ -401,6 +445,77 @@ function lineColor(name){ if(!name) return '#7f8c8d'; const key=String(name).tri
 function iconForProduct(p,m){p=(p||'').toLowerCase(); m=(m||'').toLowerCase(); if(p.includes('bus')||m==='bus')return'<i class="fa-solid fa-bus"></i>'; if(p.includes('suburban')||p.includes('s-bahn')||m==='subway')return'<i class="fa-solid fa-train-subway"></i>'; if(p.includes('tram'))return'<i class="fa-solid fa-train-tram"></i>'; return'<i class="fa-solid fa-train"></i>';}
 function prettyStop(n){return n==='Gießen'?'Gießen Bahnhof':n}
 
+/* ========= Shelf helper to add classes ========= */
+function addShelf(el){ if(el && !el.classList.contains('shelf')) el.classList.add('shelf'); }
+
+/* ========= Skeleton Renderer ========= */
+function renderRouteSkeleton(count){
+  const cards=document.getElementById('cards');
+  cards.innerHTML = '';
+  for(let i=0;i<count;i++){
+    const sk=document.createElement('div');
+    sk.className='card glass shelf';
+    sk.innerHTML = `
+      <div class="sk-row">
+        <div class="sk-line lg sk" style="width:120px"></div>
+        <div class="sk-line lg sk" style="width:24px"></div>
+        <div class="sk-line lg sk" style="width:120px"></div>
+        <div class="sk-chip sk"></div>
+        <div class="sk-chip sk"></div>
+      </div>
+      <div class="sk-row" style="margin-top:8px">
+        <div class="sk-chip sk"></div>
+        <div class="sk-chip sk"></div>
+        <div class="sk-chip sk" style="width:80px"></div>
+      </div>
+      <div class="sk-timeline sk"></div>
+      <div class="sk-line sk" style="width:40%; margin-top:10px"></div>
+    `;
+    cards.appendChild(sk);
+  }
+}
+
+function appendRouteSkeleton(count){
+  const cards=document.getElementById('cards');
+  for(let i=0;i<count;i++){
+    const sk=document.createElement('div');
+    sk.className='card glass shelf _skPlaceholder';
+    sk.innerHTML = `
+      <div class="sk-row">
+        <div class="sk-line lg sk" style="width:120px"></div>
+        <div class="sk-line lg sk" style="width:24px"></div>
+        <div class="sk-line lg sk" style="width:120px"></div>
+        <div class="sk-chip sk"></div>
+        <div class="sk-chip sk"></div>
+      </div>
+      <div class="sk-row" style="margin-top:8px">
+        <div class="sk-chip sk"></div>
+        <div class="sk-chip sk"></div>
+      </div>
+      <div class="sk-timeline sk"></div>
+    `;
+    cards.appendChild(sk);
+  }
+}
+
+function renderDeparturesSkeleton(containerId, rows=8){
+  const box=document.getElementById(containerId);
+  box.innerHTML='';
+  for(let i=0;i<rows;i++){
+    const r=document.createElement('div');
+    r.className='row-item';
+    r.innerHTML = `
+      <div class="sk sk-line" style="width:70px"></div>
+      <div class="col-plan"><div class="sk sk-line" style="width:70px"></div></div>
+      <div><div class="sk sk-line" style="width:110px"></div></div>
+      <div><div class="sk sk-line" style="width:60%"></div></div>
+      <div class="col-steig"><div class="sk sk-line" style="width:40px"></div></div>
+      <div class="sk sk-line" style="width:40px"></div>
+    `;
+    box.appendChild(r);
+  }
+}
+
 /* ========= Timeline (geplante Zeit nur wenn abweichend) ========= */
 function buildTimeline(legs){
   if(!legs?.length) return '';
@@ -452,7 +567,7 @@ function buildTimeline(legs){
 function renderJourneysInto(containerId, journeys, aToB){
   const wrap=document.getElementById(containerId); wrap.innerHTML='';
   if(!journeys.length){
-    wrap.innerHTML=`<div class="card glass">Keine Verbindungen gefunden.</div>`;
+    wrap.innerHTML=`<div class="card glass shelf">Keine Verbindungen gefunden.</div>`;
     return;
   }
   for(const j of journeys){
@@ -462,7 +577,7 @@ function renderJourneysInto(containerId, journeys, aToB){
     const chipDelay=(delay!==0)?`<span class="chip" style="color:${delay>0?'var(--bad)':'var(--ok)'}"><i class="fa-solid fa-clock-rotate-left"></i> ${delay>0?`+${delay}`:delay}′</span>`:'';
     const chips=legs.filter(l=>l.line).map(l=>`<span class="chip"><span style="color:${lineColor(l.line?.name||l.mode||'')}; font-weight:900">${iconForProduct(l.line?.product,l.mode)} ${l.line?.name||l.mode||''}</span></span>`).join('');
 
-    const el=document.createElement('div'); el.className='card glass';
+    const el=document.createElement('div'); el.className='card glass shelf';
     el.innerHTML=`
       <div class="row">
         <div class="time">${fmtHM(dep)}</div>
@@ -473,7 +588,7 @@ function renderJourneysInto(containerId, journeys, aToB){
         ${chipDelay}
       </div>
       <div class="row" style="gap:8px; margin-top:8px">${chips || '<span class="chip"><i class="fa-solid fa-person-walking"></i> Fußweg</span>'}</div>
-      <div class="timeline glass">${buildTimeline(legs)}</div>
+      <div class="timeline glass shelf">${buildTimeline(legs)}</div>
       <div class="sub">${aToB?'Sophie-Scholl-Schule → Frankfurt(Main) Hbf':'Frankfurt(Main) Hbf → Sophie-Scholl-Schule'}</div>
     `;
     wrap.appendChild(el);
@@ -534,9 +649,14 @@ function gridCols(){
 function batchSizeForCols(cols){ return cols===1 ? 4 : (cols===4 ? 8 : 6); }
 function currentBatchSize(){ return batchSizeForCols(gridCols()); }
 
-/* ========= ROUTE Laden (ohne 60-Min Fenster) ========= */
+/* ========= ROUTE Laden (mit Skeleton + ohne 60-Min Limit) ========= */
 async function loadRoute(aToB=true, {keepPages=false}={}){
   try{
+    // Skeletons anzeigen beim initialen Laden oder wenn kein Keep
+    if(!keepPages){
+      renderRouteSkeleton(currentBatchSize()*pagesLoaded);
+    }
+
     await ensureIds();
     currentAToB = aToB;
     const from=aToB?ids.school:ids.ffm, to=aToB?ids.ffm:ids.school;
@@ -546,14 +666,14 @@ async function loadRoute(aToB=true, {keepPages=false}={}){
     const data=await fetchJSON(`${API}/journeys?from=${from}&to=${to}&results=${need}&stopovers=true&language=de`,{group:'route'});
     journeysCache = data.journeys || [];
 
-    // Wenn wir weniger bekommen als sichtbar gebraucht wird, kappen wir auf verfügbar
+    // Sichtbar je „Seiten“ * Batch
     const visibleCount = Math.min(journeysCache.length, pagesLoaded * currentBatchSize());
     renderJourneysInto('cards', journeysCache.slice(0, visibleCount), aToB);
 
     document.getElementById('noJourneys').style.display = journeysCache.length ? 'none' : 'block';
     ensureSentinel(); // (re)attach IO
   }catch(e){
-    document.getElementById('cards').innerHTML=`<div class="card glass">Fehler: ${e.message}</div>`;
+    document.getElementById('cards').innerHTML=`<div class="card glass shelf">Fehler: ${e.message}</div>`;
   }
 }
 
@@ -572,15 +692,19 @@ function ensureSentinel(){
       pagesLoaded += 1;
       renderJourneysInto('cards', journeysCache.slice(0, want), currentAToB);
     }else{
-      // Zu wenig im Cache -> nachladen mit größerem "results"
-      const moreNeeded = Math.max(50, batch*2);
+      // Zu wenig im Cache -> vor Fetch Skeletons anhängen
+      appendRouteSkeleton(batch);
       try{
         const from=currentAToB?ids.school:ids.ffm, to=currentAToB?ids.ffm:ids.school;
-        const data=await fetchJSON(`${API}/journeys?from=${from}&to=${to}&results=${journeysCache.length + moreNeeded}&stopovers=true&language=de`,{group:'route-more'});
+        const data=await fetchJSON(`${API}/journeys?from=${from}&to=${to}&results=${journeysCache.length + Math.max(50, batch*2)}&stopovers=true&language=de`,{group:'route-more'});
         journeysCache = data.journeys || journeysCache;
         pagesLoaded += 1;
         renderJourneysInto('cards', journeysCache.slice(0, pagesLoaded*batch), currentAToB);
-      }catch(_){}
+      }catch(_){
+        // Skeletons wieder entfernen, wenn fehlgeschlagen und nichts zu zeigen
+        const cards=document.getElementById('cards');
+        cards.querySelectorAll('._skPlaceholder').forEach(n=>n.remove());
+      }
     }
   }, {root:null, rootMargin:'800px 0px 800px 0px', threshold:0});
   io.observe(sentinel);
@@ -589,6 +713,7 @@ function ensureSentinel(){
 /* ========= Abfahrten ========= */
 async function loadInbound(){
   try{
+    renderDeparturesSkeleton('rows', 8);
     await ensureIds();
     const deps=normalizeDepartures(await fetchJSON(`${API}/stops/${ids.school}/departures?duration=120&language=de`,{group:'inbound'}));
     const filtered=deps.filter(d=>!EXCLUDE_DIRECTIONS.some(rx=>rx.test(String(d.direction||d.destination||''))));
@@ -599,6 +724,7 @@ async function loadInbound(){
 /* Heimwärts parallel (ohne sich abzuschiessen) */
 async function loadHomebound(){
   try{
+    renderDeparturesSkeleton('rows-home', 8);
     await ensureIds();
     const [depsBhf,depsFriedr]=await Promise.all([
       fetchJSON(`${API}/stops/${ids.giessenBhf}/departures?duration=120&language=de`,{group:'home-A'}),
@@ -692,7 +818,6 @@ document.addEventListener('click',(e)=>{
 /* ========= Resize: Anzahl je Spalten-Layout anpassen ========= */
 window.addEventListener('resize', ()=>{
   if(!(activeTab==='route-a'||activeTab==='route-b')) return;
-  // gleiche Anzahl „Seiten“, aber neue Batch-Größe
   const count = Math.min(journeysCache.length, pagesLoaded * currentBatchSize());
   renderJourneysInto('cards', journeysCache.slice(0, count), currentAToB);
 });
@@ -702,3 +827,4 @@ window.addEventListener('resize', ()=>{
 </script>
 </body>
 </html>
+```
