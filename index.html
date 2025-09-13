@@ -51,6 +51,7 @@
   .chips{ display:flex; gap:10px; margin-top:10px; flex-wrap:wrap; }
   .chip{ display:inline-flex; align-items:center; gap:10px; background:var(--chip); border:1px solid var(--rule); border-radius:10px; padding:8px 12px; font-weight:700; }
   .chip i{ opacity:.95 }
+  .chip.sm{ padding:4px 8px; border-radius:8px; font-weight:800; }
   .sub{ margin-top:6px; color:var(--muted); }
 
   /* Compact timeline */
@@ -76,9 +77,6 @@
   .delta.ontime{ color:var(--muted);}
   .err{ color:#b40000; padding:14px 16px; }
 
-  /* kleine Badge in Tabellen */
-  .chip.sm{ padding:4px 8px; border-radius:8px; font-weight:800; }
-
   footer{ padding:10px 16px; color:var(--muted); font-size:13px; display:flex; gap:12px; align-items:center;}
   footer .dot{ opacity:.5 }
 
@@ -90,8 +88,7 @@
     .card{ padding:14px; }
     .badge{ padding:4px 8px; }
     thead th, tbody td{ padding:10px 12px; }
-    /* auf schmalen Displays weniger Spalten zeigen */
-    .col-steig, .col-plan{ display:none; } /* Steig & Plan ausblenden */
+    .col-steig, .col-plan{ display:none; }
   }
 
   /* Button unter Karten */
@@ -103,7 +100,6 @@
   <div class="hdr" role="banner">
     <div class="brand">Pendler Dashboard</div>
     <div class="spacer"></div>
-    <!-- Toggle: nur Icons -->
     <button id="themeBtn" class="iconbtn" aria-label="Theme umschalten (Hell/Dunkel)">
       <i class="fa-solid fa-sun" id="sunIcon"></i>
       <i class="fa-solid fa-moon" id="moonIcon" style="display:none"></i>
@@ -123,7 +119,7 @@
       <div id="view-route" hidden>
         <div id="cards" class="cards"><div class="card meta">Lade Verbindungen …</div></div>
         <div class="more-wrap">
-          <button id="moreBtn" class="more-btn"><i class="fa-solid fa-plus"></i> Mehr Verbindungen (+60&nbsp;min)</button>
+          <button id="moreBtn" class="more-btn"><i class="fa-solid fa-plus"></i> Weitere Verbindungen</button>
         </div>
       </div>
 
@@ -147,7 +143,7 @@
         <div class="err" id="depErr" hidden></div>
       </div>
 
-      <!-- Abfahrten heimwärts (alle Fahrten, die an der Schule halten) -->
+      <!-- Abfahrten heimwärts -->
       <div id="view-homebound" hidden>
         <table>
           <thead>
@@ -184,7 +180,6 @@ const Q_GIESSEN  = 'Gießen Bahnhof';
 const REFRESH_ROUTE_MS = 60000;
 const REFRESH_DEPS_MS  = 30000;
 
-// Stadteinwärts: Unerwünschte Ziele raus
 const EXCLUDE_DIRECTIONS = [/rödgen/i, /coleman\s*str/i];
 
 let ids = { school:null, ffm:null, friedr:null, giessenBhf:null };
@@ -192,10 +187,10 @@ let activeTab = 'route-a';
 let timer = null;
 let lastUpdated = null;
 
-// "Mehr Verbindungen" (einmalig)
-let extraWindowOnce = false;
+/* Einmaliger „More“-Status – wird beim Refresh/Tabwechsel zurückgesetzt */
+let moreShownOnce = false;
 
-/* ========= Theme: Auto (System) + manueller Override ========= */
+/* ========= Theme (Auto + Override) ========= */
 const THEME_KEY = 'pd-theme';
 const THEME_OVERRIDE_KEY = 'pd-theme-override';
 const mediaDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)');
@@ -300,7 +295,7 @@ function iconForProduct(product, mode){
 }
 function prettyStopName(name){ return name==='Gießen' ? 'Gießen Bahnhof' : name; }
 
-/* ========= Compact Timeline mit Delay-Highlight ========= */
+/* ========= Timeline mit Delay-Highlight ========= */
 function buildCompactTimeline(legs){
   if(!legs?.length) return '';
   const nodes = [];
@@ -374,7 +369,6 @@ function renderJourneysInto(containerId, list, aToB){
     const changes = Math.max(0, legs.filter(l=>l.line).length - 1);
     const durHuman = isoDurToHuman(j.duration, dep, arr);
 
-    // Verspätung Chip (erste Abfahrt)
     let delayMin = 0; const l0 = legs.find(l => !!l.departure);
     if(l0 && l0.plannedDeparture && l0.departure) delayMin = Math.round((new Date(l0.departure) - new Date(l0.plannedDeparture))/60000);
     const delayChip = (delayMin!==0)
@@ -460,19 +454,18 @@ async function ensureIds(){
   if(!ids.giessenBhf)  ids.giessenBhf  = await findStopId(Q_GIESSEN, /(gie(s|ß)en).*(bahnhof|hbf)/i);
 }
 
-/* Routen */
+/* Routen (mit „Weitere Verbindungen“) */
 async function loadRoute(aToB=true, extra=false){
   try{
     await ensureIds();
     const from = aToB ? ids.school : ids.ffm;
     const to   = aToB ? ids.ffm    : ids.school;
 
-    // Basis: 8 Verbindungen; bei "Mehr" deutlich mehr (ca. +60min)
+    // Basis 8; erweitert ~24 (≈ +60min je nach Takt)
     const results = extra ? 24 : 8;
     const url = `${API}/journeys?from=${from}&to=${to}&results=${results}&stopovers=true&language=de`;
     const data = await fetchJSON(url);
 
-    // Wenn "extra": Liste direkt rendern; sonst nur die ersten 8
     if(extra){
       renderJourneysInto('cards', data, aToB);
     }else{
@@ -494,50 +487,54 @@ async function loadInbound(){
   }catch(e){ const el=document.getElementById('depErr'); el.hidden=false; el.textContent=e.message; }
 }
 
-/* Heimwärts: ALLE Fahrten, die an der Schule halten
-   -> Journeys von Friedrichstraße + Gießen Bahnhof ZUR Schule,
-      „erste nutzbare (Linien-)Etappe“ wird zur Abfahrtzeile; Walk wird übersprungen */
+/* Heimwärts: NUR
+   - Linie 17 ab Gießen Bahnhof → Schule
+   - Linie 1  ab Friedrichstraße → Schule */
 async function loadHomebound(){
   try{
     await ensureIds();
-    const resultsPerOrigin = 12;
-    const [j1, j2] = await Promise.all([
-      fetchJSON(`${API}/journeys?from=${ids.friedr}&to=${ids.school}&results=${resultsPerOrigin}&language=de`),
-      fetchJSON(`${API}/journeys?from=${ids.giessenBhf}&to=${ids.school}&results=${resultsPerOrigin}&language=de`)
+    const [j17, j1] = await Promise.all([
+      fetchJSON(`${API}/journeys?from=${ids.giessenBhf}&to=${ids.school}&results=20&language=de`),
+      fetchJSON(`${API}/journeys?from=${ids.friedr}&to=${ids.school}&results=20&language=de`)
     ]);
-    const journeys = [...(j1.journeys||[]), ...(j2.journeys||[])];
 
     const rows = [];
-    for(const j of journeys){
-      const legs = j.legs || [];
-      // erste Etappe mit echter Linie (keine Fußwege)
-      const firstLineLeg = legs.find(l => l.line && (l.departure || l.plannedDeparture));
-      if(!firstLineLeg) continue;
 
-      const line  = firstLineLeg.line?.name || '–';
-      const when  = firstLineLeg.departure || firstLineLeg.plannedDeparture;
-      const plannedWhen = firstLineLeg.plannedDeparture || firstLineLeg.departure;
-      const prognosedWhen = firstLineLeg.departure || null;
-      const platform = firstLineLeg.platform || firstLineLeg.plannedPlatform || firstLineLeg.prognosedPlatform || '–';
-      const direction = 'Sophie-Scholl-Schule, Gießen';
+    function pushRowsFromJourneys(data, requiredLineRegex){
+      const journeys = data?.journeys || [];
+      for(const j of journeys){
+        const legs = j.legs || [];
+        // erste Linien-Etappe
+        const firstLineLeg = legs.find(l => l.line && (l.departure || l.plannedDeparture));
+        if(!firstLineLeg) continue;
+        const lineName = firstLineLeg.line?.name || '';
+        if(!requiredLineRegex.test(lineName)) continue; // Filter strikt
 
-      rows.push({
-        line:{name:line, product:firstLineLeg.line?.product},
-        when, plannedWhen, prognosedWhen,
-        platform, direction
-      });
+        rows.push({
+          line:{name:lineName, product:firstLineLeg.line?.product},
+          when:firstLineLeg.departure || firstLineLeg.plannedDeparture,
+          plannedWhen:firstLineLeg.plannedDeparture || firstLineLeg.departure,
+          prognosedWhen:firstLineLeg.departure || null,
+          platform:firstLineLeg.platform || firstLineLeg.plannedPlatform || firstLineLeg.prognosedPlatform || '–',
+          direction:'Sophie-Scholl-Schule, Gießen'
+        });
+      }
     }
 
-    // sortieren / duplikate entfernen (same line+time)
+    // Linie 17 ab Hbf
+    pushRowsFromJourneys(j17, /\b(17|Bus\s*17)\b/i);
+    // Linie 1 ab Friedrichstraße
+    pushRowsFromJourneys(j1, /\b(1|Bus\s*1)\b/i);
+
     rows.sort((a,b)=> new Date(a.when||a.plannedWhen) - new Date(b.when||b.plannedWhen));
-    const dedup = [];
-    const seen = new Set();
+    // Duplikate vermeiden
+    const out=[], seen=new Set();
     for(const r of rows){
-      const k = (r.line?.name||'') + '|' + (r.when||r.plannedWhen);
-      if(!seen.has(k)){ seen.add(k); dedup.push(r); }
+      const k=(r.line?.name||'')+'|'+(r.when||r.plannedWhen);
+      if(!seen.has(k)){ seen.add(k); out.push(r); }
     }
 
-    renderDeparturesInto('rows-home', dedup.slice(0,20));
+    renderDeparturesInto('rows-home', out.slice(0,20));
     document.getElementById('homeErr').hidden = true;
   }catch(e){ const el=document.getElementById('homeErr'); el.hidden=false; el.textContent=e.message; }
 }
@@ -545,8 +542,7 @@ async function loadHomebound(){
 /* ========= Tabs & Intervals ========= */
 function setTabs(tab){
   activeTab = tab;
-  // beim Tabwechsel: Extra-Fenster zurücksetzen
-  extraWindowOnce = false;
+  moreShownOnce = false; // Reset bei Tabwechsel
 
   for(const a of document.querySelectorAll('.tab')){
     const act = a.getAttribute('href') === '#'+tab;
@@ -564,8 +560,8 @@ function startRefresh(){
   else {
     const aToB = activeTab==='route-a';
     setFooter(REFRESH_ROUTE_MS);
-    loadRoute(aToB, /*extra*/ false);                        // normal
-    timer=setInterval(()=>loadRoute(aToB, /*extra*/ false), REFRESH_ROUTE_MS); // normal bei jedem Refresh
+    loadRoute(aToB, /*extra*/ false); // immer Kurzliste
+    timer=setInterval(()=>{ moreShownOnce=false; loadRoute(aToB,false); }, REFRESH_ROUTE_MS);
   }
 }
 function handleHash(){
@@ -578,13 +574,22 @@ for(const a of document.querySelectorAll('.tab')){
   a.addEventListener('click', (e)=>{ e.preventDefault(); history.replaceState(null,'',a.getAttribute('href')); handleHash(); });
 }
 
-/* Mehr Verbindungen (+60 min) – nur einmalig, verfällt beim nächsten Auto-Refresh */
-document.getElementById('moreBtn').addEventListener('click', ()=>{
+/* „Weitere Verbindungen“ – einmalig bis zum nächsten Auto-Refresh */
+const moreBtn = document.getElementById('moreBtn');
+moreBtn.addEventListener('click', async ()=>{
   if(!(activeTab==='route-a' || activeTab==='route-b')) return;
-  if(extraWindowOnce) return; // nur einmal bis zum nächsten Refresh
-  extraWindowOnce = true;
+  if(moreShownOnce) return;
   const aToB = activeTab==='route-a';
-  loadRoute(aToB, /*extra*/ true);
+  const prevLabel = moreBtn.innerHTML;
+  moreBtn.disabled = true;
+  moreBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Lädt…';
+  try{
+    await loadRoute(aToB, /*extra*/ true);
+    moreShownOnce = true;
+  }finally{
+    moreBtn.disabled = false;
+    moreBtn.innerHTML = prevLabel;
+  }
 });
 
 (function init(){ handleHash(); })();
