@@ -4,21 +4,21 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Digitaler Fahrplan</title>
+
+<!-- Icons (immer einbinden) -->
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="alternate icon" type="image/png" sizes="512x512" href="apple-touch-icon.png">
 
-
-<!-- Font Awesome (kostenlos, ohne Account) für Sonne/Mond + Fahrzeug-Icons -->
+<!-- Font Awesome (kostenlos, ohne Account) -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.2/css/all.min.css">
 
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Digitaler Fahrplan">
 
 <style>
-  /* ========= Design-System (DB-inspiriert) ========= */
   :root{
-    --accent:#ec0016;        /* DB-Rot */
+    --accent:#ec0016;
     --bg:#f8f9fb;
     --panel:#ffffff;
     --text:#181c22;
@@ -29,99 +29,60 @@
     --font: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
   }
   [data-theme="dark"]{
-    --bg:#0b0f14;
-    --panel:#0f1620;
-    --text:#eaf2ff;
-    --muted:#9aa8bd;
-    --rule:#16202c;
-    --chip:#111c28;
-    --shadow:none;
+    --bg:#0b0f14; --panel:#0f1620; --text:#eaf2ff; --muted:#9aa8bd; --rule:#16202c; --chip:#111c28; --shadow:none;
   }
-
   html,body{height:100%}
   body{margin:0; background:var(--bg); color:var(--text); font-family:var(--font); -webkit-font-smoothing:antialiased;}
-
-  /* ========= Header ========= */
-  .hdr{
-    position:sticky; top:0; z-index:40;
-    display:flex; align-items:center; gap:16px;
-    padding:16px 20px; background:var(--panel);
-    border-bottom:1px solid var(--rule); box-shadow:var(--shadow);
-  }
+  .hdr{position:sticky; top:0; z-index:40; display:flex; align-items:center; gap:16px; padding:16px 20px; background:var(--panel); border-bottom:1px solid var(--rule); box-shadow:var(--shadow);}
   .brand{ font-weight:800; letter-spacing:.2px; font-size:22px; }
-  .spacer{ flex:1 }
-  .iconbtn{
-    border:1px solid var(--rule); background:var(--chip); color:var(--text);
-    border-radius:12px; padding:10px 12px; display:inline-flex; align-items:center; gap:10px;
-    cursor:pointer; user-select:none; font-weight:700;
-  }
+  .spacer{flex:1}
+  .iconbtn{ border:1px solid var(--rule); background:var(--chip); color:var(--text); border-radius:12px; padding:10px 12px; display:inline-flex; align-items:center; gap:10px; cursor:pointer; user-select:none; font-weight:700; }
   .iconbtn i{ font-size:18px }
-  .iconbtn:hover{ filter:brightness(.98); }
-
-  /* ========= Tabs ========= */
-  .tabs{
-    display:flex; gap:10px; padding:10px 16px; overflow:auto hidden;
-    background:var(--panel); border-bottom:1px solid var(--rule);
-  }
-  .tab{
-    padding:10px 14px; border-radius:10px; white-space:nowrap; text-decoration:none;
-    color:var(--muted); border:1px solid transparent; flex:0 0 auto; font-weight:800; font-size:16px;
-  }
+  .tabs{ display:flex; gap:10px; padding:10px 16px; overflow:auto hidden; background:var(--panel); border-bottom:1px solid var(--rule); }
+  .tab{ padding:10px 14px; border-radius:10px; white-space:nowrap; text-decoration:none; color:var(--muted); border:1px solid transparent; flex:0 0 auto; font-weight:800; font-size:16px; }
   .tab.active{ color:var(--accent); background:var(--panel); border-color:var(--rule); }
-
-  /* ========= Content Wrapper ========= */
   .wrap{ padding:12px 16px 18px; max-width:1920px; margin:0 auto; }
-  .panel{
-    background:var(--panel); border:1px solid var(--rule); border-radius:14px; overflow:hidden; box-shadow:var(--shadow);
-  }
+  .panel{ background:var(--panel); border:1px solid var(--rule); border-radius:14px; overflow:hidden; box-shadow:var(--shadow); }
 
-  /* ========= Journeys (Routen) ========= */
-  .cards{ display:grid; grid-template-columns: 1fr; }
+  /* Journey cards */
+  .cards{ display:grid; grid-template-columns:1fr; }
   .card{ padding:18px; border-top:1px solid var(--rule); }
   .card:first-child{ border-top:none; }
   .row1{ display:flex; gap:10px; align-items:baseline; flex-wrap:wrap; }
   .dep,.arr,.dur,.chg{ font-variant-numeric:tabular-nums; font-weight:800; }
   .meta{ color:var(--muted); }
   .chips{ display:flex; gap:10px; margin-top:10px; flex-wrap:wrap; }
-  .chip{
-    display:inline-flex; align-items:center; gap:10px;
-    background:var(--chip); border:1px solid var(--rule); border-radius:10px;
-    padding:8px 12px; font-weight:800;
-  }
+  .chip{ display:inline-flex; align-items:center; gap:10px; background:var(--chip); border:1px solid var(--rule); border-radius:10px; padding:8px 12px; font-weight:800; }
   .chip i{ opacity:.9 }
   .sub{ margin-top:6px; color:var(--muted); }
 
+  /* Timeline under each journey */
+  .timeline{ display:grid; grid-template-columns:24px 1fr auto; gap:12px 16px; margin-top:12px; padding:14px; border:1px dashed var(--rule); border-radius:12px; background:color-mix(in oklab, var(--chip) 65%, transparent); }
+  .tl-dot{ width:12px; height:12px; border-radius:50%; background:var(--muted); margin-top:6px; }
+  .tl-dot.start, .tl-dot.end{ background:var(--accent); }
+  .tl-line{ grid-column:1; background:var(--rule); width:2px; margin:0 auto; }
+  .tl-stop{ font-weight:700; }
+  .tl-time{ color:var(--muted); font-variant-numeric:tabular-nums; white-space:nowrap; }
+
   @media (min-width:1100px){
-    .cards{ grid-template-columns: 1fr 1fr; }
+    .cards{ grid-template-columns:1fr 1fr; }
     .card{ min-height:92px; }
   }
 
-  /* ========= Abfahrten-Tabelle ========= */
+  /* Departures table */
   table{ width:100%; border-collapse:collapse; }
-  thead th{
-    text-align:left; background:var(--panel); position:sticky; top:126px; z-index:5;
-    padding:14px 16px; color:var(--muted); border-bottom:1px solid var(--rule);
-  }
-  tbody td{
-    padding:14px 16px; border-bottom:1px solid var(--rule);
-  }
+  thead th{ text-align:left; background:var(--panel); position:sticky; top:126px; z-index:5; padding:14px 16px; color:var(--muted); border-bottom:1px solid var(--rule); }
+  tbody td{ padding:14px 16px; border-bottom:1px solid var(--rule); }
   .line{ font-weight:900; }
   .delta{ font-variant-numeric:tabular-nums; font-weight:800; }
   .late{ color:#b40000; }
   .early{ color:#0a8a3f; }
-
-  .hint{ padding:10px 12px; color:var(--muted); font-size:14px; }
   .err{ color:#b40000; padding:14px 16px; }
-
-  /* ========= Footer (klein) ========= */
-  footer{
-    padding:10px 16px; color:var(--muted); font-size:13px; display:flex; gap:12px; align-items:center;
-  }
+  footer{ padding:10px 16px; color:var(--muted); font-size:13px; display:flex; gap:12px; align-items:center;}
   footer .dot{ opacity:.5 }
 </style>
 </head>
 <body>
-  <!-- Header -->
   <div class="hdr" role="banner">
     <div class="brand">Digitaler Fahrplan</div>
     <div class="spacer"></div>
@@ -132,7 +93,6 @@
     </button>
   </div>
 
-  <!-- Tabs -->
   <nav class="tabs" role="tablist" aria-label="Ansichten">
     <a href="#route-a" class="tab active" role="tab" aria-selected="true" id="tab-a">Gießen → Frankfurt(Main) Hbf</a>
     <a href="#route-b" class="tab" role="tab" aria-selected="false" id="tab-b">Frankfurt(Main) Hbf → Gießen</a>
@@ -141,18 +101,11 @@
 
   <div class="wrap">
     <div class="panel" id="panel">
-
-      <!-- Route Cards -->
       <div id="view-route" hidden>
-        <div class="hint">Nächste Verbindungen. Quelle: transport.rest (DB/HAFAS). Aktualisiert alle 60 s.</div>
-        <div id="cards" class="cards">
-          <div class="card meta">Lade Verbindungen …</div>
-        </div>
+        <div id="cards" class="cards"><div class="card meta">Lade Verbindungen …</div></div>
       </div>
 
-      <!-- Departures Table -->
       <div id="view-abfahrten" hidden>
-        <div class="hint">Nur stadt­einwärts (Ziele Richtung Innenstadt/Bahnhof). „Rödgen“ und „Coleman Str.“ werden ausgeblendet. Aktualisiert alle 30 s.</div>
         <table>
           <thead>
             <tr>
@@ -165,7 +118,7 @@
             </tr>
           </thead>
           <tbody id="rows">
-            <tr><td colspan="6" class="meta" style="padding:18px">Lade Abfahrten …</td></tr>
+            <tr><td colspan="6" style="padding:18px;color:var(--muted)">Lade Abfahrten …</td></tr>
           </tbody>
         </table>
         <div class="err" id="depErr" hidden></div>
@@ -180,34 +133,38 @@
   </footer>
 
 <script>
-/* ========= Config ========= */
 const API = 'https://v6.db.transport.rest';
 const Q_SCHOOL = 'Sophie-Scholl-Schule Gießen';
 const Q_FFMHBF = 'Frankfurt(Main) Hbf';
-const REFRESH_ROUTE_MS = 60000;  // 60 s
-const REFRESH_DEPS_MS  = 30000;  // 30 s
+const REFRESH_ROUTE_MS = 60000;
+const REFRESH_DEPS_MS  = 30000;
 
-// Stadteinwärts: bekannte Gegenrichtungen ausschließen
-const EXCLUDE_DIRECTIONS = [/rödgen/i, /coleman/i];
+// Filter: alles, was explizit raus soll (nicht stadteinwärts)
+const EXCLUDE_DIRECTIONS = [/rödgen/i, /coleman\s*str/i];
 
-/* ========= State ========= */
 let ids = { school:null, ffm:null };
 let activeTab = 'route-a';
 let timer = null;
 let lastUpdated = null;
 
-/* ========= Utilities ========= */
+/* ========== Helpers ========== */
 function fmtHM(d){ return new Date(d).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'}); }
 function fmtHMS(d){ return new Date(d).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit',second:'2-digit'}); }
-function setFooter(infoMs){
-  document.getElementById('refreshInfo').textContent = 'Aktualisierung: alle ' + Math.round(infoMs/1000) + ' s';
+function isoDurToHuman(iso){ // PT1H5M -> 1 h 05 min
+  if(!iso) return '–';
+  let h = 0, m = 0;
+  const mh = iso.match(/(\d+)H/); if(mh) h = +mh[1];
+  const mm = iso.match(/(\d+)M/); if(mm) m = +mm[1];
+  return (h? (h+' h '):'') + (String(m).padStart(2,'0') + ' min');
+}
+function setFooter(ms){
+  document.getElementById('refreshInfo').textContent = 'Aktualisierung: alle ' + Math.round(ms/1000) + ' s';
   document.getElementById('lastUpdated').textContent = 'Zuletzt: ' + (lastUpdated ? fmtHMS(lastUpdated) : '—');
 }
 async function fetchJSON(url){
   const r = await fetch(url);
   if(!r.ok) throw new Error(`${url} → ${r.status}`);
-  lastUpdated = Date.now();
-  setFooter(activeTab==='abfahrten' ? REFRESH_DEPS_MS : REFRESH_ROUTE_MS);
+  lastUpdated = Date.now(); setFooter(activeTab==='abfahrten' ? REFRESH_DEPS_MS : REFRESH_ROUTE_MS);
   return r.json();
 }
 async function findStopId(query){
@@ -216,8 +173,6 @@ async function findStopId(query){
   const first = data.find(x => x.type==='stop' || x.type==='station');
   return first?.id || null;
 }
-
-/* ========= Theme ========= */
 function setTheme(mode){
   document.documentElement.setAttribute('data-theme', mode);
   localStorage.setItem('fahrplan-theme', mode);
@@ -233,39 +188,65 @@ document.getElementById('themeBtn').addEventListener('click', ()=>{
 });
 setTheme(localStorage.getItem('fahrplan-theme') || 'light');
 
-/* ========= Icon Mapper ========= */
+/* ========== Icons ========== */
 function iconForProduct(product, mode){
   const p = (product||'').toLowerCase();
   const m = (mode||'').toLowerCase();
   if(p.includes('bus') || m==='bus') return '<i class="fa-solid fa-bus"></i>';
   if(p.includes('suburban') || p.includes('s-bahn') || m==='subway') return '<i class="fa-solid fa-train-subway"></i>';
-  if(p.includes('tram')) return '<i class="fa-solid fa-train-tram"></i>'; /* falls nicht vorhanden, nutzt FA Fallback auf square */
-  return '<i class="fa-solid fa-train"></i>'; // Regional, RE/RB, IC/ICE
+  if(p.includes('tram')) return '<i class="fa-solid fa-train-tram"></i>';
+  return '<i class="fa-solid fa-train"></i>';
 }
 
-/* ========= Renderers ========= */
-// Journeys
+/* ========== Render Journeys (with timeline) ========== */
 function renderJourneys(list, aToB){
   const wrap = document.getElementById('cards');
   wrap.innerHTML = '';
-  if(!list?.journeys?.length){
-    wrap.innerHTML = `<div class="card meta">Keine Verbindungen gefunden.</div>`;
-    return;
-  }
-  for(const j of list.journeys.slice(0, 8)){
-    const legs = (j.legs||[]);
+  const journeys = list?.journeys || [];
+  if(!journeys.length){ wrap.innerHTML = `<div class="card meta">Keine Verbindungen gefunden.</div>`; return; }
+
+  for(const j of journeys.slice(0, 8)){
+    const legs = j.legs || [];
     const dep = j.departure || legs[0]?.departure;
     const arr = j.arrival || legs[legs.length-1]?.arrival;
     const changes = Math.max(0, legs.filter(l=>l.line).length - 1);
-    const dur = (j.duration||'').replace('PT','').toLowerCase();
+    const durHuman = isoDurToHuman(j.duration);
 
-    const chips = legs
-      .filter(l => l.line) // nur echte Fahrten, keine Fußwege
-      .map(l => {
-        const line = l.line?.name || l.mode || '';
-        const icn  = iconForProduct(l.line?.product, l.mode);
-        return `<span class="chip">${icn} ${line}</span>`;
-      }).join('');
+    // Chips: show line icons + names (skip walking)
+    const chips = legs.filter(l => l.line).map(l => {
+      const line = l.line?.name || l.mode || '';
+      const icn  = iconForProduct(l.line?.product, l.mode);
+      return `<span class="chip">${icn} ${line}</span>`;
+    }).join('');
+
+    // Timeline events: for each leg, show departure at origin and arrival at destination
+    const events = [];
+    for(const l of legs){
+      const o = l.origin || {};
+      const d = l.destination || {};
+      if(l.departure) events.push({type:'Abfahrt', stop:o.name || '—', time:l.departure, start:true});
+      if(l.arrival)   events.push({type:'Ankunft', stop:d.name || '—', time:l.arrival, end:true});
+    }
+    // merge duplicates (e.g., arrival of leg N == departure of leg N+1)
+    const merged = [];
+    for(let i=0;i<events.length;i++){
+      const prev = merged[merged.length-1];
+      const e = events[i];
+      if(prev && prev.stop===e.stop && prev.time===e.time){
+        // combine labels: "Ankunft & Abfahrt"
+        prev.type = 'Ankunft & Abfahrt';
+      }else{
+        merged.push(e);
+      }
+    }
+    const tlDots = merged.map((e, idx) => {
+      const cls = idx===0 ? 'tl-dot start' : (idx===merged.length-1 ? 'tl-dot end' : 'tl-dot');
+      return `
+        <div class="${cls}" aria-hidden="true"></div>
+        <div class="tl-stop">${e.type} <span style="font-weight:800">${e.stop}</span></div>
+        <div class="tl-time">${fmtHM(e.time)}</div>
+      `;
+    }).join('');
 
     const subtitle = aToB
       ? 'Sophie-Scholl-Schule → Frankfurt(Main) Hbf'
@@ -279,29 +260,38 @@ function renderJourneys(list, aToB){
         <div class="meta">→</div>
         <div class="arr">${fmtHM(arr)}</div>
         <div class="meta">•</div>
-        <div class="dur">${dur}</div>
-        <div class="meta">• Umstiege:</div>
-        <div class="chg">${changes}</div>
+        <div class="dur"><i class="fa-regular fa-clock"></i> ${durHuman}</div>
+        <div class="meta">•</div>
+        <div class="chg"><i class="fa-solid fa-right-left"></i> ${changes}</div>
       </div>
       <div class="chips">${chips || '<span class="chip"><i class="fa-solid fa-person-walking"></i> Fußweg</span>'}</div>
       <div class="sub">${subtitle}</div>
+
+      <div class="timeline" role="list">
+        ${tlDots}
+      </div>
     `;
     wrap.appendChild(el);
   }
 }
 
-// Departures (stadt­einwärts)
-function renderDepartures(deps){
+/* ========== Render Departures (city inbound) ========== */
+function renderDepartures(raw){
   const tbody = document.getElementById('rows');
   tbody.innerHTML = '';
-  const filtered = (deps||[]).filter(d=>{
+
+  const arr = Array.isArray(raw) ? raw :
+              (raw && Array.isArray(raw.departures) ? raw.departures : []);
+  const filtered = arr.filter(d=>{
     const dir = (d.direction || d.destination || '').toString();
     return !EXCLUDE_DIRECTIONS.some(rx => rx.test(dir));
   });
+
   if(filtered.length===0){
-    tbody.innerHTML = `<tr><td colspan="6" class="meta" style="padding:18px">Keine passenden Abfahrten.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6" style="padding:18px;color:var(--muted)">Keine passenden Abfahrten.</td></tr>`;
     return;
   }
+
   for(const d of filtered){
     const line = d.line?.name || d.line?.id || '–';
     const dir = d.direction || d.destination || '–';
@@ -327,7 +317,7 @@ function renderDepartures(deps){
   }
 }
 
-/* ========= Loaders ========= */
+/* ========== Loaders ========== */
 async function ensureIds(){
   if(!ids.school) ids.school = await findStopId(Q_SCHOOL);
   if(!ids.ffm)    ids.ffm    = await findStopId(Q_FFMHBF);
@@ -339,7 +329,8 @@ async function loadRoute(aToB=true){
     const from = aToB ? ids.school : ids.ffm;
     const to   = aToB ? ids.ffm    : ids.school;
     if(!from || !to) throw new Error('Haltestellen nicht gefunden.');
-    const url = `${API}/journeys?from=${from}&to=${to}&results=8&stopovers=false&language=de`;
+    // stopovers=true, damit wir für die Timeline alle Stationen/Zeiten haben
+    const url = `${API}/journeys?from=${from}&to=${to}&results=8&stopovers=true&language=de`;
     const data = await fetchJSON(url);
     renderJourneys(data, aToB);
   }catch(e){
@@ -360,7 +351,7 @@ async function loadDepartures(){
   }
 }
 
-/* ========= Tabs & Intervals ========= */
+/* ========== Tabs & Intervals ========== */
 function setTabs(tab){
   activeTab = tab;
   for(const a of document.querySelectorAll('.tab')){
@@ -368,12 +359,9 @@ function setTabs(tab){
     a.classList.toggle('active', act);
     a.setAttribute('aria-selected', String(act));
   }
-  const viewRoute = document.getElementById('view-route');
-  const viewDeps  = document.getElementById('view-abfahrten');
-  if(tab === 'abfahrten'){ viewRoute.hidden = true; viewDeps.hidden = false; }
-  else { viewRoute.hidden = false; viewDeps.hidden = true; }
+  document.getElementById('view-route').hidden = (tab==='abfahrten');
+  document.getElementById('view-abfahrten').hidden = (tab!=='abfahrten');
 }
-
 function startRefresh(){
   if(timer) clearInterval(timer);
   if(activeTab==='abfahrten'){
@@ -387,29 +375,19 @@ function startRefresh(){
     timer = setInterval(()=>loadRoute(aToB), REFRESH_ROUTE_MS);
   }
 }
-
 function handleHash(){
   const hash = (location.hash || '#route-a').replace('#','');
   const allowed = ['route-a','route-b','abfahrten'];
-  setTabs(allowed.includes(hash) ? hash : 'route-a');
-  startRefresh();
+  setTabs(allowed.includes(hash) ? hash : 'route-a'); startRefresh();
 }
 window.addEventListener('hashchange', handleHash);
-
-// Tab clicks (verhindert Scroll-Jump auf iOS)
 for(const a of document.querySelectorAll('.tab')){
-  a.addEventListener('click', (e)=>{
-    e.preventDefault();
-    const h = a.getAttribute('href');
-    history.replaceState(null,'',h);
-    handleHash();
-  });
+  a.addEventListener('click', (e)=>{ e.preventDefault(); history.replaceState(null,'',a.getAttribute('href')); handleHash(); });
 }
 
-/* ========= Init ========= */
-(function init(){
-  handleHash();
-})();
+/* ========== Init ========== */
+(function init(){ handleHash(); })();
 </script>
 </body>
 </html>
+
