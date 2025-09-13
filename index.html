@@ -111,24 +111,22 @@
   .late .actual{ color:var(--bad) }
   .early .actual{ color:var(--ok) }
 
-  /* ===== Tabellen (kompakte Leiste oben, kein Leerraum) ===== */
+  /* ===== Tabellen ===== */
   .panel-table{
     background:var(--panel); border:1px solid var(--rule); border-radius:var(--radius);
-    box-shadow:var(--shadow); overflow:hidden; /* WICHTIG gegen „Luft“ */
-    padding:0; margin:0;
+    box-shadow:var(--shadow); overflow:hidden; padding:0; margin:0;
   }
   .table-head{
-    margin:0; /* WICHTIG: kein Außenabstand */
+    margin:0;
     background:var(--bar); border-bottom:1px solid var(--rule);
     display:grid; grid-template-columns:140px 140px 220px 1fr 120px 100px;
     padding:12px 16px; font-weight:700; color:var(--muted);
-    position:sticky; top:56px; z-index:30;
   }
   @media (max-width:740px){
     .table-head{ grid-template-columns:140px 1fr 120px 100px; }
     .col-plan, .col-steig { display:none }
   }
-  .rows{ margin:0 } /* kein Abstand zwischen Kopf und erstem Eintrag */
+  .rows{ margin:0 }
   .row-item{
     display:grid; grid-template-columns:140px 140px 220px 1fr 120px 100px;
     padding:14px 16px; border-bottom:1px solid var(--rule); background:var(--panel);
@@ -143,13 +141,14 @@
     margin:16px; padding:10px 14px; color:var(--muted); font-size:13px;
     background:var(--panel); border:1px solid var(--rule); border-radius:12px; box-shadow:var(--shadow);
   }
-  .footer-space{ height:64px } /* extra Luft unten */
+  .footer-space{ height:64px }
 
   .more-wrap{ padding:10px 0 0; display:flex; justify-content:center }
   .btn{
     border:1px solid var(--rule); background:var(--panel); border-radius:10px; padding:10px 14px; font-weight:700; cursor:pointer;
   }
   .btn:disabled{ opacity:.6; cursor:not-allowed }
+  .hint{padding:12px 14px; color:var(--muted)}
 </style>
 </head>
 <body>
@@ -175,6 +174,7 @@
     <div id="view-route" hidden>
       <div id="cards" class="cards"><div class="card">Lade Verbindungen …</div></div>
       <div class="more-wrap"><button id="moreBtn" class="btn">Weitere Verbindungen</button></div>
+      <div id="noJourneys" class="hint" style="display:none">Für das gewählte Zeitfenster sind keine Verbindungen verfügbar.</div>
     </div>
 
     <!-- ABFAHRTEN STADTEINWÄRTS -->
@@ -220,8 +220,8 @@ const EXCLUDE_DIRECTIONS=[/rödgen/i,/coleman\s*str/i];
 
 let ids={school:null,ffm:null,friedr:null,giessenBhf:null};
 let activeTab='route-a', timer=null, lastUpdated=null;
-let moreLong=false;         // „Weitere Verbindungen“ bleibt lang bis Tabwechsel/Reload
-let inflight=null;          // AbortController gegen Überschreiben
+let moreLong=false;         // bleibt aktiv bis Tabwechsel/Reload
+let inflight=null;          // AbortController
 
 /* ========= Theme ========= */
 const mediaDark=window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)');
@@ -313,7 +313,11 @@ function buildTimeline(legs){
 /* ========= Journeys Renderer ========= */
 function renderJourneysInto(containerId, list, aToB){
   const wrap=document.getElementById(containerId); wrap.innerHTML='';
-  const journeys=list?.journeys||[]; if(!journeys.length){wrap.innerHTML=`<div class="card">Keine Verbindungen gefunden.</div>`; return;}
+  const journeys=list?.journeys||[];
+  if(!journeys.length){
+    wrap.innerHTML=`<div class="card">Keine Verbindungen gefunden.</div>`;
+    return;
+  }
   for(const j of journeys){
     const legs=j.legs||[]; const dep=j.departure||legs[0]?.departure; const arr=j.arrival||legs[legs.length-1]?.arrival;
     const changes=Math.max(0, legs.filter(l=>l.line).length - 1); const dur=isoDurToHuman(j.duration,dep,arr);
@@ -345,7 +349,7 @@ function deltaClass(m){ if(m>0) return 'late'; if(m<0) return 'early'; return 'o
 
 function renderDeparturesInto(containerId, deps, mode){
   const box=document.getElementById(containerId); box.innerHTML='';
-  if(!deps.length){ box.innerHTML=`<div style="padding:16px;color:var(--muted)">Keine passenden Abfahrten.</div>`; return; }
+  if(!deps.length){ box.innerHTML=`<div class="hint">Keine passenden Abfahrten.</div>`; return; }
   for(const d of deps){
     const line=d.line?.name||d.line?.id||'–';
     const dir = mode==='home' ? 'Sophie-Scholl-Schule, Gießen' : prettyStop(d.direction||d.destination||'–');
@@ -390,17 +394,33 @@ function gridCols(){
   return 1;
 }
 
+function filterByTimeWindow(journeys, minutes){
+  const now=Date.now(), limit=now+minutes*60000;
+  return (journeys||[]).filter(j=>{
+    const t=j.departure || j.legs?.[0]?.departure || j.legs?.[0]?.plannedDeparture;
+    if(!t) return false;
+    const ts=new Date(t).getTime();
+    return ts>=now && ts<=limit;
+  });
+}
+
 async function loadRoute(aToB=true, extra=false){
   try{
     await ensureIds();
     const from=aToB?ids.school:ids.ffm, to=aToB?ids.ffm:ids.school;
     const cols=gridCols();
-    const minShort = (cols>=4)?8:6;                         // dein Mindestumfang
-    const results = extra ? 30 : Math.max(minShort, 12);    // Puffer anfragen
+    const minShort = (cols>=4)?8:6;                         // Mindestanzahl Karten
+    const windowMin = extra ? 120 : 60;                    // Zeitfenster
+    const results = 40;                                    // ausreichend groß
     const data=await fetchJSON(`${API}/journeys?from=${from}&to=${to}&results=${results}&stopovers=true&language=de`);
-    const list = extra ? data : {journeys:(data.journeys||[]).slice(0,minShort)};
-    renderJourneysInto('cards', list, aToB);
-  }catch(e){ document.getElementById('cards').innerHTML=`<div class="card">Fehler: ${e.message}</div>`; }
+    let journeys = filterByTimeWindow(data.journeys||[], windowMin);
+    const short = journeys.slice(0, minShort);
+    const hasAny = journeys.length>0;
+    document.getElementById('noJourneys').style.display = hasAny ? 'none' : 'block';
+    renderJourneysInto('cards', {journeys: extra ? journeys : (short.length?short:journeys)}, aToB);
+  }catch(e){
+    document.getElementById('cards').innerHTML=`<div class="card">Fehler: ${e.message}</div>`;
+  }
 }
 
 async function loadInbound(){
@@ -409,25 +429,48 @@ async function loadInbound(){
     const deps=normalizeDepartures(await fetchJSON(`${API}/stops/${ids.school}/departures?duration=120&language=de`));
     const filtered=deps.filter(d=>!EXCLUDE_DIRECTIONS.some(rx=>rx.test(String(d.direction||d.destination||''))));
     renderDeparturesInto('rows', filtered, 'in');
-  }catch(e){ document.getElementById('rows').innerHTML=`<div style="padding:16px;color:var(--bad)">${e.message}</div>`; }
+  }catch(e){ document.getElementById('rows').innerHTML=`<div class="hint" style="color:var(--bad)">${e.message}</div>`; }
 }
 
+/* Heimwärts jetzt über Departures je Ursprung + Richtung Sophie-Scholl-Schule */
 async function loadHomebound(){
   try{
     await ensureIds();
-    const [j17,j1]=await Promise.all([
-      fetchJSON(`${API}/journeys?from=${ids.giessenBhf}&to=${ids.school}&results=20&language=de`),
-      fetchJSON(`${API}/journeys?from=${ids.friedr}&to=${ids.school}&results=20&language=de`)
+    const [depsBhf,depsFriedr]=await Promise.all([
+      fetchJSON(`${API}/stops/${ids.giessenBhf}/departures?duration=120&language=de`),
+      fetchJSON(`${API}/stops/${ids.friedr}/departures?duration=120&language=de`)
     ]);
-    const rows=[];
-    function pushRows(data,rx,origin){ for(const j of (data?.journeys||[])){ const l=(j.legs||[]).find(x=>x.line && (x.departure||x.plannedDeparture)); if(!l) continue; const name=l.line?.name||''; if(!rx.test(name)) continue; rows.push({originLabel:origin,line:{name,product:l.line?.product},when:l.departure||l.plannedDeparture,plannedWhen:l.plannedDeparture||l.departure,prognosedWhen:l.departure||null}) } }
-    pushRows(j17,/\b(17|Bus\s*17)\b/i,'Gießen Bahnhof');
-    pushRows(j1, /\b(1|Bus\s*1)\b/i,'Friedrichstraße, Gießen');
+    function pick(rows, srcLabel, rxLine){
+      for(const d of normalizeDepartures(rows)){
+        const lineName=d.line?.name||'';
+        const dir=(d.direction||d.destination||'').toLowerCase();
+        if(!rxLine.test(lineName)) continue;
+        if(!/sophie.*scholl.*schule/.test(dir)) continue; // Richtung Schule
+        out.push({
+          originLabel:srcLabel,
+          line:{name:lineName, product:d.line?.product, mode:d.line?.mode},
+          when:d.when||d.prognosedWhen||d.plannedWhen,
+          plannedWhen:d.plannedWhen||d.when,
+          prognosedWhen:d.prognosedWhen||d.when,
+          platform:d.platform||d.prognosedPlatform||d.plannedPlatform||'–'
+        });
+      }
+    }
+    const out=[];
+    pick(depsBhf, 'Gießen Bahnhof', /\b(17|Bus\s*17)\b/i);
+    pick(depsFriedr,'Friedrichstraße, Gießen', /\b(1|Bus\s*1)\b/i);
 
-    rows.sort((a,b)=>new Date(a.when||a.plannedWhen)-new Date(b.when||b.plannedWhen));
-    const out=[], seen=new Set(); for(const r of rows){const k=(r.originLabel||'')+'|'+(r.line?.name||'')+'|'+(r.when||r.plannedWhen); if(!seen.has(k)){seen.add(k); out.push(r)}}
-    renderDeparturesInto('rows-home', out.slice(0,20), 'home');
-  }catch(e){ document.getElementById('rows-home').innerHTML=`<div style="padding:16px;color:var(--bad)">${e.message}</div>`; }
+    out.sort((a,b)=>new Date(a.when||a.plannedWhen)-new Date(b.when||b.plannedWhen));
+    const unique=[], seen=new Set();
+    for(const r of out){
+      const k=(r.originLabel||'')+'|'+(r.line?.name||'')+'|'+(r.when||r.plannedWhen);
+      if(!seen.has(k)){ seen.add(k); unique.push(r); }
+    }
+    renderDeparturesInto('rows-home', unique.slice(0,30), 'home');
+    if(unique.length===0){
+      document.getElementById('rows-home').innerHTML=`<div class="hint">Keine passenden Abfahrten in den nächsten 120 Minuten.</div>`;
+    }
+  }catch(e){ document.getElementById('rows-home').innerHTML=`<div class="hint" style="color:var(--bad)">${e.message}</div>`; }
 }
 
 /* ========= Tabs / Refresh ========= */
@@ -450,14 +493,21 @@ function handleHash(){ const h=(location.hash||'#route-a').replace('#',''); cons
 window.addEventListener('hashchange',handleHash);
 document.querySelectorAll('.tab').forEach(a=>a.addEventListener('click',e=>{e.preventDefault(); history.replaceState(null,'',a.getAttribute('href')); handleHash();}));
 
-/* ========= Weitere Verbindungen (stabil) ========= */
-document.getElementById('moreBtn').addEventListener('click', async ()=>{
+/* ========= Weitere Verbindungen (stabil + Timer-Neustart) ========= */
+const moreBtn=document.getElementById('moreBtn');
+async function forceLong(){
   if(!(activeTab==='route-a'||activeTab==='route-b')) return;
-  moreLong=true; // bleibt aktiv bis Tabwechsel/Reload
-  const btn=document.getElementById('moreBtn');
-  const prev=btn.innerHTML; btn.disabled=true; btn.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i> Lädt…';
-  try{ await loadRoute(activeTab==='route-a', true); } finally { btn.disabled=false; btn.innerHTML=prev; }
-});
+  moreLong=true;
+  const aToB=(activeTab==='route-a');
+  if(timer) clearInterval(timer);                 // Refresh kurz anhalten
+  const prev=moreBtn.innerHTML; moreBtn.disabled=true; moreBtn.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i> Lädt…';
+  try{ await loadRoute(aToB, true); } finally {
+    moreBtn.disabled=false; moreBtn.innerHTML=prev;
+    // Refresh wieder starten; Lang bleibt aktiv
+    timer=setInterval(()=>loadRoute(aToB, true), REFRESH_ROUTE_MS);
+  }
+}
+moreBtn.addEventListener('click', forceLong);
 
 /* ========= Init & Resize ========= */
 (function init(){ handleHash(); })();
