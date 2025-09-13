@@ -194,6 +194,18 @@
   .btn:disabled{ opacity:.6; cursor:not-allowed }
   .hint{padding:12px 14px; color:var(--muted)}
   .badge{ font-size:12px; opacity:.8; }
+
+  /* ===== Losgeh-Zeit (unten links) ===== */
+  .leave{
+    margin-top:12px;
+    display:flex; align-items:center; gap:10px;
+    color:var(--muted);
+  }
+  .leave i{opacity:.8}
+  .leave-time{
+    font-size:24px; line-height:1; font-weight:800; letter-spacing:.2px; color:var(--text);
+    font-variant-numeric:tabular-nums;
+  }
 </style>
 </head>
 <body>
@@ -290,7 +302,7 @@ let ids={school:null,ffm:null,friedr:null,giessenBhf:null};
 let activeTab='route-a', timer=null, lastUpdated=null;
 
 /* Routen-„Mehr“-Logik: jedes Klicken +60min */
-let routeLongMode=false;    // false = zeige feste Kartenanzahl, true = Zeitfensteranzeige
+let routeLongMode=false;    // false = feste Kartenanzahl, true = Zeitfensteranzeige
 let routeWindowMin=60;      // aktuelles Zeitfenster in Minuten (wächst in 60er-Schritten)
 
 /* ========= Theme ========= */
@@ -331,7 +343,7 @@ function setFooter(ms){
   document.getElementById('lastUpdated').textContent='Zuletzt: '+(lastUpdated?fmtHMS(lastUpdated):'—');
 }
 async function fetchJSON(url){
-  // Wichtig: KEIN globales Abort mehr (verursachte "The operation was aborted" bei Parallel-Requests)
+  // Wichtig: KEIN globales Abort mehr (verhindert "The operation was aborted")
   const r=await fetch(url);
   if(!r.ok) throw new Error(`${url} → ${r.status}`);
   lastUpdated=Date.now(); setFooter((activeTab==='abfahrten'||activeTab==='homebound')?REFRESH_DEPS_MS:REFRESH_ROUTE_MS);
@@ -392,7 +404,7 @@ function buildTimeline(legs){
         `<span class="${c1}"><span class="actual">${fmt(n.arr)}</span>${plannedIfDiff(n.arr,n.parr)}</span>
          ▸
          <span class="${c2}"><span class="actual">${fmt(n.dep)}</span>${plannedIfDiff(n.dep,n.pdep)}</span>`;
-      right=`<span class="tl-meta">${range}</span>${(wait&&wait>0)?` <span class="tl-meta">• Wartezeit ${wait}′</span>`:''}`;
+      right=`<span class="tl-meta">${range}</span>${(wait&&wait>0)?` <span class="tl-meta">• <i class="fa-solid fa-pause"></i> ${wait}′</span>`:''}`;
     }
     return `<div class="tl-ico">${ico(n)}</div><div class="tl-stop">${n.name}</div><div style="text-align:right">${right}</div>`;
   }).join('');
@@ -413,6 +425,13 @@ function renderJourneysInto(containerId, list, aToB){
     const chipDelay=(delay!==0)?`<span class="chip" style="color:${delay>0?'var(--bad)':'var(--ok)'}"><i class="fa-solid fa-clock-rotate-left"></i> ${delay>0?`+${delay}`:delay}′</span>`:'';
     const chips=legs.filter(l=>l.line).map(l=>`<span class="chip line-chip" style="color:${lineColor(l.line?.name||l.mode||'')}">${iconForProduct(l.line?.product,l.mode)} ${l.line?.name||l.mode||''}</span>`).join('');
 
+    // Losgeh-Zeit: aToB (Schule -> FFM) 5′, sonst 13′
+    const offsetMin = aToB ? 5 : 13;
+    const leaveTime = new Date(new Date(dep).getTime() - offsetMin*60000);
+
+    const subText = aToB ? 'Sophie-Scholl-Schule → Frankfurt(Main) Hbf'
+                         : 'Frankfurt(Main) Hbf → Sophie-Scholl-Schule';
+
     const el=document.createElement('div'); el.className='card';
     el.innerHTML=`
       <div class="row">
@@ -425,7 +444,11 @@ function renderJourneysInto(containerId, list, aToB){
       </div>
       <div class="row" style="gap:8px; margin-top:8px">${chips || '<span class="chip"><i class="fa-solid fa-person-walking"></i> Fußweg</span>'}</div>
       <div class="timeline">${buildTimeline(legs)}</div>
-      <div class="sub">${aToB?'Sophie-Scholl-Schule → Frankfurt(Main) Hbf':'Frankfurt(Main) Hbf → Sophie-Scholl-Schule'}</div>
+      <div class="sub">${subText}</div>
+      <div class="leave" title="Zeit zum Loslaufen">
+        <i class="fa-solid fa-person-walking"></i>
+        <span class="leave-time">${fmtHM(leaveTime)}</span>
+      </div>
     `;
     wrap.appendChild(el);
   }
@@ -538,7 +561,7 @@ async function loadInbound(){
   }catch(e){ document.getElementById('rows').innerHTML=`<div class="hint" style="color:var(--bad)">${e.message}</div>`; }
 }
 
-/* Heimwärts: Fix für parallele Requests (kein Abort mehr in fetchJSON) */
+/* Heimwärts */
 async function loadHomebound(){
   try{
     await ensureIds();
