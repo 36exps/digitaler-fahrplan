@@ -59,6 +59,8 @@
   .tl-stop{ font-weight:700; }
   .tl-time,.tl-range{ color:var(--muted); font-variant-numeric:tabular-nums; white-space:nowrap; }
   .tl-wait{ margin-left:8px; color:var(--muted); font-size:13px; }
+  .late{ color:#e74c3c !important; font-weight:800; }
+  .early{ color:#27ae60 !important; font-weight:800; }
 
   @media (min-width:1100px){ .cards{ grid-template-columns:1fr 1fr; } .card{ min-height:92px; } }
 
@@ -67,15 +69,27 @@
   thead th{ text-align:left; background:var(--panel); position:sticky; top:0; z-index:5; padding:14px 16px; color:var(--muted); border-bottom:1px solid var(--rule); }
   thead th .hcell{ display:flex; align-items:center; gap:8px; }
   tbody td{ padding:14px 16px; border-bottom:1px solid var(--rule); vertical-align:middle; }
-  .line{ font-weight:500; } /* nicht fett */
+  .line{ font-weight:500; }
   .delta{ font-variant-numeric:tabular-nums; font-weight:800; }
-  .delta.late{ color:#e74c3c; }   /* rot */
-  .delta.early{ color:#27ae60; }  /* grün */
-  .delta.ontime{ color:var(--muted);} /* grau */
+  .delta.late{ color:#e74c3c; }
+  .delta.early{ color:#27ae60; }
+  .delta.ontime{ color:var(--muted);}
   .err{ color:#b40000; padding:14px 16px; }
 
   footer{ padding:10px 16px; color:var(--muted); font-size:13px; display:flex; gap:12px; align-items:center;}
   footer .dot{ opacity:.5 }
+
+  /* ===== Responsive for iPhone ===== */
+  @media (max-width: 740px){
+    .hdr{ padding:12px 14px; }
+    .brand{ font-size:18px; }
+    .tab{ font-size:14px; padding:8px 10px; }
+    .card{ padding:14px; }
+    .badge{ padding:4px 8px; }
+    thead th, tbody td{ padding:10px 12px; }
+    /* in sehr schmaler Ansicht weniger Spalten zeigen */
+    .col-steig, .col-plan{ display:none; } /* Steig & Plan ausblenden */
+  }
 </style>
 </head>
 <body>
@@ -109,10 +123,10 @@
           <thead>
             <tr>
               <th style="width:140px;"><div class="hcell"><i class="fa-solid fa-arrow-right-long"></i> Abfahrt</div></th>
-              <th style="width:140px;"><div class="hcell"><i class="fa-regular fa-clock"></i> Plan</div></th>
+              <th class="col-plan" style="width:140px;"><div class="hcell"><i class="fa-regular fa-clock"></i> Plan</div></th>
               <th style="width:160px;"><div class="hcell"><i class="fa-solid fa-train"></i> Linie</div></th>
               <th><div class="hcell"><i class="fa-solid fa-location-dot"></i> Ziel</div></th>
-              <th style="width:120px;"><div class="hcell"><i class="fa-solid fa-signs-post"></i> Steig</div></th>
+              <th class="col-steig" style="width:120px;"><div class="hcell"><i class="fa-solid fa-signs-post"></i> Steig</div></th>
               <th style="width:100px;"><div class="hcell"><i class="fa-solid fa-clock-rotate-left"></i> +-</div></th>
             </tr>
           </thead>
@@ -123,16 +137,16 @@
         <div class="err" id="depErr" hidden></div>
       </div>
 
-      <!-- Abfahrten heimwärts -->
+      <!-- Abfahrten heimwärts (alle Fahrten, die an der Schule halten) -->
       <div id="view-homebound" hidden>
         <table>
           <thead>
             <tr>
               <th style="width:140px;"><div class="hcell"><i class="fa-solid fa-arrow-right-long"></i> Abfahrt</div></th>
-              <th style="width:140px;"><div class="hcell"><i class="fa-regular fa-clock"></i> Plan</div></th>
+              <th class="col-plan" style="width:140px;"><div class="hcell"><i class="fa-regular fa-clock"></i> Plan</div></th>
               <th style="width:160px;"><div class="hcell"><i class="fa-solid fa-train"></i> Linie</div></th>
               <th><div class="hcell"><i class="fa-solid fa-location-dot"></i> Ziel</div></th>
-              <th style="width:120px;"><div class="hcell"><i class="fa-solid fa-signs-post"></i> Steig</div></th>
+              <th class="col-steig" style="width:120px;"><div class="hcell"><i class="fa-solid fa-signs-post"></i> Steig</div></th>
               <th style="width:100px;"><div class="hcell"><i class="fa-solid fa-clock-rotate-left"></i> +-</div></th>
             </tr>
           </thead>
@@ -169,8 +183,8 @@ let timer = null;
 let lastUpdated = null;
 
 /* ========= Theme: Auto (System) + manueller Override ========= */
-const THEME_KEY = 'pd-theme';                  // 'light' | 'dark'
-const THEME_OVERRIDE_KEY = 'pd-theme-override';// '1' = user override active
+const THEME_KEY = 'pd-theme';
+const THEME_OVERRIDE_KEY = 'pd-theme-override';
 const mediaDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)');
 const sunIcon = document.getElementById('sunIcon');
 const moonIcon= document.getElementById('moonIcon');
@@ -191,7 +205,7 @@ function initTheme(){
     applyTheme(systemTheme());
     if(mediaDark && mediaDark.addEventListener){
       mediaDark.addEventListener('change', e => applyTheme(e.matches ? 'dark':'light'));
-    }else if(mediaDark && mediaDark.addListener){ // Safari alt
+    }else if(mediaDark && mediaDark.addListener){
       mediaDark.addListener(e => applyTheme(e.matches ? 'dark':'light'));
     }
   }
@@ -203,7 +217,6 @@ themeBtn.addEventListener('click', ()=>{
   localStorage.setItem(THEME_KEY, next);
   applyTheme(next);
 });
-// Doppeltipp: zurück zu Auto
 themeBtn.addEventListener('dblclick', ()=>{
   localStorage.removeItem(THEME_OVERRIDE_KEY);
   localStorage.removeItem(THEME_KEY);
@@ -244,16 +257,12 @@ async function findStopId(query, preferRx){
 
 /* ========= Linienfarben (Flat-UI „defo“ inspiriert, gut unterscheidbar) ========= */
 const FIXED_COLORS = {
-  'Bus 1':'#3498db','1':'#3498db',      // Peter River
-  'Bus 17':'#e67e22','17':'#e67e22',    // Carrot
-  'RB40':'#9b59b6',                     // Amethyst
-  'RB41':'#1abc9c',                     // Turquoise
-  'RE30':'#f1c40f',                     // Sun Flower
-  'S6':'#2ecc71',                       // Emerald
-  'ICE':'#2c3e50',                      // Midnight Blue
-  'IC':'#34495e'                        // Wet Asphalt
+  'Bus 1':'#3498db','1':'#3498db',
+  'Bus 17':'#e67e22','17':'#e67e22',
+  'RB40':'#9b59b6','RB41':'#1abc9c',
+  'RE30':'#f1c40f','S6':'#2ecc71',
+  'ICE':'#2c3e50','IC':'#34495e'
 };
-/* weit gespreizte Hue-Slots (Grad) – an defo angelehnt */
 const HUES = [168,145,204,282,48,28,6,210,320,260,100,36,14,190,230,75];
 function hashLine(s){ let h=0; for(const ch of String(s)) h=((h<<5)-h)+ch.charCodeAt(0), h|=0; return Math.abs(h); }
 function lineColor(name){
@@ -265,7 +274,7 @@ function lineColor(name){
   const hue = HUES[ hashLine(key) % HUES.length ];
   const isDark = (document.documentElement.getAttribute('data-theme') === 'dark');
   const sat = 80;
-  const light = isDark ? 65 : 40; // Dark heller, Light dunkler
+  const light = isDark ? 65 : 40;
   return `hsl(${hue} ${sat}% ${light}%)`;
 }
 
@@ -278,19 +287,36 @@ function iconForProduct(product, mode){
 }
 function prettyStopName(name){ return name==='Gießen' ? 'Gießen Bahnhof' : name; }
 
-/* ========= Compact Timeline ========= */
+/* ========= Compact Timeline mit Delay-Highlight ========= */
 function buildCompactTimeline(legs){
   if(!legs?.length) return '';
   const nodes = [];
-  nodes.push({type:'start', name:prettyStopName(legs[0]?.origin?.name||'—'), dep:legs[0]?.departure||null, product:legs[0]?.line?.product||legs[0]?.mode||''});
+  nodes.push({type:'start', name:prettyStopName(legs[0]?.origin?.name||'—'), dep:legs[0]?.departure||null, pdep:legs[0]?.plannedDeparture||null, product:legs[0]?.line?.product||legs[0]?.mode||''});
   for(let i=0;i<legs.length;i++){
     const l=legs[i], next=legs[i+1];
     const destName=prettyStopName(l.destination?.name||'—');
-    const node = {type:'mid', name:destName, arr:l.arrival||null, dep:null, product:(next?.line?.product||next?.mode||l?.line?.product||l?.mode||'')};
-    if(next && next.origin?.name === l.destination?.name) node.dep = next.departure || null;
+    const node = {
+      type:'mid',
+      name:destName,
+      arr:l.arrival||null, parr:l.plannedArrival||null,
+      dep:null, pdep:null,
+      product:(next?.line?.product||next?.mode||l?.line?.product||l?.mode||'')
+    };
+    if(next && next.origin?.name === l.destination?.name){
+      node.dep  = next.departure || null;
+      node.pdep = next.plannedDeparture || null;
+    }
     nodes.push(node);
   }
   nodes[nodes.length-1].type='end';
+
+  function cls(actual, planned){
+    if(!actual || !planned) return '';
+    const m = Math.round((new Date(actual) - new Date(planned))/60000);
+    if(m>0) return 'late';
+    if(m<0) return 'early';
+    return '';
+  }
 
   function chooseIcon(n){
     if(n.type==='start') return iconForProduct(n.product,'');
@@ -304,11 +330,17 @@ function buildCompactTimeline(legs){
   return nodes.map(n=>{
     const icon = chooseIcon(n);
     let right='';
-    if(n.type==='start') right = `<span class="tl-time">${n.dep?fmtHM(n.dep):'—'}</span>`;
-    else if(n.type==='end') right = `<span class="tl-time">${n.arr?fmtHM(n.arr):'—'}</span>`;
-    else {
+    if(n.type==='start'){
+      const c = cls(n.dep, n.pdep);
+      right = `<span class="tl-time ${c}">${n.dep?fmtHM(n.dep):'—'}</span>`;
+    } else if(n.type==='end'){
+      const c = cls(n.arr, n.parr);
+      right = `<span class="tl-time ${c}">${n.arr?fmtHM(n.arr):'—'}</span>`;
+    } else {
       const wait = (n.arr && n.dep) ? Math.max(0,Math.round((new Date(n.dep)-new Date(n.arr))/60000)) : null;
-      const range = `${n.arr?fmtHM(n.arr):'—'} ▸ ${n.dep?fmtHM(n.dep):'—'}`;
+      const c1 = cls(n.arr, n.parr);
+      const c2 = cls(n.dep, n.pdep);
+      const range = `<span class="${c1}">${n.arr?fmtHM(n.arr):'—'}</span> ▸ <span class="${c2}">${n.dep?fmtHM(n.dep):'—'}</span>`;
       right = `<span class="tl-range">${range}</span>${(wait&&wait>0)?`<span class="tl-wait">• Wartezeit ${wait}′</span>`:''}`;
     }
     return `<div class="tl-icon">${icon}</div><div class="tl-stop">${n.name}</div><div style="text-align:right">${right}</div>`;
@@ -395,10 +427,10 @@ function renderDeparturesInto(tbodyId, departures){
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td>${tRt ? fmtHM(tRt) : (tPl?fmtHM(tPl):'–')}</td>
-      <td>${tPl ? fmtHM(tPl) : '–'}</td>
+      <td class="col-plan">${tPl ? fmtHM(tPl) : '–'}</td>
       <td class="line" style="color:${color}">${line}</td>
       <td>${dir}</td>
-      <td>${pl}</td>
+      <td class="col-steig">${pl}</td>
       <td class="delta ${cls}">${deltaTxt}</td>
     `;
     tbody.appendChild(tr);
@@ -437,25 +469,37 @@ async function loadInbound(){
   }catch(e){ const el=document.getElementById('depErr'); el.hidden=false; el.textContent=e.message; }
 }
 
-/* Heimwärts: Bus 1 (Friedrichstraße → Rödgen) + Bus 17 (Gießen Bahnhof) */
+/* Heimwärts: ALLE Fahrten, die an der Schule halten
+   -> Journeys von Friedrichstraße + Gießen Bahnhof ZUR Schule, erste Etappe als "Abfahrt" auflisten */
 async function loadHomebound(){
   try{
     await ensureIds();
-    const [d1, d2] = await Promise.all([
-      fetchJSON(`${API}/stops/${ids.friedr}/departures?duration=120&language=de`),
-      fetchJSON(`${API}/stops/${ids.giessenBhf}/departures?duration=120&language=de`)
+    const resultsPerOrigin = 8;
+    const [j1, j2] = await Promise.all([
+      fetchJSON(`${API}/journeys?from=${ids.friedr}&to=${ids.school}&results=${resultsPerOrigin}&language=de`),
+      fetchJSON(`${API}/journeys?from=${ids.giessenBhf}&to=${ids.school}&results=${resultsPerOrigin}&language=de`)
     ]);
-    const aRaw = normalizeDepartures(d1);
-    const bRaw = normalizeDepartures(d2);
+    const journeys = [...(j1.journeys||[]), ...(j2.journeys||[])];
 
-    const isLine1  = (name='') => /\b1\b/.test(String(name))  || /^bus\s*1\b/i.test(String(name));
-    const isLine17 = (name='') => /\b17\b/.test(String(name)) || /^bus\s*17\b/i.test(String(name));
+    // in "departure-like" Objekte transformieren
+    const rows = journeys.map(j=>{
+      const first = (j.legs||[]).find(l=>l.departure);
+      const line  = first?.line?.name || first?.mode || '–';
+      const when  = first?.departure || first?.plannedDeparture;
+      const plannedWhen = first?.plannedDeparture || first?.departure;
+      const prognosedWhen = first?.departure || null;
+      const platform = first?.platform || first?.plannedPlatform || first?.prognosedPlatform || '–';
+      const direction = 'Sophie-Scholl-Schule, Gießen'; // Ziel ist garantiert die Schule
+      return {
+        line:{name:line},
+        when, plannedWhen, prognosedWhen,
+        platform, direction
+      };
+    }).filter(r=>r.when || r.plannedWhen);
 
-    const a = aRaw.filter(d => isLine1(d.line?.name)  && /rödgen/i.test(String(d.direction||'')));
-    const b = bRaw.filter(d => isLine17(d.line?.name));
-
-    const merged = [...a, ...b].sort((x,y)=> new Date((x.prognosedWhen||x.when||x.plannedWhen)) - new Date((y.prognosedWhen||y.when||y.plannedWhen)));
-    renderDeparturesInto('rows-home', merged);
+    // sortiert & begrenzt
+    rows.sort((a,b)=> new Date(a.when||a.plannedWhen) - new Date(b.when||b.plannedWhen));
+    renderDeparturesInto('rows-home', rows.slice(0,16));
     document.getElementById('homeErr').hidden = true;
   }catch(e){ const el=document.getElementById('homeErr'); el.hidden=false; el.textContent=e.message; }
 }
