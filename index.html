@@ -3,89 +3,117 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<title>Pendler Dashboard</title>
+<title>Digitaler Fahrplan</title>
 
 <!-- iOS/PWA -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Pendler Dashboard">
+<meta name="apple-mobile-web-app-title" content="Digitaler Fahrplan">
 
 <!-- Icons -->
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="alternate icon" type="image/png" sizes="512x512" href="apple-touch-icon.png">
 
-<!-- Font Awesome -->
+<!-- Font Awesome Free -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.2/css/all.min.css">
 
 <style>
-  /* ===== iPadOS-ähnliche Tokens ===== */
+  /* ===== Design Tokens ===== */
   :root{
-    --bg:#f5f7fb;
-    --panel:#ffffff;
-    --panel-2:#f1f4f9;
-    --bar:#eef2f7;
-    --text:#101317;
-    --muted:#5b6677;
-    --rule:#e4e8ef;
-    --accent:#0a84ff;
-    --ok:#27ae60;
-    --bad:#e53935;
+    --bg: #eaf0f6;
+    --text: #0f1722;
+    --muted: #5f6d80;
 
-    --shadow:0 1px 2px rgba(16,19,23,.04), 0 8px 24px rgba(16,19,23,.06);
-    --radius:14px;
-    --font: ui-system, -apple-system, system-ui, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+    --accent: #0a84ff;
+    --rule: rgba(15, 23, 34, .08);
+
+    --glass-bg: rgba(255,255,255,.58);
+    --glass-border: rgba(255,255,255,.42);
+    --glass-inner: rgba(255,255,255,.65);
+    --shadow: 0 1px 2px rgba(16,19,23,.05), 0 16px 40px rgba(16,19,23,.10);
+    --radius: 16px;
+
+    --chip-bg: rgba(255,255,255,.75);
+    --chip-border: rgba(0,0,0,.06);
+
+    --ok:#27ae60; --bad:#e53935;
   }
   [data-theme="dark"]{
-    --bg:#0d1219;
-    --panel:#0f1621;
-    --panel-2:#111c2a;
-    --bar:#0c1521;
-    --text:#eaf1ff;
-    --muted:#9aa8bd;
-    --rule:#152233;
-    --shadow:none;
-    --accent:#2997ff;
+    --bg: #0b1119;
+    --text: #eaf1ff;
+    --muted:#9fb2c9;
+
+    --rule: rgba(255,255,255,.08);
+
+    --glass-bg: rgba(16, 22, 34, .52);
+    --glass-border: rgba(255,255,255,.08);
+    --glass-inner: rgba(255,255,255,.08);
+    --shadow: 0 0 0 rgba(0,0,0,0);
+
+    --chip-bg: rgba(255,255,255,.06);
+    --chip-border: rgba(255,255,255,.08);
   }
 
   html,body{height:100%}
   body{
     margin:0; background:var(--bg); color:var(--text);
-    font-family:var(--font); -webkit-font-smoothing:antialiased;
+    font-family: ui-system, -apple-system, system-ui, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing:antialiased;
     padding-top:env(safe-area-inset-top);
     padding-left:env(safe-area-inset-left);
     padding-right:env(safe-area-inset-right);
-    overflow-x:hidden; /* mobile overflow fix */
+    overflow-x:hidden; /* iPhone Cutoff Fix */
+  }
+
+  /* ===== Glass Primitive ===== */
+  .glass{
+    background: var(--glass-bg);
+    backdrop-filter: blur(18px) saturate(180%);
+    -webkit-backdrop-filter: blur(18px) saturate(180%);
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--shadow);
+  }
+  .glass-inner{
+    background: var(--glass-inner);
+    border: 1px solid var(--glass-border);
   }
 
   /* ===== Topbar ===== */
   .tabs{
     position:sticky; top:0; z-index:40;
     display:flex; align-items:center; gap:10px;
-    padding:10px 14px; background:var(--bar); border-bottom:1px solid var(--rule);
+    padding:10px 14px;
+    border-bottom:1px solid var(--rule);
   }
+  .tabs.glass{ border-bottom: 1px solid var(--glass-border); }
+
   .tabs .left{display:flex; gap:8px; flex-wrap:wrap}
   .app-title{display:none; font-weight:800; letter-spacing:.2px}
   .tab{
-    appearance:none; border:1px solid var(--rule); background:var(--panel);
-    color:var(--muted); border-radius:12px; padding:10px 14px;
-    text-decoration:none; font-weight:600; font-size:15px; white-space:nowrap;
+    appearance:none; border:1px solid var(--glass-border);
+    background: var(--chip-bg);
+    color:var(--muted);
+    border-radius:12px; padding:10px 14px;
+    text-decoration:none; font-weight:700; font-size:15px; white-space:nowrap;
   }
-  .tab.active{color:var(--accent); box-shadow:var(--shadow); border-color:color-mix(in oklab, var(--accent) 40%, var(--rule))}
+  .tab.active{
+    color:var(--accent);
+    outline: 1px solid color-mix(in oklab, var(--accent) 28%, transparent);
+    background: linear-gradient(180deg, rgba(255,255,255,.85), rgba(255,255,255,.65));
+  }
+  [data-theme="dark"] .tab.active{
+    background: linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.04));
+  }
+
   .spacer{flex:1}
 
-  .theme-btn{
-    border:1px solid var(--rule); background:var(--panel); color:var(--text);
-    border-radius:12px; padding:9px 12px; display:flex; gap:8px; align-items:center; cursor:pointer;
+  .theme-btn,.hamburger{
+    border:1px solid var(--glass-border);
+    border-radius:12px; padding:9px 12px; display:flex; align-items:center; gap:8px; cursor:pointer;
   }
-  .theme-btn i{font-size:18px}
-
-  /* Hamburger (nur mobil) */
-  .hamburger{
-    display:none; border:1px solid var(--rule); background:var(--panel);
-    border-radius:12px; padding:9px 12px; cursor:pointer;
-  }
-  .hamburger i{font-size:18px}
+  .theme-btn i, .hamburger i{font-size:18px}
+  .hamburger{ display:none }
 
   /* Drawer */
   .drawer{ position:fixed; inset:0; pointer-events:none; }
@@ -96,76 +124,77 @@
   .drawer.open .drawer-backdrop{ opacity:1; }
   .drawer-panel{
     position:absolute; top:0; left:0; height:100%; width:300px; max-width:85vw;
-    background:var(--panel); border-right:1px solid var(--rule); box-shadow:var(--shadow);
-    transform:translateX(-100%); transition:transform .24s ease;
+    border-right:1px solid var(--glass-border);
     display:flex; flex-direction:column; padding:14px;
   }
-  .drawer.open .drawer-panel{ transform:translateX(0) }
-  .drawer-title{ font-weight:800; margin:4px 0 10px }
-  .drawer-nav{ display:flex; flex-direction:column; gap:10px }
-  .tablink{ @apply tab; /* for readability: reuse styling */ }
-  .tablink{
-    border:1px solid var(--rule); background:var(--panel);
-    color:var(--muted); border-radius:12px; padding:12px 14px;
-    text-decoration:none; font-weight:700; font-size:16px;
-  }
-  .tablink.active{ color:var(--accent); box-shadow:var(--shadow); border-color:color-mix(in oklab, var(--accent) 40%, var(--rule)) }
+  .drawer-title{ font-weight:800; margin:4px 0 12px }
 
-  /* Desktop vs Mobile Switch */
+  .tablink{
+    border:1px solid var(--glass-border); background:var(--chip-bg);
+    color:var(--muted); border-radius:12px; padding:12px 14px;
+    text-decoration:none; font-weight:700; font-size:16px; display:block; margin-bottom:10px;
+  }
+  .tablink.active{
+    color:var(--accent);
+    outline:1px solid color-mix(in oklab, var(--accent) 28%, transparent);
+    background: linear-gradient(180deg, rgba(255,255,255,.85), rgba(255,255,255,.65));
+  }
+  [data-theme="dark"] .tablink.active{
+    background: linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.04));
+  }
+
   @media (max-width:860px){
-    .tabs .left{ display:none }         /* Tabs verstecken */
+    .tabs .left{ display:none }
     .app-title{ display:block }
-    .hamburger{ display:flex; align-items:center; }
+    .hamburger{ display:flex }
   }
 
   .wrap{padding:16px; max-width:1920px; margin:0 auto}
 
-  /* ===== Route-Karten ===== */
+  /* ===== Cards ===== */
   .cards{ display:grid; gap:14px; grid-template-columns:1fr }
   @media (min-width:1000px){ .cards{ grid-template-columns:1fr 1fr } }
   @media (min-width:1440px){ .cards{ grid-template-columns:1fr 1fr 1fr } }
   @media (min-width:1800px){ .cards{ grid-template-columns:1fr 1fr 1fr 1fr } }
 
   .card{
-    background:var(--panel); border:1px solid var(--rule); border-radius:var(--radius);
-    padding:16px; box-shadow:var(--shadow);
+    border-radius:var(--radius);
+    padding:16px;
   }
   .card .row{ display:flex; align-items:center; gap:12px; flex-wrap:wrap; min-width:0 }
-  .time{ font-variant-numeric:tabular-nums; font-weight:700; font-size:20px }
+  .time{ font-variant-numeric:tabular-nums; font-weight:800; font-size:20px }
   .sep{ color:var(--muted) }
   .chip{
     display:inline-flex; gap:8px; align-items:center;
-    background:var(--panel-2); border:1px solid var(--rule);
-    border-radius:10px; padding:6px 10px; font-weight:600; font-size:14px; color:var(--text);
+    background:var(--chip-bg); border:1px solid var(--chip-border);
+    border-radius:10px; padding:6px 10px; font-weight:700; font-size:14px; color:var(--text);
     min-width:0; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
   }
-  .line-chip{ font-weight:700 }
   .sub{ margin-top:8px; color:var(--muted); font-size:14px }
 
   /* Timeline */
   .timeline{
-    margin-top:10px; border:1px solid var(--rule); border-radius:12px; padding:10px 12px; background:var(--panel-2);
+    margin-top:10px; border-radius:12px; padding:10px 12px;
     display:grid; grid-template-columns:22px minmax(0,1fr) auto; gap:8px 12px;
   }
   .tl-ico{ text-align:center; color:var(--muted) }
-  .tl-stop{ font-weight:600; min-width:0; overflow:hidden; text-overflow:ellipsis; }
+  .tl-stop{ font-weight:700; min-width:0; overflow:hidden; text-overflow:ellipsis; }
   .tl-meta{ color:var(--muted); font-variant-numeric:tabular-nums; white-space:nowrap }
-  .actual{ font-weight:700 }
+  .actual{ font-weight:800 }
   .planned{ font-size:12px; opacity:.75; margin-left:6px }
   .late .actual{ color:var(--bad) }
   .early .actual{ color:var(--ok) }
 
   /* ===== Tabellen ===== */
   .panel-table{
-    background:var(--panel); border:1px solid var(--rule); border-radius:var(--radius);
-    box-shadow:var(--shadow); padding:0; margin:0;
-    overflow:hidden; /* Kopf bündig ohne extra Leerraum */
+    border-radius:var(--radius);
+    overflow:hidden;
   }
   .table-head{
-    margin:0;
-    background:var(--bar); border-bottom:1px solid var(--rule);
+    position:sticky; top:0; z-index:1;
     display:grid; grid-template-columns:140px 140px 220px 1fr 120px 100px;
-    padding:12px 16px; font-weight:700; color:var(--muted);
+    padding:12px 16px; font-weight:800; color:var(--muted);
+    border-bottom:1px solid var(--glass-border);
   }
   @media (max-width:740px){
     .table-head{ grid-template-columns:120px minmax(0,1fr) 100px 90px; }
@@ -174,33 +203,41 @@
   .rows{ margin:0 }
   .row-item{
     display:grid; grid-template-columns:140px 140px 220px 1fr 120px 100px;
-    padding:14px 16px; border-bottom:1px solid var(--rule); background:var(--panel);
+    padding:14px 16px; border-bottom:1px solid var(--rule);
   }
   @media (max-width:740px){
     .row-item{ grid-template-columns:120px minmax(0,1fr) 100px 90px; }
   }
-  .delta{ font-variant-numeric:tabular-nums; font-weight:700 }
+  .delta{ font-variant-numeric:tabular-nums; font-weight:800 }
   .delta.late{ color:var(--bad) } .delta.early{ color:var(--ok) } .delta.ontime{ color:var(--muted) }
 
+  .hint{padding:12px 14px; color:var(--muted)}
+
   .footer{
-    margin:16px; padding:10px 14px; color:var(--muted); font-size:13px;
-    background:var(--panel); border:1px solid var(--rule); border-radius:12px; box-shadow:var(--shadow);
+    margin:16px 0 0; padding:10px 14px; color:var(--muted); font-size:13px;
+    border-radius:12px;
   }
   .footer-space{ height:64px }
 
-  .more-wrap{ padding:10px 0 0; display:flex; justify-content:center }
-  .btn{
-    border:1px solid var(--rule); background:var(--panel); border-radius:10px; padding:10px 14px; font-weight:700; cursor:pointer;
-  }
-  .btn:disabled{ opacity:.6; cursor:not-allowed }
-  .hint{padding:12px 14px; color:var(--muted)}
+  /* Apply glass to components */
+  .tabs, .card, .panel-table, .drawer-panel, .theme-btn, .hamburger, .timeline, .footer { box-shadow: var(--shadow); }
+  .tabs.glass, .card.glass, .panel-table.glass, .drawer-panel.glass, .theme-btn.glass, .hamburger.glass, .timeline.glass, .footer.glass { }
+
+  /* Actually apply glass backgrounds */
+  .tabs{ background: var(--glass-bg); backdrop-filter: blur(18px) saturate(180%); -webkit-backdrop-filter: blur(18px) saturate(180%); }
+  .card{ background: var(--glass-bg); border: 1px solid var(--glass-border); }
+  .panel-table{ background: var(--glass-bg); border: 1px solid var(--glass-border); }
+  .timeline{ background: var(--glass-inner); border: 1px solid var(--glass-border); }
+  .drawer-panel{ background: var(--glass-bg); }
+  .theme-btn, .hamburger{ background: var(--chip-bg); border:1px solid var(--glass-border) }
+  .footer{ background: var(--glass-bg); border:1px solid var(--glass-border) }
 </style>
 </head>
 <body>
 
   <!-- Topbar -->
-  <div class="tabs" role="navigation" aria-label="Navigation">
-    <button id="navToggle" class="hamburger" aria-label="Menü öffnen">
+  <div class="tabs glass" role="navigation" aria-label="Navigation">
+    <button id="navToggle" class="hamburger glass" aria-label="Menü öffnen">
       <i class="fa-solid fa-bars"></i>
     </button>
     <div class="app-title">Digitaler Fahrplan</div>
@@ -216,10 +253,8 @@
     <div class="spacer"></div>
 
     <!-- Theme Switch -->
-    <button id="themeBtn" class="theme-btn" aria-label="Theme umschalten">
-      <!-- Wunsch: sun-bright; Fallback auf sun -->
-      <i class="fa-solid fa-sun-bright" id="sunIcon" aria-hidden="true"></i>
-      <i class="fa-solid fa-sun" id="sunIconFallback" style="display:none" aria-hidden="true"></i>
+    <button id="themeBtn" class="theme-btn glass" aria-label="Theme umschalten">
+      <i class="fa-solid fa-sun" id="sunIcon" aria-hidden="true"></i>
       <i class="fa-solid fa-moon" id="moonIcon" style="display:none" aria-hidden="true"></i>
     </button>
   </div>
@@ -227,14 +262,12 @@
   <!-- Drawer Menu (mobil) -->
   <div id="drawer" class="drawer" aria-hidden="true">
     <div class="drawer-backdrop" id="drawerBackdrop"></div>
-    <nav class="drawer-panel" aria-label="Menü">
+    <nav class="drawer-panel glass" aria-label="Menü">
       <div class="drawer-title">Menü</div>
-      <div class="drawer-nav">
-        <a href="#route-a" class="tablink active" data-key="route-a">Gießen → Frankfurt(Main) Hbf</a>
-        <a href="#route-b" class="tablink" data-key="route-b">Frankfurt(Main) Hbf → Gießen</a>
-        <a href="#abfahrten" class="tablink" data-key="abfahrten">Abfahrten (stadt­einwärts)</a>
-        <a href="#homebound" class="tablink" data-key="homebound">Abfahrten (heimwärts)</a>
-      </div>
+      <a href="#route-a" class="tablink active" data-key="route-a">Gießen → Frankfurt(Main) Hbf</a>
+      <a href="#route-b" class="tablink" data-key="route-b">Frankfurt(Main) Hbf → Gießen</a>
+      <a href="#abfahrten" class="tablink" data-key="abfahrten">Abfahrten (stadt­einwärts)</a>
+      <a href="#homebound" class="tablink" data-key="homebound">Abfahrten (heimwärts)</a>
     </nav>
   </div>
 
@@ -242,38 +275,39 @@
 
     <!-- ROUTEN -->
     <div id="view-route" hidden>
-      <div id="cards" class="cards"><div class="card">Lade Verbindungen …</div></div>
-      <div class="more-wrap"><button id="moreBtn" class="btn">Weitere Verbindungen (+60 min)</button></div>
-      <div id="noJourneys" class="hint" style="display:none">Für das gewählte Zeitfenster sind keine Verbindungen verfügbar.</div>
+      <div id="cards" class="cards"><div class="card glass">Lade Verbindungen …</div></div>
+      <!-- Sentinel für Infinite Scroll -->
+      <div id="sentinel" style="height:1px"></div>
+      <div id="noJourneys" class="hint" style="display:none">Keine Verbindungen gefunden.</div>
     </div>
 
     <!-- ABFAHRTEN STADTEINWÄRTS -->
-    <div id="view-abfahrten" class="panel-table" hidden>
+    <div id="view-abfahrten" class="panel-table glass" hidden>
       <div class="table-head">
-        <div>Abfahrt</div>
-        <div class="col-plan">Plan</div>
-        <div>Linie</div>
-        <div>Ziel</div>
-        <div class="col-steig">Steig</div>
-        <div>+-</div>
+        <div><i class="fa-regular fa-clock"></i> Abfahrt</div>
+        <div class="col-plan"><i class="fa-regular fa-calendar"></i> Plan</div>
+        <div><i class="fa-solid fa-route"></i> Linie</div>
+        <div><i class="fa-solid fa-location-dot"></i> Ziel</div>
+        <div class="col-steig"><i class="fa-solid fa-signs-post"></i> Steig</div>
+        <div><i class="fa-solid fa-clock-rotate-left"></i> ±</div>
       </div>
       <div id="rows" class="rows"><div style="padding:16px;color:var(--muted)">Lade Abfahrten …</div></div>
     </div>
 
     <!-- ABFAHRTEN HEIMWÄRTS -->
-    <div id="view-homebound" class="panel-table" hidden>
+    <div id="view-homebound" class="panel-table glass" hidden>
       <div class="table-head">
-        <div>Abfahrt</div>
-        <div class="col-plan">Plan</div>
-        <div>Abfahrts­halt</div>
-        <div>Linie</div>
-        <div class="col-steig">Steig</div>
-        <div>+-</div>
+        <div><i class="fa-regular fa-clock"></i> Abfahrt</div>
+        <div class="col-plan"><i class="fa-regular fa-calendar"></i> Plan</div>
+        <div><i class="fa-solid fa-location-dot"></i> Abfahrts­halt</div>
+        <div><i class="fa-solid fa-route"></i> Linie</div>
+        <div class="col-steig"><i class="fa-solid fa-signs-post"></i> Steig</div>
+        <div><i class="fa-solid fa-clock-rotate-left"></i> ±</div>
       </div>
       <div id="rows-home" class="rows"><div style="padding:16px;color:var(--muted)">Lade Abfahrten …</div></div>
     </div>
 
-    <div class="footer">
+    <div class="footer glass">
       <span id="refreshInfo">Aktualisierung: —</span>
       <span style="margin:0 8px; opacity:.6">•</span>
       <span id="lastUpdated">Zuletzt: —</span>
@@ -285,40 +319,33 @@
 /* ========= Config ========= */
 const API='https://v6.db.transport.rest';
 const Q_SCHOOL='Sophie-Scholl-Schule Gießen', Q_FFMHBF='Frankfurt(Main) Hbf', Q_FRIEDR='Friedrichstraße Gießen', Q_GIESSEN='Gießen Bahnhof';
+
 const REFRESH_ROUTE_MS=60000, REFRESH_DEPS_MS=30000;
 const EXCLUDE_DIRECTIONS=[/rödgen/i,/coleman\s*str/i];
 
 let ids={school:null,ffm:null,friedr:null,giessenBhf:null};
 let activeTab='route-a', timer=null, lastUpdated=null;
 
-/* Fenster-Minuten für Routen (kumulativ erweiterbar) */
-let routeWindowMin = 60;
-
-/* Parallele Fetch-Steuerung (kein gegenseitiges Abbrechen) */
-const inflight = new Map();
+/* Infinite Scroll State */
+let pagesLoaded = 1;            // Anzahl „Seiten“ (Batches)
+let journeysCache = [];         // letzter Fetch
+let currentAToB = true;         // aktuell gerenderte Richtung
+let io = null;                  // IntersectionObserver
 
 /* ========= Theme ========= */
 const mediaDark=window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)');
 const sunIcon=document.getElementById('sunIcon'),
-      sunIconFallback=document.getElementById('sunIconFallback'),
       moonIcon=document.getElementById('moonIcon'),
       themeBtn=document.getElementById('themeBtn');
 
 function applyTheme(m){
   document.documentElement.setAttribute('data-theme',m);
   if(m==='dark'){
-    sunIcon.style.display='none'; sunIconFallback.style.display='none';
+    sunIcon.style.display='none';
     moonIcon.style.display='inline-block';
   } else {
     moonIcon.style.display='none';
-    // Falls sun-bright nicht verfügbar ist, Fallback zeigen
-    if(getComputedStyle(sunIcon).display==='none' || !sunIcon.offsetParent){
-      sunIconFallback.style.display='inline-block';
-      sunIcon.style.display='none';
-    } else {
-      sunIcon.style.display='inline-block';
-      sunIconFallback.style.display='none';
-    }
+    sunIcon.style.display='inline-block';
   }
 }
 applyTheme(mediaDark?.matches?'dark':'light');
@@ -347,7 +374,8 @@ function setFooter(ms){
   document.getElementById('lastUpdated').textContent='Zuletzt: '+(lastUpdated?fmtHMS(lastUpdated):'—');
 }
 
-/* Fetch mit Gruppen: je Gruppe wird die vorherige Anfrage abgebrochen, Gruppen stören sich nicht gegenseitig */
+/* Parallele Fetch-Steuerung in Gruppen */
+const inflight = new Map();
 async function fetchJSON(url, {group='global'}={}){
   const prev=inflight.get(group);
   if(prev) prev.abort?.();
@@ -355,8 +383,7 @@ async function fetchJSON(url, {group='global'}={}){
   inflight.set(group, ctrl);
   const r=await fetch(url,{signal:ctrl.signal});
   if(!r.ok) throw new Error(`${url} → ${r.status}`);
-  lastUpdated=Date.now();
-  setFooter((activeTab==='abfahrten'||activeTab==='homebound')?REFRESH_DEPS_MS:REFRESH_ROUTE_MS);
+  lastUpdated=Date.now(); setFooter((activeTab==='abfahrten'||activeTab==='homebound')?REFRESH_DEPS_MS:REFRESH_ROUTE_MS);
   return r.json();
 }
 
@@ -377,7 +404,6 @@ function prettyStop(n){return n==='Gießen'?'Gießen Bahnhof':n}
 /* ========= Timeline (geplante Zeit nur wenn abweichend) ========= */
 function buildTimeline(legs){
   if(!legs?.length) return '';
-
   function plannedIfDiff(actual, planned){
     if(!actual || !planned) return '';
     const a=new Date(actual), p=new Date(planned);
@@ -423,11 +449,10 @@ function buildTimeline(legs){
 }
 
 /* ========= Journeys Renderer ========= */
-function renderJourneysInto(containerId, list, aToB){
+function renderJourneysInto(containerId, journeys, aToB){
   const wrap=document.getElementById(containerId); wrap.innerHTML='';
-  const journeys=list?.journeys||[];
   if(!journeys.length){
-    wrap.innerHTML=`<div class="card">Keine Verbindungen gefunden.</div>`;
+    wrap.innerHTML=`<div class="card glass">Keine Verbindungen gefunden.</div>`;
     return;
   }
   for(const j of journeys){
@@ -435,9 +460,9 @@ function renderJourneysInto(containerId, list, aToB){
     const changes=Math.max(0, legs.filter(l=>l.line).length - 1); const dur=isoDurToHuman(j.duration,dep,arr);
     let delay=0; const l0=legs.find(l=>!!l.departure); if(l0&&l0.plannedDeparture&&l0.departure) delay=Math.round((new Date(l0.departure)-new Date(l0.plannedDeparture))/60000);
     const chipDelay=(delay!==0)?`<span class="chip" style="color:${delay>0?'var(--bad)':'var(--ok)'}"><i class="fa-solid fa-clock-rotate-left"></i> ${delay>0?`+${delay}`:delay}′</span>`:'';
-    const chips=legs.filter(l=>l.line).map(l=>`<span class="chip line-chip" style="color:${lineColor(l.line?.name||l.mode||'')}">${iconForProduct(l.line?.product,l.mode)} ${l.line?.name||l.mode||''}</span>`).join('');
+    const chips=legs.filter(l=>l.line).map(l=>`<span class="chip"><span style="color:${lineColor(l.line?.name||l.mode||'')}; font-weight:900">${iconForProduct(l.line?.product,l.mode)} ${l.line?.name||l.mode||''}</span></span>`).join('');
 
-    const el=document.createElement('div'); el.className='card';
+    const el=document.createElement('div'); el.className='card glass';
     el.innerHTML=`
       <div class="row">
         <div class="time">${fmtHM(dep)}</div>
@@ -448,7 +473,7 @@ function renderJourneysInto(containerId, list, aToB){
         ${chipDelay}
       </div>
       <div class="row" style="gap:8px; margin-top:8px">${chips || '<span class="chip"><i class="fa-solid fa-person-walking"></i> Fußweg</span>'}</div>
-      <div class="timeline">${buildTimeline(legs)}</div>
+      <div class="timeline glass">${buildTimeline(legs)}</div>
       <div class="sub">${aToB?'Sophie-Scholl-Schule → Frankfurt(Main) Hbf':'Frankfurt(Main) Hbf → Sophie-Scholl-Schule'}</div>
     `;
     wrap.appendChild(el);
@@ -476,13 +501,13 @@ function renderDeparturesInto(containerId, deps, mode){
         <div>${tRt?fmtHM(tRt):(tPl?fmtHM(tPl):'–')}</div>
         <div class="col-plan">${tPl?fmtHM(tPl):'–'}</div>
         <div>${origin}</div>
-        <div><span class="chip" style="color:${color}">${iconForProduct(d.line?.product,d.line?.mode)} ${line}</span></div>
+        <div><span class="chip"><span style="color:${color}; font-weight:900">${iconForProduct(d.line?.product,d.line?.mode)} ${line}</span></span></div>
         <div class="col-steig">–</div>
         <div class="delta ${cls}">${deltaTxt}</div>`
       : `
         <div>${tRt?fmtHM(tRt):(tPl?fmtHM(tPl):'–')}</div>
         <div class="col-plan">${tPl?fmtHM(tPl):'–'}</div>
-        <div><span class="chip" style="color:${color}">${iconForProduct(d.line?.product,d.line?.mode)} ${line}</span></div>
+        <div><span class="chip"><span style="color:${color}; font-weight:900">${iconForProduct(d.line?.product,d.line?.mode)} ${line}</span></span></div>
         <div>${dir}</div>
         <div class="col-steig">${pl}</div>
         <div class="delta ${cls}">${deltaTxt}</div>`;
@@ -490,7 +515,7 @@ function renderDeparturesInto(containerId, deps, mode){
   }
 }
 
-/* ========= Loaders ========= */
+/* ========= IDs ========= */
 async function ensureIds(){
   if(!ids.school)     ids.school     = await findStopId(Q_SCHOOL, /(sophie|scholl).*(gie(s|ß)en)/i);
   if(!ids.ffm)        ids.ffm        = await findStopId(Q_FFMHBF, /(frankfurt).*(hbf)/i);
@@ -498,6 +523,7 @@ async function ensureIds(){
   if(!ids.giessenBhf) ids.giessenBhf = await findStopId(Q_GIESSEN, /(gie(s|ß)en).*(bahnhof|hbf)/i);
 }
 
+/* ========= Spalten & Batch-Größe ========= */
 function gridCols(){
   const w=window.innerWidth;
   if(w>=1800) return 4;
@@ -505,35 +531,62 @@ function gridCols(){
   if(w>=1000) return 2;
   return 1;
 }
-function shortCount(cols){ return cols===1 ? 4 : (cols===4 ? 8 : 6); }
+function batchSizeForCols(cols){ return cols===1 ? 4 : (cols===4 ? 8 : 6); }
+function currentBatchSize(){ return batchSizeForCols(gridCols()); }
 
-function filterByTimeWindow(journeys, minutes){
-  const now=Date.now(), limit=now+minutes*60000;
-  return (journeys||[]).filter(j=>{
-    const t=j.departure || j.legs?.[0]?.departure || j.legs?.[0]?.plannedDeparture;
-    if(!t) return false;
-    const ts=new Date(t).getTime();
-    return ts>=now && ts<=limit;
-  });
-}
-
-async function loadRoute(aToB=true){
+/* ========= ROUTE Laden (ohne 60-Min Fenster) ========= */
+async function loadRoute(aToB=true, {keepPages=false}={}){
   try{
     await ensureIds();
+    currentAToB = aToB;
     const from=aToB?ids.school:ids.ffm, to=aToB?ids.ffm:ids.school;
-    const cols=gridCols();
-    const results = 60;  // groß genug
-    const data=await fetchJSON(`${API}/journeys?from=${from}&to=${to}&results=${results}&stopovers=true&language=de`,{group:'route'});
-    let journeys = filterByTimeWindow(data.journeys||[], routeWindowMin);
-    const short = journeys.slice(0, shortCount(cols));
-    const hasAny = journeys.length>0;
-    document.getElementById('noJourneys').style.display = hasAny ? 'none' : 'block';
-    renderJourneysInto('cards', {journeys: short.length?short:journeys}, aToB);
+
+    // Hole großzügig viele Verbindungen; Infinite Scroll zeigt sie seitenweise
+    const need = Math.max(50, pagesLoaded * currentBatchSize() * 2);
+    const data=await fetchJSON(`${API}/journeys?from=${from}&to=${to}&results=${need}&stopovers=true&language=de`,{group:'route'});
+    journeysCache = data.journeys || [];
+
+    // Wenn wir weniger bekommen als sichtbar gebraucht wird, kappen wir auf verfügbar
+    const visibleCount = Math.min(journeysCache.length, pagesLoaded * currentBatchSize());
+    renderJourneysInto('cards', journeysCache.slice(0, visibleCount), aToB);
+
+    document.getElementById('noJourneys').style.display = journeysCache.length ? 'none' : 'block';
+    ensureSentinel(); // (re)attach IO
   }catch(e){
-    document.getElementById('cards').innerHTML=`<div class="card">Fehler: ${e.message}</div>`;
+    document.getElementById('cards').innerHTML=`<div class="card glass">Fehler: ${e.message}</div>`;
   }
 }
 
+/* ========= Infinite Scroll ========= */
+function ensureSentinel(){
+  const sentinel = document.getElementById('sentinel');
+  if(!sentinel) return;
+  if(io) io.disconnect();
+  io = new IntersectionObserver(async ([entry])=>{
+    if(!entry.isIntersecting) return;
+
+    const batch = currentBatchSize();
+    const want = (pagesLoaded+1) * batch;
+
+    if(want <= journeysCache.length){
+      pagesLoaded += 1;
+      renderJourneysInto('cards', journeysCache.slice(0, want), currentAToB);
+    }else{
+      // Zu wenig im Cache -> nachladen mit größerem "results"
+      const moreNeeded = Math.max(50, batch*2);
+      try{
+        const from=currentAToB?ids.school:ids.ffm, to=currentAToB?ids.ffm:ids.school;
+        const data=await fetchJSON(`${API}/journeys?from=${from}&to=${to}&results=${journeysCache.length + moreNeeded}&stopovers=true&language=de`,{group:'route-more'});
+        journeysCache = data.journeys || journeysCache;
+        pagesLoaded += 1;
+        renderJourneysInto('cards', journeysCache.slice(0, pagesLoaded*batch), currentAToB);
+      }catch(_){}
+    }
+  }, {root:null, rootMargin:'800px 0px 800px 0px', threshold:0});
+  io.observe(sentinel);
+}
+
+/* ========= Abfahrten ========= */
 async function loadInbound(){
   try{
     await ensureIds();
@@ -543,7 +596,7 @@ async function loadInbound(){
   }catch(e){ document.getElementById('rows').innerHTML=`<div class="hint" style="color:var(--bad)">${e.message}</div>`; }
 }
 
-/* Heimwärts: zwei parallele Requests ohne gegenseitiges Abbrechen */
+/* Heimwärts parallel (ohne sich abzuschiessen) */
 async function loadHomebound(){
   try{
     await ensureIds();
@@ -587,8 +640,9 @@ async function loadHomebound(){
 /* ========= Tabs / Navigation ========= */
 function setTabs(tab){
   activeTab=tab;
-  // Reset Verlängerung beim Tabwechsel
-  routeWindowMin = 60;
+
+  // Startzustand für Routen-View
+  if(tab==='route-a' || tab==='route-b'){ pagesLoaded = 1; }
 
   // Desktop Tabs aktivieren
   document.querySelectorAll('.tab').forEach(a=>{
@@ -603,12 +657,14 @@ function setTabs(tab){
   document.getElementById('view-abfahrten').hidden=(tab!=='abfahrten');
   document.getElementById('view-homebound').hidden=(tab!=='homebound');
 }
+
 function startRefresh(){
   if(timer) clearInterval(timer);
   if(activeTab==='abfahrten'){ setFooter(REFRESH_DEPS_MS); loadInbound();  timer=setInterval(loadInbound,REFRESH_DEPS_MS); }
   else if(activeTab==='homebound'){ setFooter(REFRESH_DEPS_MS); loadHomebound(); timer=setInterval(loadHomebound,REFRESH_DEPS_MS); }
-  else { const aToB=(activeTab==='route-a'); setFooter(REFRESH_ROUTE_MS); loadRoute(aToB); timer=setInterval(()=>loadRoute(aToB), REFRESH_ROUTE_MS); }
+  else { const aToB=(activeTab==='route-a'); setFooter(REFRESH_ROUTE_MS); loadRoute(aToB); timer=setInterval(()=>loadRoute(aToB,{keepPages:true}), REFRESH_ROUTE_MS); }
 }
+
 function handleHash(){
   const h=(location.hash||'#route-a').replace('#','');
   const ok=['route-a','route-b','abfahrten','homebound'];
@@ -633,25 +689,16 @@ document.addEventListener('click',(e)=>{
   navigateTo(href);
 });
 
-/* ========= Weitere Verbindungen: +60 min je Klick ========= */
-const moreBtn=document.getElementById('moreBtn');
-async function extendWindow(){
-  if(!(activeTab==='route-a'||activeTab==='route-b')) return;
-  const aToB=(activeTab==='route-a');
-  routeWindowMin += 60; // +60 Minuten kumulativ
-  const prev=moreBtn.innerHTML; moreBtn.disabled=true; moreBtn.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i> Lädt…';
-  try{ await loadRoute(aToB); } finally {
-    moreBtn.disabled=false; moreBtn.innerHTML=prev;
-  }
-}
-moreBtn.addEventListener('click', extendWindow);
-
-/* ========= Init & Resize ========= */
-(function init(){ handleHash(); })();
-/* Bei Resize: Kartenanzahl neu berechnen und rendern */
+/* ========= Resize: Anzahl je Spalten-Layout anpassen ========= */
 window.addEventListener('resize', ()=>{
-  if(activeTab==='route-a'||activeTab==='route-b') loadRoute(activeTab==='route-a');
+  if(!(activeTab==='route-a'||activeTab==='route-b')) return;
+  // gleiche Anzahl „Seiten“, aber neue Batch-Größe
+  const count = Math.min(journeysCache.length, pagesLoaded * currentBatchSize());
+  renderJourneysInto('cards', journeysCache.slice(0, count), currentAToB);
 });
+
+/* ========= Init ========= */
+(function init(){ handleHash(); })();
 </script>
 </body>
 </html>
