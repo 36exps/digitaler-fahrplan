@@ -30,7 +30,7 @@
   .hdr{position:sticky; top:0; z-index:40; display:flex; align-items:center; gap:16px; padding:16px 20px; background:var(--panel); border-bottom:1px solid var(--rule); box-shadow:var(--shadow);}
   .brand{ font-weight:800; letter-spacing:.2px; font-size:22px; }
   .spacer{flex:1}
-  .iconbtn{ border:1px solid var(--rule); background:var(--chip); color:var(--text); border-radius:12px; padding:10px 12px; display:inline-flex; align-items:center; gap:10px; cursor:pointer; user-select:none; font-weight:700; }
+  .iconbtn{ border:1px solid var(--rule); background:var(--chip); color:var(--text); border-radius:12px; padding:10px 12px; display:inline-flex; align-items:center; gap:10px; cursor:pointer; user-select:none; }
   .iconbtn i{ font-size:18px }
   .tabs{ display:flex; gap:10px; padding:10px 16px; overflow:auto hidden; background:var(--panel); border-bottom:1px solid var(--rule); }
   .tab{ padding:10px 14px; border-radius:10px; white-space:nowrap; text-decoration:none; color:var(--muted); border:1px solid transparent; flex:0 0 auto; font-weight:800; font-size:16px; }
@@ -82,10 +82,10 @@
   <div class="hdr" role="banner">
     <div class="brand">Digitaler Fahrplan</div>
     <div class="spacer"></div>
-    <button id="themeBtn" class="iconbtn" aria-label="Design umschalten" title="Design umschalten">
+    <!-- Toggle: nur Icons -->
+    <button id="themeBtn" class="iconbtn" aria-label="Theme umschalten (Hell/Dunkel)">
       <i class="fa-solid fa-sun" id="sunIcon"></i>
       <i class="fa-solid fa-moon" id="moonIcon" style="display:none"></i>
-      <span id="themeLabel">Hell</span>
     </button>
   </div>
 
@@ -168,6 +168,56 @@ let activeTab = 'route-a';
 let timer = null;
 let lastUpdated = null;
 
+/* ========= Theme: Auto (System) + manueller Override ========= */
+const THEME_KEY = 'fahrplan-theme';           // 'light' | 'dark'
+const THEME_OVERRIDE_KEY = 'fahrplan-theme-override'; // '1' = user override active
+
+const mediaDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)');
+
+function systemTheme(){ return mediaDark && mediaDark.matches ? 'dark' : 'light'; }
+
+function applyTheme(mode){
+  document.documentElement.setAttribute('data-theme', mode);
+  // Icon-UI
+  const sun=document.getElementById('sunIcon'), moon=document.getElementById('moonIcon');
+  if(mode==='dark'){ sun.style.display='none'; moon.style.display='inline-block'; }
+  else { moon.style.display='none'; sun.style.display='inline-block'; }
+}
+
+function initTheme(){
+  const override = localStorage.getItem(THEME_OVERRIDE_KEY) === '1';
+  if(override){
+    const saved = localStorage.getItem(THEME_KEY) || systemTheme();
+    applyTheme(saved);
+  }else{
+    applyTheme(systemTheme());
+    // auf Systemwechsel reagieren
+    if(mediaDark && mediaDark.addEventListener){
+      mediaDark.addEventListener('change', e => { applyTheme(e.matches ? 'dark':'light'); });
+    }else if(mediaDark && mediaDark.addListener){ // Safari <14
+      mediaDark.addListener(e => { applyTheme(e.matches ? 'dark':'light'); });
+    }
+  }
+}
+
+document.getElementById('themeBtn').addEventListener('click', ()=>{
+  // ab hier: manueller Override aktivieren + toggeln
+  const cur = document.documentElement.getAttribute('data-theme') || systemTheme();
+  const next = (cur === 'light') ? 'dark' : 'light';
+  localStorage.setItem(THEME_OVERRIDE_KEY, '1');
+  localStorage.setItem(THEME_KEY, next);
+  applyTheme(next);
+});
+
+// Optional: Override wieder aufheben per Doppeltipp (zurück zu Auto)
+document.getElementById('themeBtn').addEventListener('dblclick', ()=>{
+  localStorage.removeItem(THEME_OVERRIDE_KEY);
+  localStorage.removeItem(THEME_KEY);
+  applyTheme(systemTheme());
+});
+
+initTheme();
+
 /* ========= Helpers ========= */
 const fmtHM  = d => new Date(d).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
 const fmtHMS = d => new Date(d).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
@@ -198,54 +248,19 @@ async function findStopId(query, preferRx){
   const first = data.find(x => x.type==='stop' || x.type==='station');
   return first?.id || null;
 }
-function setTheme(mode){
-  document.documentElement.setAttribute('data-theme', mode);
-  localStorage.setItem('fahrplan-theme', mode);
-  const sun=document.getElementById('sunIcon'), moon=document.getElementById('moonIcon'), lab=document.getElementById('themeLabel');
-  if(mode==='dark'){ sun.style.display='none'; moon.style.display='inline-block'; lab.textContent='Dunkel'; }
-  else { moon.style.display='none'; sun.style.display='inline-block'; lab.textContent='Hell'; }
-}
-document.getElementById('themeBtn').addEventListener('click', ()=>{
-  const cur = document.documentElement.getAttribute('data-theme') || 'light';
-  setTheme(cur==='light' ? 'dark':'light');
-});
-setTheme(localStorage.getItem('fahrplan-theme') || 'light');
 
-/* ========= Linienfarben aus Flat UI „defo“ =========
-   Palette (kräftige Töne): https://flatuicolors.com/palette/defo
-   Wir verwenden v.a. die satten Farben (keine sehr hellen Grautöne).
-*/
+/* ========= Linienfarben (Flat UI „defo“) ========= */
 const FLAT_DEFO = [
-  '#1abc9c', /* Turquoise */
-  '#16a085', /* Green Sea */
-  '#2ecc71', /* Emerald */
-  '#27ae60', /* Nephritis */
-  '#3498db', /* Peter River */
-  '#2980b9', /* Belize Hole */
-  '#9b59b6', /* Amethyst */
-  '#8e44ad', /* Wisteria */
-  '#f1c40f', /* Sun Flower */
-  '#f39c12', /* Orange */
-  '#e67e22', /* Carrot */
-  '#d35400', /* Pumpkin */
-  '#e74c3c', /* Alizarin */
-  '#c0392b', /* Pomegranate */
-  '#34495e', /* Wet Asphalt */
-  '#2c3e50'  /* Midnight Blue */
+  '#1abc9c','#16a085','#2ecc71','#27ae60','#3498db','#2980b9',
+  '#9b59b6','#8e44ad','#f1c40f','#f39c12','#e67e22','#d35400',
+  '#e74c3c','#c0392b','#34495e','#2c3e50'
 ];
-
-/* feste Farben für bekannte Linien (immer gleich) – aus der Palette gewählt */
 const FIXED_COLORS = {
-  'Bus 1':'#3498db',   // Peter River
-  '1':'#3498db',
-  'Bus 17':'#e67e22',  // Carrot
-  '17':'#e67e22',
-  'RB40':'#9b59b6',    // Amethyst
-  'RB41':'#1abc9c',    // Turquoise
-  'RE30':'#f1c40f',    // Sun Flower
-  'S6':'#2ecc71',      // Emerald
-  'ICE':'#2c3e50',     // Midnight Blue
-  'IC':'#34495e'       // Wet Asphalt
+  'Bus 1':'#3498db','1':'#3498db',
+  'Bus 17':'#e67e22','17':'#e67e22',
+  'RB40':'#9b59b6', 'RB41':'#1abc9c',
+  'RE30':'#f1c40f', 'S6':'#2ecc71',
+  'ICE':'#2c3e50', 'IC':'#34495e'
 };
 function hashLine(s){ let h=0; for(let i=0;i<s.length;i++){ h=((h<<5)-h)+s.charCodeAt(i); h|=0; } return Math.abs(h); }
 function lineColor(name){
@@ -254,10 +269,8 @@ function lineColor(name){
   if(FIXED_COLORS[key]) return FIXED_COLORS[key];
   const norm = key.replace(/\s+Richtung.*/i,'').trim();
   if(FIXED_COLORS[norm]) return FIXED_COLORS[norm];
-  // deterministische Auswahl aus der Palette
   return FLAT_DEFO[ hashLine(key) % FLAT_DEFO.length ];
 }
-
 function iconForProduct(product, mode){
   const p = (product||'').toLowerCase(), m = (mode||'').toLowerCase();
   if(p.includes('bus') || m==='bus') return '<i class="fa-solid fa-bus"></i>';
@@ -267,7 +280,7 @@ function iconForProduct(product, mode){
 }
 function prettyStopName(name){ return name==='Gießen' ? 'Gießen Bahnhof' : name; }
 
-/* ========= Compact Timeline ========= */
+/* ========= Timeline ========= */
 function buildCompactTimeline(legs){
   if(!legs?.length) return '';
   const nodes = [];
@@ -351,13 +364,15 @@ function renderJourneysInto(containerId, list, aToB){
   }
 }
 
-/* ========= Departures helpers ========= */
+/* ========= Departures ========= */
 function normalizeDepartures(raw){
   if(Array.isArray(raw)) return raw;
   if(raw && Array.isArray(raw.departures)) return raw.departures;
   return [];
 }
 function deltaClass(m){ if(m>0) return 'late'; if(m<0) return 'early'; return 'ontime'; }
+function prettyStopName(name){ return name==='Gießen' ? 'Gießen Bahnhof' : name; }
+
 function renderDeparturesInto(tbodyId, departures){
   const tbody = document.getElementById(tbodyId);
   tbody.innerHTML = '';
