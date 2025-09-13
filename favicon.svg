@@ -1,0 +1,18 @@
+<!--?xml version="1.0" encoding="UTF-8" standalone="no"?-->
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <rect width="512" height="512" fill="#EC0016"></rect>
+  <!-- Zug (Front) -->
+  <rect x="156" y="80" width="200" height="180" fill="white" rx="28"></rect>
+  <rect x="196" y="110" width="120" height="60" fill="#EC0016" rx="8"></rect>
+  <circle cx="200" cy="260" r="18" fill="white"></circle>
+  <circle cx="312" cy="260" r="18" fill="white"></circle>
+  <!-- Bus -->
+  <rect x="116" y="300" width="280" height="110" fill="white" rx="18"></rect>
+  <rect x="140" y="320" width="60" height="40" fill="#EC0016" rx="6"></rect>
+  <rect x="210" y="320" width="60" height="40" fill="#EC0016" rx="6"></rect>
+  <rect x="280" y="320" width="60" height="40" fill="#EC0016" rx="6"></rect>
+  <rect x="350" y="320" width="40" height="40" fill="#EC0016" rx="6"></rect>
+  <circle cx="180" cy="420" r="18" fill="white"></circle>
+  <circle cx="330" cy="420" r="18" fill="white"></circle>
+  <title>Digitaler Fahrplan – Zug &amp; Bus</title>
+</svg>
