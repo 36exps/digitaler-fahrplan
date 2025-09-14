@@ -815,10 +815,11 @@ window.addEventListener('scroll', ()=>{
 
 
 
-<!-- === Trip Detail Modal (Premium v2) === -->
+
+<!-- === Trip Detail Modal (Premium v3) === -->
 <div id="tripModal" class="modal" hidden>
   <div class="modal-backdrop" data-close></div>
-  <div class="modal-panel trip-panel" role="dialog" aria-modal="true" aria-labelledby="tripTitle">
+  <div class="modal-panel trip-panel" role="dialog" aria-modal="true">
     <div class="trip-head">
       <div class="trip-line">
         <span class="line-pill" id="tripLinePill">—</span>
@@ -832,14 +833,13 @@ window.addEventListener('scroll', ()=>{
       </button>
     </div>
     <div class="modal-body trip-body">
-      <div id="tripInfo"></div>
       <div id="tripContent" class="trip-scroll">Lade …</div>
     </div>
   </div>
 </div>
 
 <script>
-/* ===== Trip Detail (Premium v2) + RIS + Full Trip fetch ===== */
+/* ===== Trip Detail (Premium v3) – Chip-colored band, cleaner stoplist, RIS only ===== */
 (function(){
   const API = (typeof window.API !== 'undefined') ? window.API : 'https://v6.db.transport.rest';
   const $ = (s,el=document)=>el.querySelector(s);
@@ -849,13 +849,12 @@ window.addEventListener('scroll', ()=>{
   const dcls  = (m)=> m>0? 'late' : (m<0? 'early' : 'ontime');
   const escape = (s)=> (s||'').toString().replace(/[&<>"]/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c]));
 
-  // Modal elms
   const modal = document.getElementById('tripModal');
-  const info  = document.getElementById('tripInfo');
   const content = document.getElementById('tripContent');
   const destEl  = document.getElementById('tripDest');
   const pillEl  = document.getElementById('tripLinePill');
   const metaRow = document.getElementById('tripMetaRow');
+  const panel   = document.querySelector('.trip-panel');
 
   function openModal(){ modal.hidden = false; }
   function closeModal(){ modal.hidden = true; }
@@ -875,60 +874,49 @@ window.addEventListener('scroll', ()=>{
     return 'fa-circle-info';
   }
 
-  function chip(html){ return `<span class="chip">${html}</span>`; }
-
-  function buildMeta(journey, leg){
-    const dep = leg?.departure || journey?.departure;
-    const arr = leg?.arrival || journey?.arrival;
-    const durMin = dep && arr ? Math.max(1, Math.round((new Date(arr)-new Date(dep))/60000)) : null;
-    const changes = Math.max(0, (journey?.legs||[]).filter(l=>l.line).length - 1);
-    const parts = [];
-    if(dep&&arr&&durMin) parts.push(`${fmtHM(dep)} → ${fmtHM(arr)} · ${durMin} min`);
-    parts.push(`${changes} Umst.`);
-    return parts.join(' · ');
-  }
-
-  function pickFeatures(remarks){
-    const out=[];
-    for(const r of (remarks||[])){
-      const t = (r?.text || r?.summary || '').toLowerCase();
-      if(/wlan|wifi/.test(t)) out.push(chip('<i class="fa-solid fa-wifi"></i> WLAN'));
-      if(/klima|air-?condition/.test(t)) out.push(chip('<i class="fa-solid fa-snowflake"></i> Klima'));
-      if(/fahrrad|bicycle/.test(t)) out.push(chip('<i class="fa-solid fa-person-biking"></i> Fahrrad'));
-      if(/rampe|einstiegshilfe|barriere/.test(t)) out.push(chip('<i class="fa-solid fa-wheelchair"></i> Einstiegshilfe'));
-      if(/wc|toilet/.test(t)) out.push(chip('<i class="fa-solid fa-toilet"></i> WC'));
-    }
-    return Array.from(new Set(out)).join('');
-  }
-
   function buildRIS(remarks){
     if(!remarks || !remarks.length) return '';
     const seen = new Set();
     const items = remarks.filter(r=>{
-      const key = [r?.text || r?.summary || r?.code].filter(Boolean).join('|');
-      if(seen.has(key)) return false; seen.add(key); return true;
+      const body = r?.text || r?.summary || '';
+      const key = body.trim();
+      if(!key || seen.has(key)) return false; seen.add(key); return true;
     }).map(r=>{
       const body = escape(r?.text || r?.summary || '');
-      if(!body) return '';
       const icon = risIconByText(body);
       return `<li class="ris-item"><i class="fa-solid ${icon}" aria-hidden="true"></i><div class="ris-text"><div class="ris-desc">${body}</div></div></li>`;
     }).join('');
     return items ? `<div class="trip-ris"><div class="trip-section-title"><i class="fa-solid fa-bolt"></i> Betriebsinfos</div><ul class="ris-list">${items}</ul></div>` : '';
   }
 
-  function rowHTML(s){
-    const aC = dcls(dmin(s.arrival, s.plannedArrival));
-    const dC = dcls(dmin(s.departure, s.plannedDeparture));
-    const t  = (s.arrival && s.departure)
-      ? `<span class="${aC} time">${fmtHM(s.arrival)}${s.plannedArrival?` <span class="planned">(${fmtHM(s.plannedArrival)})</span>`:''}</span> ▸ <span class="${dC} time">${fmtHM(s.departure)}${s.plannedDeparture?` <span class="planned">(${fmtHM(s.plannedDeparture)})</span>`:''}</span>`
-      : (s.arrival
-        ? `<span class="${aC} time">${fmtHM(s.arrival)}${s.plannedArrival?` <span class="planned">(${fmtHM(s.plannedArrival)})</span>`:''}</span>`
-        : (s.departure
-          ? `<span class="${dC} time">${fmtHM(s.departure)}${s.plannedDeparture?` <span class="planned">(${fmtHM(s.plannedDeparture)})</span>`:''}</span>`
-          : '—'));
+  function timeCell(s){
+    const a = s.arrival, ap = s.plannedArrival;
+    const d = s.departure, dp = s.plannedDeparture;
+    const parts = [];
+    if(a && d && a !== d){
+      parts.push(`<div class="tline"><span class="lbl">An</span> <span class="actual ${dcls(dmin(a,ap))}">${fmtHM(a)}</span>${ap?` <span class="planned">(${fmtHM(ap)})</span>`:''}</div>`);
+      parts.push(`<div class="tline"><span class="lbl">Ab</span> <span class="actual ${dcls(dmin(d,dp))}">${fmtHM(d)}</span>${dp?` <span class="planned">(${fmtHM(dp)})</span>`:''}</div>`);
+    } else if(a){
+      parts.push(`<div class="tline"><span class="actual ${dcls(dmin(a,ap))}">${fmtHM(a)}</span>${ap?` <span class="planned">(${fmtHM(ap)})</span>`:''}</div>`);
+    } else if(d){
+      parts.push(`<div class="tline"><span class="actual ${dcls(dmin(d,dp))}">${fmtHM(d)}</span>${dp?` <span class="planned">(${fmtHM(dp)})</span>`:''}</div>`);
+    } else {
+      parts.push(`<div class="tline">—</div>`);
+    }
+    return parts.join('');
+  }
+
+  function rowHTML(s, first, last){
     const platform = s.platform || s.prognosedPlatform || s.plannedPlatform || '—';
     const name = escape(s.stop?.name || s.station?.name || '—');
-    return `<div class="row"><div class="rail"><span class="dot"></span></div><div class="time">${t}</div><div class="stop">${name}</div><div class="plat">${platform?('Gl. '+platform):'—'}</div></div>`;
+    const railTop = first ? ' rail-top' : '';
+    const railBot = last ? ' rail-bot' : '';
+    return `<div class="row${railTop}${railBot}">
+      <div class="rail"><span class="dot"></span></div>
+      <div class="time">${timeCell(s)}</div>
+      <div class="stop">${name}</div>
+      <div class="plat">${platform?('Gl. '+platform):'—'}</div>
+    </div>`;
   }
 
   async function tryFetchFullTrip(leg){
@@ -941,53 +929,37 @@ window.addEventListener('scroll', ()=>{
     }catch(_){ return null; }
   }
 
-  function productKey(leg){
-    const p = (leg?.line?.product || leg?.mode || '').toLowerCase();
-    if(/ice|ic|ec|ecc|ece/.test(p)) return 'fern';
-    if(/regional|re|rb|ire?/.test(p)) return 'regional';
-    if(/suburban|s-?bahn|^s$/.test(p)) return 'sbahn';
-    if(/u-?bahn|subway|metro/.test(p)) return 'ubahn';
-    if(/tram/.test(p)) return 'tram';
-    if(/bus/.test(p)) return 'bus';
-    return 'other';
-  }
-
-  function applyProductTheme(panel, leg){
-    const key = productKey(leg);
-    panel.classList.remove('prod-fern','prod-regional','prod-sbahn','prod-ubahn','prod-tram','prod-bus','prod-other');
-    panel.classList.add('prod-'+key);
+  function buildMeta(journey, leg){
+    const dep = leg?.departure || journey?.departure;
+    const arr = leg?.arrival || journey?.arrival;
+    const durMin = dep && arr ? Math.max(1, Math.round((new Date(arr)-new Date(dep))/60000)) : null;
+    const changes = Math.max(0, (journey?.legs||[]).filter(l=>l.line).length - 1);
+    const parts = [];
+    if(dep&&arr&&durMin) parts.push(`${fmtHM(dep)} → ${fmtHM(arr)} · ${durMin} min`);
+    parts.push(`${changes} Umst.`);
+    return parts.join(' · ');
   }
 
   function renderTrip(journey, leg, fullTrip){
-    const panel = document.querySelector('.trip-panel');
-    applyProductTheme(panel, leg);
-
     const lineName = leg?.line?.name || leg?.mode || '';
     const product  = (leg?.line?.product || leg?.mode || '').toUpperCase();
     const dest     = leg?.direction || journey?.to?.name || '';
     destEl.textContent = dest || 'Fahrtdetails';
     pillEl.textContent = [product, lineName].filter(Boolean).join(' ');
-    const meta = buildMeta(journey, leg);
-    metaRow.textContent = meta;
+    metaRow.textContent = buildMeta(journey, leg);
 
-    const remarksRaw = [...(journey?.remarks||[]), ...(leg?.remarks||[]), ...((fullTrip?.remarks)||[])].filter(Boolean);
-    const featureChips = pickFeatures(remarksRaw);
-    const delayMinutes = dmin(leg?.departure, leg?.plannedDeparture);
-    const delayChip = delayMinutes ? chip(`<i class="fa-solid fa-clock-rotate-left"></i> ${delayMinutes>0?`+${delayMinutes}`:delayMinutes}′`) : '';
-    info.innerHTML = featureChips ? `<div class="feature-chips">${delayChip}${featureChips}</div>` : (delayChip ? `<div class="feature-chips">${delayChip}</div>` : '');
-
-    // Stopovers: use full trip if available
     const stops = (fullTrip?.stopovers && fullTrip.stopovers.length) ? fullTrip.stopovers : (leg?.stopovers || []);
+    const header = `<div class="thead"><div class="rail-h"></div><div>Zeit</div><div>Station</div><div class="plat-h">Gleis</div></div>`;
+    const rows = stops.map((s,i)=>rowHTML(s, i===0, i===stops.length-1)).join('');
 
-    const header = `
-      <div class="thead">
-        <div class="rail-h"></div><div>Zeit</div><div>Station</div><div class="plat-h">Gleis</div>
-      </div>`;
-    const rows = stops.map(rowHTML).join('');
+    // RIS from all sources, German only line (we already drop English headers by using .text or .summary only)
+    const remarksRaw = [...(journey?.remarks||[]), ...(leg?.remarks||[]), ...((fullTrip?.remarks)||[])].filter(Boolean);
     const ris = buildRIS(remarksRaw);
+
     content.innerHTML = `${ris}<div class="trip-stops"><div class="table scroll">${header}<div class="tbody">${rows}</div></div></div>`;
   }
 
+  // Delegation
   document.addEventListener('click', async (ev)=>{
     const chip = ev.target.closest?.('.line-chip');
     if(!chip) return;
@@ -998,8 +970,16 @@ window.addEventListener('scroll', ()=>{
     let k=-1, leg=null;
     for(const L of (j.legs||[])){ if(L && L.line){ k++; if(k===idx){ leg=L; break; } } }
     if(!leg) return;
+
+    // Accent band from chip background color
+    try{
+      const cs = getComputedStyle(chip);
+      const col = cs.getPropertyValue('background-color') || cs.getPropertyValue('color');
+      if(col) document.querySelector('.trip-panel').style.setProperty('--accent-band', col.trim());
+    }catch(_){}
+
+    // Open quickly, then render
     content.innerHTML = '<div class="skeleton"><div class="bar"></div><div class="bar"></div><div class="bar w50"></div></div>';
-    info.innerHTML = '';
     destEl.textContent = leg?.direction || 'Fahrtdetails';
     pillEl.textContent = ((leg?.line?.product||leg?.mode||'').toUpperCase() + ' ' + (leg?.line?.name||leg?.mode||'')).trim();
     metaRow.textContent = 'Lade Fahrtdaten …';
@@ -1008,7 +988,7 @@ window.addEventListener('scroll', ()=>{
     renderTrip(j, leg, fullTrip);
   }, true);
 
-  // Make chips focusable
+  // focusable chips
   const cardsRoot = document.getElementById('cards');
   if(cardsRoot){
     const mark = ()=>{ cardsRoot.querySelectorAll('.line-chip').forEach(el=>{ el.tabIndex=0; el.setAttribute('role','button'); el.classList.add('clickable'); }); };
