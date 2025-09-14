@@ -563,6 +563,17 @@ html, body{
 .trip-stops .rail::before{
   content:""; position:absolute; left:9px; top:-16px; bottom:-16px; width:2px; background:var(--rule);
 }
+
+/* === Trip timeline progress (DB Navigator–style) === */
+.trip-stops{ --accent-rail: var(--accent, #4f8cff); }
+.trip-stops .row.past .rail::before{ background: var(--accent-rail); }
+.trip-stops .row.past .dot{ background: var(--accent-rail); }
+.trip-stops .row.now .rail{ position:relative }
+.trip-stops .row.now .rail::after{
+  content:""; position:absolute; left:9px; top:-16px; width:2px;
+  height: var(--progress-px, 0px); background: var(--accent-rail);
+}
+.trip-stops .row.future .dot{ background: var(--muted); }
 .trip-stops .dot{display:block; width:10px; height:10px; border-radius:999px; background:var(--muted); position:relative; top:6px; left:4px}
 .trip-stops .row.now .dot{background:var(--accent, #4f8cff)}
 .trip-stops .time{font-variant-numeric:tabular-nums}
@@ -695,3 +706,6 @@ html, body{
 }
 
 .trip-panel{border-top:6px solid var(--accent-chip, transparent)}
+
+/* Make table use full modal width */
+.trip-panel .trip-stops, .trip-panel .trip-ris{ width:100%; }

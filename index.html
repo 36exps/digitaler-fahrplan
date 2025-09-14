@@ -957,7 +957,65 @@ window.addEventListener('scroll', ()=>{
     const ris = buildRIS(remarksRaw);
 
     content.innerHTML = `${ris}<div class="trip-stops"><div class="table scroll">${header}<div class="tbody">${rows}</div></div></div>`;
-  }
+  
+    // === Progress rail coloring & live update ===
+    const panelEl = document.querySelector('.trip-panel');
+    // allow JS to override the rail accent color (solid) derived from chip color earlier
+    // falls back to computed --accent
+    const railRoot = content.querySelector('.trip-stops');
+    if(railRoot){
+      const rows = Array.from(railRoot.querySelectorAll('.row'));
+      // Build segments: from departure of previous stop -> arrival of current stop
+      const segStart = [];
+      const segEnd   = [];
+      const getT = (a,b)=> a || b || null;
+      const dep0 = getT(stops?.[0]?.departure, stops?.[0]?.plannedDeparture);
+      if(rows.length>0){ segStart.push(dep0); segEnd.push(getT(stops?.[0]?.arrival, stops?.[0]?.plannedArrival)); }
+      for(let i=1;i<rows.length;i++){
+        const start = getT(stops?.[i-1]?.departure, stops?.[i-1]?.plannedDeparture) || getT(stops?.[i-1]?.arrival, stops?.[i-1]?.plannedArrival);
+        const end   = getT(stops?.[i]?.arrival,   stops?.[i]?.plannedArrival);
+        segStart.push(start); segEnd.push(end);
+      }
+      function applyProgress(){
+        const now = Date.now();
+        // Clear classes
+        rows.forEach(r=>{ r.classList.remove('past','now','future'); r.style.removeProperty('--progress-px'); });
+        // Find first segment whose end is after now
+        let j = segEnd.findIndex(t => t && (new Date(t).getTime() > now));
+        if(j === -1) j = rows.length-1;
+        // Mark past rows
+        for(let i=0;i<rows.length;i++){
+          if(i<j) rows[i].classList.add('past');
+          else if(i===j) rows[i].classList.add('now');
+          else rows[i].classList.add('future');
+        }
+        // Partial progress within current segment
+        if(j>=0 && j<rows.length){
+          const s = segStart[j] ? new Date(segStart[j]).getTime() : null;
+          const e = segEnd[j]   ? new Date(segEnd[j]).getTime()   : null;
+          if(s && e && e>s){
+            const ratio = Math.max(0, Math.min(1, (now - s) / (e - s)));
+            const row = rows[j];
+            const extra = 32; // because the rail pseudo-element extends 16px up & down
+            const h = (row.getBoundingClientRect().height + extra) * ratio;
+            row.style.setProperty('--progress-px', h.toFixed(1)+'px');
+          }else if(segEnd[j]){
+            // Train not yet departed for first leg
+            rows[j].style.setProperty('--progress-px', '0px');
+          }
+        }
+      }
+      applyProgress();
+      // Update every 30s while modal is open
+      clearInterval(window.__tripProgressTimer);
+      window.__tripProgressTimer = setInterval(applyProgress, 30000);
+      // Stop timer when modal closes
+      const m = document.getElementById('tripModal');
+      const stop = () => { clearInterval(window.__tripProgressTimer); };
+      m?.addEventListener('click', (ev)=>{ if(ev.target.matches('[data-close], .modal-backdrop')) stop(); }, { once:false });
+      window.addEventListener('keydown', (ev)=>{ if(ev.key==='Escape') stop(); }, { once:false });
+    }
+}
 
   // Delegation
   document.addEventListener('click', async (ev)=>{
