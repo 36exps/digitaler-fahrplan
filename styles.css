@@ -173,7 +173,7 @@ body.scrolled .tabs{ box-shadow: 0 6px 14px rgba(0,0,0,.06) }
   transition: transform var(--fast) var(--easing), box-shadow var(--normal) var(--easing), background-color var(--normal) var(--easing), border-color var(--normal) var(--easing);
   will-change: transform;
 }
-.card:hover{ transform: translateY(-1px) }
+.card:hover{ transform:none; }
 .card:active{ transform: translateY(0) scale(.995); box-shadow:var(--shadow-press) }
 .card .row{ display:flex; align-items:center; gap:12px; flex-wrap:wrap; min-width:0 }
 .time{ font-variant-numeric:tabular-nums; font-weight:700; font-size:20px }
@@ -394,3 +394,9 @@ html, body{
     transform: none !important;
   }
 }
+
+
+/* === Card baseline alignment: keep route subline at the bottom === */
+.card{ display:flex; flex-direction:column; }
+.card .timeline{ flex:1 1 auto; }
+.card .sub{ margin-top:auto; padding-top:8px; }
