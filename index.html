@@ -491,7 +491,7 @@ function renderDeparturesInto(containerId, deps, mode){
         <div>${tRt?fmtHM(tRt):(tPl?fmtHM(tPl):'–')}</div>
         <div class="col-plan">${tPl?fmtHM(tPl):'–'}</div>
         <div>${origin}</div>
-        <div><span class="chip" style="--line-color:${color}" class="line-chip">${iconForProduct(d.line?.product,d.line?.mode)} ${line}</span></div>
+        <div><span class="chip line-chip" style="--line-color:${color}">${iconForProduct(d.line?.product,d.line?.mode)} ${line}</span></div>
         <div class="col-steig">–</div>
         <div class="delta ${cls}">${deltaTxt}</div>`
       : `

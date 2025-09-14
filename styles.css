@@ -194,10 +194,7 @@ body.scrolled .tabs{ box-shadow: 0 6px 14px rgba(0,0,0,.06) }
   border:1px solid color-mix(in oklab, var(--pill-border) 55%, var(--line-color) 45%);
   color: var(--line-color);
 }
-.line-chip::before{
-  content:""; inline-size:8px; block-size:8px; border-radius:50%;
-  background: var(--line-color); display:inline-block; margin-right:6px;
-}
+.line-chip::before{ content:none !important; display:none !important; }
 [data-theme="dark"] .line-chip{
   background: color-mix(in oklab, var(--pill-bg) 88%, var(--line-color) 12%);
   border-color: color-mix(in oklab, var(--pill-border) 50%, var(--line-color) 50%);
