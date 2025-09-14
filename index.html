@@ -357,7 +357,13 @@ function renderJourneysInto(containerId, list, aToB){
     const changes=Math.max(0, legs.filter(l=>l.line).length - 1); const dur=isoDurToHuman(j.duration,dep,arr);
     let delay=0; const l0=legs.find(l=>!!l.departure); if(l0&&l0.plannedDeparture&&l0.departure) delay=Math.round((new Date(l0.departure)-new Date(l0.plannedDeparture))/60000);
     const chipDelay=(delay!==0)?`<span class="chip" style="color:${delay>0?'var(--bad)':'var(--ok)'}"><i class="fa-solid fa-clock-rotate-left"></i> ${delay>0?`+${delay}`:delay}′</span>`:'';
-    const chips=legs.filter(l=>l.line).map(l=>`<span class="chip line-chip" style="--line-color:${lineColor(l.line?.name||l.mode||'')}">${iconForProduct(l.line?.product,l.mode)} ${l.line?.name||l.mode||''}</span>`).join('');
+    const chips=legs.filter(l=>l.line).map((l,i)=>{ 
+      const __html = `<span class="chip line-chip" style="--line-color:${lineColor(l.line?.name||l.mode||'')}">${iconForProduct(l.line?.product,l.mode)} ${l.line?.name||l.mode||''}</span>`; 
+      const __hasChange = (l?.plannedPlatform && l?.prognosedPlatform && l.plannedPlatform !== l.prognosedPlatform) 
+        || ((l?.remarks||[]).some(r => /(gleis|platform|abweich|änder|störung|umleitung|ersatzverkehr|fällt\s+aus|ausfall)/i.test((r.text||r.summary||'').toLowerCase())));
+      const __warn = __hasChange ? `<button class="chip change-chip" data-idx="${i}" title="Hinweis zu dieser Fahrt"><i class="fa-solid fa-circle-exclamation"></i></button>` : '';
+      return __html + __warn;
+    }).join('');
 
     const offsetMin = aToB ? 5 : 13;
     const leaveTime = new Date(new Date(dep).getTime() - offsetMin*60000);
@@ -434,6 +440,17 @@ function renderDeparturesInto(containerId, deps, mode){
   addSpringyPress(box);
 }
 
+
+// Delegate: change chip opens the same trip modal as its sibling line chip
+document.addEventListener('click', (ev)=>{
+  const btn = ev.target.closest?.('.change-chip');
+  if(!btn) return;
+  const card = btn.closest('.card');
+  if(!card) return;
+  const idx = parseInt(btn.getAttribute('data-idx')||'0', 10);
+  const chips = card.querySelectorAll('.line-chip');
+  if(chips[idx]) chips[idx].click();
+}, true);
 /* ========= Loaders ========= */
 async function ensureIds(){
   if(!ids.school)     ids.school     = await findStopId(Q_SCHOOL, /(sophie|scholl).*(gie(s|ß)en)/i);
@@ -616,57 +633,7 @@ moreBtn.addEventListener('click', async ()=>{
   }
 });
 
-(function init(){ handleHash(); 
-/* === Change indicator next to line chips (gleiswechsel / relevante Hinweise) === */
-function legHasPlatformChange(leg){
-  if(!leg) return false;
-  // direct fields
-  if(leg.plannedPlatform && leg.prognosedPlatform && leg.plannedPlatform !== leg.prognosedPlatform) return true;
-  // look into stopovers
-  const stops = leg.stopovers || [];
-  for(const s of stops){
-    const a = s.plannedPlatform || s.scheduledPlatform || s.departurePlatform || s.arrivalPlatform;
-    const b = s.prognosedPlatform || s.platform;
-    if(a && b && a !== b) return true;
-  }
-  return false;
-}
-function hasRelevantRemark(j, leg){
-  const arr = [...(j?.remarks||[]), ...(leg?.remarks||[])].filter(Boolean);
-  return arr.some(r => /\b(gleis|platform|abweich|änder|störung|umleitung|ersatzverkehr|fällt\s+aus|ausfall)\b/i.test((r.text||r.summary||'').toLowerCase()));
-}
-function decorateChangeChips(){
-  const root = document.getElementById('cards');
-  if(!root) return;
-  root.querySelectorAll('.card').forEach(card=>{
-    const j = card.__journey;
-    if(!j) return;
-    const legs = (j.legs||[]).filter(l=>l && l.line);
-    const chips = card.querySelectorAll('.line-chip');
-    chips.forEach((chip, i)=>{
-      // remove previously added buttons
-      chip.parentElement?.querySelectorAll('.change-chip').forEach(b=>b.remove());
-      const leg = legs[i];
-      if(leg && (legHasPlatformChange(leg) || hasRelevantRemark(j, leg))){
-        chip.insertAdjacentHTML('afterend', '<button class="chip change-chip pressy" title="Hinweis zu dieser Fahrt"><i class="fa-solid fa-circle-exclamation"></i></button>');
-      }
-    });
-  });
-}
-// Clicking the change chip should open the same PopUp as the line chip
-document.addEventListener('click', (ev)=>{
-  const btn = ev.target.closest?.('.change-chip');
-  if(!btn) return;
-  const chip = btn.previousElementSibling?.closest('.line-chip') || btn.parentElement?.querySelector('.line-chip');
-  if(chip) chip.click();
-}, true);
-// Run after initial render and on updates
-decorateChangeChips();
-const _obs = new MutationObserver(()=>decorateChangeChips());
-const _root = document.getElementById('cards');
-if(_root) _obs.observe(_root, {childList:true, subtree:true});
-
-})();
+(function init(){ handleHash(); })();
 window.addEventListener('resize', ()=>{
   if(activeTab==='route-a'||activeTab==='route-b') loadRoute(activeTab==='route-a');
   updateTabIndicator();
@@ -859,56 +826,6 @@ window.addEventListener('scroll', ()=>{
   }else{
     ensurePinnedToggle(); decorateRenderer();
   }
-
-/* === Change indicator next to line chips (gleiswechsel / relevante Hinweise) === */
-function legHasPlatformChange(leg){
-  if(!leg) return false;
-  // direct fields
-  if(leg.plannedPlatform && leg.prognosedPlatform && leg.plannedPlatform !== leg.prognosedPlatform) return true;
-  // look into stopovers
-  const stops = leg.stopovers || [];
-  for(const s of stops){
-    const a = s.plannedPlatform || s.scheduledPlatform || s.departurePlatform || s.arrivalPlatform;
-    const b = s.prognosedPlatform || s.platform;
-    if(a && b && a !== b) return true;
-  }
-  return false;
-}
-function hasRelevantRemark(j, leg){
-  const arr = [...(j?.remarks||[]), ...(leg?.remarks||[])].filter(Boolean);
-  return arr.some(r => /\b(gleis|platform|abweich|änder|störung|umleitung|ersatzverkehr|fällt\s+aus|ausfall)\b/i.test((r.text||r.summary||'').toLowerCase()));
-}
-function decorateChangeChips(){
-  const root = document.getElementById('cards');
-  if(!root) return;
-  root.querySelectorAll('.card').forEach(card=>{
-    const j = card.__journey;
-    if(!j) return;
-    const legs = (j.legs||[]).filter(l=>l && l.line);
-    const chips = card.querySelectorAll('.line-chip');
-    chips.forEach((chip, i)=>{
-      // remove previously added buttons
-      chip.parentElement?.querySelectorAll('.change-chip').forEach(b=>b.remove());
-      const leg = legs[i];
-      if(leg && (legHasPlatformChange(leg) || hasRelevantRemark(j, leg))){
-        chip.insertAdjacentHTML('afterend', '<button class="chip change-chip pressy" title="Hinweis zu dieser Fahrt"><i class="fa-solid fa-circle-exclamation"></i></button>');
-      }
-    });
-  });
-}
-// Clicking the change chip should open the same PopUp as the line chip
-document.addEventListener('click', (ev)=>{
-  const btn = ev.target.closest?.('.change-chip');
-  if(!btn) return;
-  const chip = btn.previousElementSibling?.closest('.line-chip') || btn.parentElement?.querySelector('.line-chip');
-  if(chip) chip.click();
-}, true);
-// Run after initial render and on updates
-decorateChangeChips();
-const _obs = new MutationObserver(()=>decorateChangeChips());
-const _root = document.getElementById('cards');
-if(_root) _obs.observe(_root, {childList:true, subtree:true});
-
 })();
 </script>
 
@@ -1071,22 +988,19 @@ if(_root) _obs.observe(_root, {childList:true, subtree:true});
     for(const L of (j.legs||[])){ if(L && L.line){ k++; if(k===idx){ leg=L; break; } } }
     if(!leg) return;
 
-    // Accent band from chip color (match route chip color exactly)
+    // Accent band from chip background color
     try{
       const cs = getComputedStyle(chip);
-      const varCol = cs.getPropertyValue('--line-color')?.trim();
-      // Fall back to computed colors if custom property not present
-      const bgCol = cs.getPropertyValue('background-color') || '';
-      const txtCol = cs.getPropertyValue('color') || '';
-      const baseCol = varCol || txtCol || bgCol || '';
-      if(baseCol){
-        // Provide a solid base color and let CSS create a subtle gradient from it
-        (document.querySelector('.trip-panel')||modal)?.style.setProperty('--accent-chip', baseCol);
-      }
+      const col = cs.getPropertyValue('background-color') || cs.getPropertyValue('color');
+      if(col) document.querySelector('.trip-panel').style.setProperty('--accent-band', col.trim());
     }catch(_){}
 
-    openModal(); // Open quickly, then render
-
+    // Open quickly, then render
+    content.innerHTML = '<div class="skeleton"><div class="bar"></div><div class="bar"></div><div class="bar w50"></div></div>';
+    destEl.textContent = leg?.direction || 'Fahrtdetails';
+    pillEl.textContent = ((leg?.line?.product||leg?.mode||'').toUpperCase() + ' ' + (leg?.line?.name||leg?.mode||'')).trim();
+    metaRow.textContent = 'Lade Fahrtdaten …';
+    openModal();
     const fullTrip = await tryFetchFullTrip(leg);
     renderTrip(j, leg, fullTrip);
   }, true);
@@ -1094,66 +1008,10 @@ if(_root) _obs.observe(_root, {childList:true, subtree:true});
   // focusable chips
   const cardsRoot = document.getElementById('cards');
   if(cardsRoot){
-    const mark = ()=>{
-      cardsRoot.querySelectorAll('.line-chip').forEach(el=>{
-        el.setAttribute('role','button');
-        if(!el.hasAttribute('tabindex')) el.setAttribute('tabindex','0');
-        el.classList.add('clickable');
-      });
-    };
+    const mark = ()=>{ cardsRoot.querySelectorAll('.line-chip').forEach(el=>{ el.tabIndex=0; el.setAttribute('role','button'); el.classList.add('clickable'); }); };
     mark();
     new MutationObserver(mark).observe(cardsRoot, {childList:true, subtree:true});
   }
-
-/* === Change indicator next to line chips (gleiswechsel / relevante Hinweise) === */
-function legHasPlatformChange(leg){
-  if(!leg) return false;
-  // direct fields
-  if(leg.plannedPlatform && leg.prognosedPlatform && leg.plannedPlatform !== leg.prognosedPlatform) return true;
-  // look into stopovers
-  const stops = leg.stopovers || [];
-  for(const s of stops){
-    const a = s.plannedPlatform || s.scheduledPlatform || s.departurePlatform || s.arrivalPlatform;
-    const b = s.prognosedPlatform || s.platform;
-    if(a && b && a !== b) return true;
-  }
-  return false;
-}
-function hasRelevantRemark(j, leg){
-  const arr = [...(j?.remarks||[]), ...(leg?.remarks||[])].filter(Boolean);
-  return arr.some(r => /\b(gleis|platform|abweich|änder|störung|umleitung|ersatzverkehr|fällt\s+aus|ausfall)\b/i.test((r.text||r.summary||'').toLowerCase()));
-}
-function decorateChangeChips(){
-  const root = document.getElementById('cards');
-  if(!root) return;
-  root.querySelectorAll('.card').forEach(card=>{
-    const j = card.__journey;
-    if(!j) return;
-    const legs = (j.legs||[]).filter(l=>l && l.line);
-    const chips = card.querySelectorAll('.line-chip');
-    chips.forEach((chip, i)=>{
-      // remove previously added buttons
-      chip.parentElement?.querySelectorAll('.change-chip').forEach(b=>b.remove());
-      const leg = legs[i];
-      if(leg && (legHasPlatformChange(leg) || hasRelevantRemark(j, leg))){
-        chip.insertAdjacentHTML('afterend', '<button class="chip change-chip pressy" title="Hinweis zu dieser Fahrt"><i class="fa-solid fa-circle-exclamation"></i></button>');
-      }
-    });
-  });
-}
-// Clicking the change chip should open the same PopUp as the line chip
-document.addEventListener('click', (ev)=>{
-  const btn = ev.target.closest?.('.change-chip');
-  if(!btn) return;
-  const chip = btn.previousElementSibling?.closest('.line-chip') || btn.parentElement?.querySelector('.line-chip');
-  if(chip) chip.click();
-}, true);
-// Run after initial render and on updates
-decorateChangeChips();
-const _obs = new MutationObserver(()=>decorateChangeChips());
-const _root = document.getElementById('cards');
-if(_root) _obs.observe(_root, {childList:true, subtree:true});
-
 })();
 </script>
 

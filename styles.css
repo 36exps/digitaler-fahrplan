@@ -497,7 +497,7 @@ html, body{
 .modal[hidden]{display:none!important}
 .modal{position:fixed;inset:0;z-index:1300;display:grid;place-items:center}
 .modal-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.28);backdrop-filter:blur(2px)}
-.modal-panel{position:relative; width:min(1040px,96vw); max-height:92vh; overflow:auto; -webkit-overflow-scrolling:touch; background:var(--panel); border:1px solid var(--rule); border-radius:var(--radius); box-shadow:var(--shadow);}
+.modal-panel{position:relative;width:min(920px,92vw);max-height:86vh;overflow:auto;background:var(--panel);color:var(--text);border:1px solid var(--rule);border-radius:var(--radius);box-shadow:var(--shadow)}
 .modal-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;background:var(--bar);border-bottom:1px solid var(--rule)}
 .modal-body{padding:14px 16px}
 .modal-close{border:1px solid var(--rule);background:var(--panel);color:var(--text);border-radius:999px;width:34px;height:34px;display:grid;place-items:center}
@@ -558,7 +558,7 @@ html, body{
 .trip-stops.scroll{max-height:56vh; overflow:auto; padding:10px 12px}
 
 .trip-stops .hdr{color:var(--muted); font-weight:700; padding:0 0 6px}
-.trip-stops .row{display:grid; grid-template-columns:24px minmax(110px, 170px) 1fr minmax(90px, 120px); gap:8px 12px; align-items:start; padding:6px 0; position:relative}
+.trip-stops .row{display:grid; grid-template-columns:20px 140px 1fr 120px; gap:8px 12px; align-items:start; padding:6px 0; position:relative}
 .trip-stops .rail{position:relative}
 .trip-stops .rail::before{
   content:""; position:absolute; left:9px; top:-16px; bottom:-16px; width:2px; background:var(--rule);
@@ -572,8 +572,16 @@ html, body{
 .trip-stops .plat{text-align:right}
 
 @media (max-width:560px){
-  .trip-stops .row{display:grid; grid-template-columns:24px minmax(110px, 170px) 1fr minmax(90px, 120px); position:relative}
-\1 var(--accent-band, linear-gradient(90deg, var(--accent-chip, var(--accent, #7aa6ff)), color-mix(in oklab, var(--accent-chip, var(--accent, #7aa6ff)) 82%, #fff 18%)));
+  .trip-stops .row{grid-template-columns:20px 100px 1fr}
+  .trip-stops .plat{display:none}
+}
+
+
+/* === Premium v2 Styling === */
+.trip-panel{overflow:hidden; position:relative}
+.trip-panel::before{
+  content:""; position:absolute; left:0; right:0; top:0; height:4px; z-index:2;
+  background:var(--accent-band, linear-gradient(90deg, #7aa6ff, #9cc2ff));
 }
 .trip-head{
   display:grid; grid-template-columns:auto 1fr auto; align-items:center;
@@ -614,9 +622,9 @@ html, body{
 /* Table/Stopovers (fixed clipping) */
 .trip-stops{border:1px solid var(--rule); background:var(--panel-2); border-radius:var(--radius);}
 .trip-stops .table{max-height:56vh; overflow:auto; padding:8px 12px 12px}
-.trip-stops .thead{position:sticky; top:0; display:grid; grid-template-columns:24px minmax(110px, 170px) 1fr minmax(90px, 120px); gap:8px 12px; background:var(--panel-2); padding:8px 0; border-bottom:1px solid var(--rule); z-index:1}
+.trip-stops .thead{position:sticky; top:0; display:grid; grid-template-columns:24px 140px 1fr 100px; gap:8px 12px; background:var(--panel-2); padding:8px 0; border-bottom:1px solid var(--rule); z-index:1}
 .trip-stops .tbody{display:block}
-.trip-stops .row{display:grid; grid-template-columns:24px minmax(110px, 170px) 1fr minmax(90px, 120px); gap:8px 12px; align-items:start; padding:8px 0; position:relative}
+.trip-stops .row{display:grid; grid-template-columns:24px 140px 1fr 100px; gap:8px 12px; align-items:start; padding:8px 0; position:relative}
 .trip-stops .rail{position:relative}
 .trip-stops .rail::before{content:""; position:absolute; left:11px; top:0; bottom:0; width:2px; background:var(--rule);}
 .trip-stops .dot{display:block; width:10px; height:10px; border-radius:999px; background:var(--muted); position:relative; top:3px; left:6px}
@@ -628,8 +636,17 @@ html, body{
 
 @media (max-width:560px){
   .trip-stops .thead,
-  .trip-stops .row{display:grid; grid-template-columns:24px minmax(110px, 170px) 1fr minmax(90px, 120px); position:relative}
-\1 var(--accent-band, linear-gradient(90deg, var(--accent-chip, var(--accent, #7aa6ff)), color-mix(in oklab, var(--accent-chip, var(--accent, #7aa6ff)) 82%, #fff 18%)));
+  .trip-stops .row{grid-template-columns:24px 100px 1fr}
+  .trip-stops .thead .plat-h, .trip-stops .plat{display:none}
+}
+
+
+/* === Premium v3 Styling === */
+/* Accent band from chip color */
+.trip-panel{overflow:hidden; position:relative}
+.trip-panel::before{
+  content:""; position:absolute; left:0; right:0; top:0; height:4px; z-index:2;
+  background:var(--accent-band, var(--accent, #7aa6ff));
 }
 .trip-head{
   display:grid; grid-template-columns:auto 1fr auto; align-items:center;
@@ -656,9 +673,9 @@ html, body{
 /* Stop list */
 .trip-stops{border:1px solid var(--rule); background:var(--panel-2); border-radius:var(--radius);}
 .trip-stops .table{max-height:56vh; overflow:auto; padding:8px 12px 12px}
-.trip-stops .thead{position:sticky; top:0; display:grid; grid-template-columns:24px minmax(110px, 170px) 1fr minmax(90px, 120px); gap:8px 12px; background:var(--panel-2); padding:8px 0; border-bottom:1px solid var(--rule); z-index:1}
+.trip-stops .thead{position:sticky; top:0; display:grid; grid-template-columns:24px 150px 1fr 100px; gap:8px 12px; background:var(--panel-2); padding:8px 0; border-bottom:1px solid var(--rule); z-index:1}
 .trip-stops .tbody{display:block}
-.trip-stops .row{display:grid; grid-template-columns:24px minmax(110px, 170px) 1fr minmax(90px, 120px); gap:8px 12px; align-items:start; padding:10px 0; position:relative}
+.trip-stops .row{display:grid; grid-template-columns:24px 150px 1fr 100px; gap:8px 12px; align-items:start; padding:10px 0; position:relative}
 .trip-stops .rail{position:relative}
 .trip-stops .rail::before{content:""; position:absolute; left:11px; top:-10px; bottom:-10px; width:2px; background:var(--rule);}
 .trip-stops .dot{display:block; width:10px; height:10px; border-radius:999px; background:var(--muted); position:relative; top:2px; left:6px}
@@ -676,47 +693,3 @@ html, body{
   .trip-stops .row{grid-template-columns:24px 120px 1fr}
   .trip-stops .thead .plat-h, .trip-stops .plat{display:none}
 }
-
-.modal-panel{max-height:90vh; overflow:auto}
-
-.modal-panel{-webkit-overflow-scrolling:touch}
-
-
-
-/* === Trip modal colored band tied to chip color === */
-.trip-panel .trip-head{ position:sticky; top:0; z-index:3; }
-.trip-panel .trip-head::before{
-  content:''; position:absolute; left:0; right:0; top:0; height:6px;
-  background: var(--accent-chip, var(--accent));
-  border-top-left-radius: var(--radius); border-top-right-radius: var(--radius);
-  pointer-events:none;
-}
-
-/* === Trip stops: full-width grid & sticky header === */
-.trip-panel .trip-stops .table{ display:block; max-height:60vh; overflow:auto; -webkit-overflow-scrolling:touch; }
-.trip-panel .trip-stops .thead{ display:grid !important; grid-template-columns:24px minmax(110px, 170px) 1fr minmax(90px,120px); gap:8px 12px; align-items:center; position:sticky; top:0; padding:8px 0; background:var(--panel); border-bottom:1px solid var(--rule); z-index:2; }
-.trip-panel .trip-stops .row{ display:grid !important; grid-template-columns:24px minmax(110px, 170px) 1fr minmax(90px,120px); gap:8px 12px; align-items:start; padding:8px 0; position:relative; }
-.trip-panel .trip-stops .time{ white-space:nowrap; font-variant-numeric:tabular-nums; }
-.trip-panel .trip-stops .stop{ min-width:0; word-break:break-word; }
-.trip-panel .trip-stops .plat{ text-align:right; opacity:.9; }
-
-/* Timeline rail */
-.trip-panel .trip-stops .rail{ position:relative; }
-.trip-panel .trip-stops .rail::before{ content:''; position:absolute; left:11px; top:0; bottom:0; width:2px; background:var(--rule-strong, rgba(0,0,0,.14)); }
-.trip-panel .trip-stops .row.rail-top .rail::before{ top:14px; }
-.trip-panel .trip-stops .row.rail-bot .rail::before{ bottom:14px; }
-.trip-panel .trip-stops .dot{ width:10px; height:10px; border-radius:50%; background:var(--fg); position:absolute; left:6px; top:8px; box-shadow:0 0 0 2px var(--panel); }
-
-/* Mobile: hide platform column if tight, keep excellent usability */
-@media (max-width: 560px){
-  .trip-panel .trip-stops .thead,
-  .trip-panel .trip-stops .row{ grid-template-columns:24px minmax(88px,120px) 1fr; }
-  .trip-panel .trip-stops .plat-h,
-  .trip-panel .trip-stops .plat{ display:none; }
-  .trip-panel .trip-stops .table{ max-height:62vh; }
-}
-
-/* Chip-style button for changes */
-.change-chip{ background:var(--panel); border:1px solid var(--rule); border-radius:999px; padding:6px 10px; margin-left:6px; display:inline-flex; align-items:center; gap:6px; }
-.change-chip i{ font-size:.9rem; color: var(--warn, #d99136); }
-.change-chip:hover{ box-shadow:var(--shadow-sm); }
