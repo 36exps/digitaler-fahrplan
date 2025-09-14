@@ -503,7 +503,7 @@ html, body{
 .modal-close{border:1px solid var(--rule);background:var(--panel);color:var(--text);border-radius:999px;width:34px;height:34px;display:grid;place-items:center}
 .trip-meta{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 10px}
 .trip-section-title{font-weight:700;margin:6px 0 4px;opacity:.9}
-.trip-stops{border:1px solid var(--rule);background:var(--panel-2);border-radius:var(--radius);display:grid;grid-template-columns:140px 1fr 120px;gap:8px 12px;padding:10px 12px}
+.trip-stops{border:1px solid var(--rule);background:var(--panel-2);border-radius:var(--radius);display:grid;grid-template-columns: 24px 140px minmax(0,1fr) 120px;gap:8px 12px;padding:10px 12px}
 .trip-stops .hdr{color:var(--muted);font-weight:700}
 .trip-stops .row{display:contents}
 .trip-stops .time{font-variant-numeric:tabular-nums}
@@ -518,13 +518,7 @@ html, body{
 .ris-title{font-weight:600}
 .ris-desc{opacity:.9}
 .line-chip.clickable{cursor:pointer;outline:none}
-@media (max-width:560px){.trip-stops{grid-template-columns:100px 1fr}.trip-stops .plat{display:none}}
-
-
-/* === Premium Trip Modal === */
-.trip-panel{overflow:hidden}
-.trip-head{
-  display:grid; grid-template-columns:auto 1fr auto; align-items:center;
+@media (max-width:560px){.trip-stops{grid-template-columns: 24px 140px minmax(0,1fr) 120px; grid-template-columns:auto 1fr auto; align-items:center;
   gap:14px; padding:12px 16px; background:var(--bar);
   border-bottom:1px solid var(--rule); position:sticky; top:0; z-index:1;
 }
@@ -564,7 +558,7 @@ html, body{
   content:""; position:absolute; left:9px; top:-16px; bottom:-16px; width:2px; background:var(--rule);
 }
 
-/* === Trip timeline progress (DB Navigator–style) === */
+/* progress block replaced */
 .trip-stops{ --accent-rail: var(--accent, #4f8cff); }
 .trip-stops .row.past .rail::before{ background: var(--accent-rail); }
 .trip-stops .row.past .dot{ background: var(--accent-rail); }
@@ -709,3 +703,34 @@ html, body{
 
 /* Make table use full modal width */
 .trip-panel .trip-stops, .trip-panel .trip-ris{ width:100%; }
+
+
+/* --- Full-width, 4-col grid in Trip Modal --- */
+.trip-stops .thead{display:contents}
+.trip-stops .rail{grid-column:1; position:relative}
+.trip-stops .time{grid-column:2; font-variant-numeric:tabular-nums; font-weight:800; font-size:1.05rem; line-height:1.15}
+.trip-stops .stop{grid-column:3; min-width:0; font-weight:700}
+.trip-stops .plat{grid-column:4; text-align:right; font-weight:700}
+.trip-stops .tline{display:flex; align-items:baseline; gap:.5ch}
+.trip-stops .tline .lbl{opacity:.7; font-weight:700; letter-spacing:.02em}
+.trip-stops .tline .actual{font-weight:800}
+.trip-stops .tline .planned{opacity:.55; font-weight:700}
+.trip-stops .rail{display:flex; align-items:stretch; justify-content:center}
+.trip-stops .rail::before{content:""; position:relative; width:2px; background:var(--rule); flex:1 1 auto}
+.trip-stops .dot{position:absolute; width:10px; height:10px; border-radius:50%; border:2px solid var(--panel); background:var(--rule); top:calc(50% - 5px); left:calc(50% - 5px); z-index:2}
+
+/* progress coloring */
+.trip-stops{ --accent-rail: var(--accent, #4f8cff); }
+.trip-stops .row.past .rail::before{ background: var(--accent-rail); }
+.trip-stops .row.past .dot{ background: var(--accent-rail); }
+.trip-stops .row.now .rail{ position:relative }
+.trip-stops .row.now .rail::after{
+  content:""; position:absolute; left:calc(50% - 1px); top:-16px; width:2px;
+  height: var(--progress-px, 0px); background: var(--accent-rail);
+}
+/* Responsive: hide platform on narrow, keep 3 cols */
+@media (max-width: 560px){
+  .trip-stops{ grid-template-columns: 24px 110px minmax(0,1fr); }
+  .trip-stops .plat, .trip-stops .plat-h{ display:none }
+  .trip-stops .time{ font-size:1rem }
+}
