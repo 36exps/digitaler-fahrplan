@@ -910,5 +910,70 @@ function buildTimeline(legs){
 })();
 </script>
 
+
+<script id="trip-safety-patch">
+(function(){
+  try{
+    window.fmtHM = window.fmtHM || function(iso){
+      try{ const d=new Date(iso); return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'); }catch(e){ return '—'; }
+    };
+    window.isoDurToHuman = window.isoDurToHuman || function(dur, dep, arr){
+      try{
+        if(dur && /^P/.test(dur)){
+          const m = /PT(?:(\d+)H)?(?:(\d+)M)?/.exec(dur)||[];
+          const h = m[1]?parseInt(m[1]):0, min=m[2]?parseInt(m[2]):0;
+          return (h? h+' h ' : '') + min + ' min';
+        }
+        if(dep && arr){
+          const ms = new Date(arr) - new Date(dep);
+          const min = Math.round(ms/60000);
+          const h = Math.floor(min/60), r=min%60;
+          return (h? h+' h ' : '') + r + ' min';
+        }
+      }catch(e){}
+      return '—';
+    };
+    window.lineColor = window.lineColor || function(name){
+      const root = getComputedStyle(document.documentElement);
+      return root.getPropertyValue('--accent') || '#3f72af';
+    };
+    window.iconForProduct = window.iconForProduct || function(product, mode){
+      const kind=(product||mode||'').toLowerCase();
+      const icon = /bus/.test(kind)?'bus':'train';
+      return '<i class="fa-solid fa-'+icon+'"></i>';
+    };
+
+    const hook = function(){
+      try{
+        document.querySelectorAll('.line-chip').forEach(ch=>{
+          if(ch.dataset.tripHooked==='1') return;
+          ch.dataset.tripHooked='1';
+          ch.classList.add('clickable');
+          ch.addEventListener('click', ()=>{
+            const el = ch.closest('[data-journey-json]');
+            let j=null;
+            try{ if(el) j=JSON.parse(el.getAttribute('data-journey-json')); }catch(e){}
+            if(!j){
+              const s = ch.closest('.card')?.querySelector('script[type="application/json"]');
+              if(s){ try{ j=JSON.parse(s.textContent); }catch(e){} }
+            }
+            if(window.__openTripModal && j) window.__openTripModal(j, { color: getComputedStyle(ch).getPropertyValue('--line-color')});
+          });
+        });
+      }catch(e){ console.error('chip hook failed', e); }
+    };
+
+    const obs = new MutationObserver((muts)=>{
+      let wanted=false;
+      for(const m of muts){ if(m.addedNodes && m.addedNodes.length) { wanted=true; break; } }
+      if(wanted) hook();
+    });
+    const cards=document.getElementById('cards');
+    if(cards) obs.observe(cards, {childList:true, subtree:true});
+    hook();
+  }catch(e){ console.error('trip safety patch failed', e); }
+})();
+</script>
+
 </body>
 </html>
