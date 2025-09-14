@@ -332,3 +332,29 @@ body.drawer-open{ overflow:hidden }
 .s-w20{ width:20% } .s-w30{ width:30% } .s-w40{ width:40% } .s-w50{ width:50% } .s-w60{ width:60% } .s-w70{ width:70% } .s-w80{ width:80% }
 
 @media (max-width:900px){ .hide-sm{ display:none } }
+
+
+/* === Mobile readability layout (≤ 520px) ===
+   - Fix timeline so times move below stop names per row
+   - Prevent per-letter wrapping of stop names
+   - Tweak typography and spacing for small screens
+   - Keep desktop/tablet layout unchanged
+*/
+@media (max-width: 520px){
+  .card{ padding:14px }
+  .card .row{ gap:10px }
+  .time{ font-size: clamp(18px, 6vw, 22px); line-height: 1.2 }
+  .chip{ font-size:13px; padding:5px 8px }
+  .leave-badge{ padding:5px 9px }
+
+  /* Timeline becomes two columns: icon + content. The time/meta moves below the stop name for EVERY row */
+  .timeline{ grid-template-columns:22px 1fr; }
+  .timeline > div:nth-child(3n){ grid-column:2 / -1; text-align:left; } /* each third cell (the meta/time) breaks to next line */
+  .timeline .tl-stop{ overflow-wrap:normal; word-break:normal; hyphens:auto; } /* prevent per-letter breaks */
+  .timeline .tl-meta{ font-size:13px; }
+}
+
+@media (max-width: 360px){
+  .chip{ font-size:12px; padding:4px 6px }
+  .time{ font-size:18px }
+}
