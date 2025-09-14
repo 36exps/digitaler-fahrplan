@@ -439,40 +439,47 @@ html, body{
 .card.is-late-10 .timeline{ border-color: color-mix(in oklab, var(--rule, #0000) 60%, var(--tone-danger) 40%); }
 
 
-/* === Pin control for route cards === */
-.card{ position:relative; }
+/* === HARD DISABLE of hover/mouseover/press animations on cards === */
+.card, .card *, .card:hover, .card:hover *, .card:active, .card:active *, .card:focus, .card:focus *,
+.card::before, .card::after, .card *::before, .card *::after {
+  transition: none !important;
+  animation: none !important;
+  transform: none !important;
+  filter: none !important;
+  will-change: auto !important;
+}
+/* neutralize typical "pressy" behaviours inside cards */
+.card .pressy, .card .pressy:hover, .card .pressy:active, .card .pressy:focus {
+  transform: none !important;
+  transition: none !important;
+}
+/* overlays shouldn't block clicks */
+.card .overlay, .card .scrim, .card .hover-overlay, .card .card-hit {
+  pointer-events: none !important;
+}
+
+/* Pin button always visible & clickable */
+.card{ position: relative; }
 .pin-btn{
-  position:absolute; top:10px; right:10px;
+  position:absolute; top:10px; right:10px; z-index: 999 !important;
   display:inline-flex; align-items:center; justify-content:center;
   width:34px; height:34px; cursor:pointer;
   border-radius:999px; border:1px solid var(--pill-border);
   background:var(--pill-bg); color:var(--muted);
   box-shadow:var(--shadow-press);
-  opacity:0; transform: translateY(-2px) scale(.96);
+  opacity: 1 !important; transform: none !important;
+  pointer-events: auto !important;
 }
-.card:hover .pin-btn{ opacity:1; transform: translateY(0) scale(1) }
-@media (hover: none){ .pin-btn{ opacity:.9 } }
-
-
-/* === Disable hover/mouseover animations on cards (hard override) === */
-.card, .card *{
-  transition: none !important;
+.pin-btn[aria-pressed="true"]{
+  color: var(--accent);
+  border-color: color-mix(in oklab, var(--pill-border) 40%, var(--accent) 60%);
+  background: color-mix(in oklab, var(--pill-bg) 85%, var(--accent) 15%);
 }
-.card:hover, .card:focus, .card:focus-within{
-  transform: none !important;
-  filter: none !important;
+.pin-btn i{ font-size:14px }
+.card.pinned{ outline: 2px dashed color-mix(in oklab, var(--accent) 60%, #fff 40%); outline-offset: 2px }
+#pinnedToggle[aria-pressed="true"]{
+  color: var(--accent);
+  border-color: color-mix(in oklab, var(--pill-border) 40%, var(--accent) 60%);
+  background: color-mix(in oklab, var(--pill-bg) 84%, var(--accent) 16%);
 }
-.card::before, .card::after{
-  animation: none !important;
-  transition: none !important;
-  transform: none !important;
-  pointer-events: none !important;
-}
-/* Make sure overlays inside cards don't eat clicks */
-.card .overlay, .card .scrim, .card .hover-overlay, .card .card-hit{
-  pointer-events: none !important;
-}
-
-/* Pin button always clickable & above everything */
-.pin-btn{ z-index: 999 !important; pointer-events: auto !important; }
 

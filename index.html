@@ -763,6 +763,14 @@ window.addEventListener('scroll', ()=>{
 
 <script id="pin-feature">
 (()=>{
+  // 0) Hard-disable any global press animations if present
+  try{
+    if(typeof window.addSpringyPress==='function'){
+      window._origAddSpringyPress = window.addSpringyPress;
+      window.addSpringyPress = function(){ /* disabled globally by request */ };
+    }
+  }catch(e){}
+
   const PIN_STORE_KEY='pinnedJourneysV1';
   const AUTO_UNPIN_AFTER_MS = 30*60*1000; // 30 min after arrival
   let onlyPinned = false;
@@ -790,8 +798,7 @@ window.addEventListener('scroll', ()=>{
       const legs=j?.legs||[];
       const a=j?.arrival||legs?.[legs.length-1]?.arrival||null;
       const p=j?.plannedArrival||legs?.[legs.length-1]?.plannedArrival||null;
-      const use=a||p;
-      return use ? new Date(use).getTime() : null;
+      return (a||p) ? new Date(a||p).getTime() : null;
     }catch{ return null; }
   }
   function cleanupPinned(pinned){
@@ -810,7 +817,7 @@ window.addEventListener('scroll', ()=>{
       try{
         const resp=await fetchJSON(`${API}/journeys/refresh?refreshToken=${encodeURIComponent(info.token)}&stopovers=true&language=de`);
         j = resp?.journey || resp?.journeys?.[0] || null;
-      }catch(e){ /* ignore */ }
+      }catch{}
     }
     if(!j) j = info?.lastData||null;
     if(j) info.lastData=j;
@@ -854,6 +861,7 @@ window.addEventListener('scroll', ()=>{
     const data=loadPinned(); delete data[k]; savePinned(data);
   }
 
+  // 1) Inject toggle button (Nur angepinnte)
   function ensurePinnedToggle(){
     const wrap = q('.more-wrap');
     if(!wrap || q('#pinnedToggle', wrap)) return;
@@ -861,89 +869,106 @@ window.addEventListener('scroll', ()=>{
     btn.id='pinnedToggle'; btn.className='btn pressy';
     btn.setAttribute('aria-pressed','false');
     btn.innerHTML='<i class="fa-solid fa-thumbtack"></i> Nur angepinnte';
-    btn.addEventListener('click', async ()=>{
+    btn.addEventListener('click', async (e)=>{
+      e.preventDefault(); e.stopPropagation(); if(e.stopImmediatePropagation) e.stopImmediatePropagation();
       onlyPinned=!onlyPinned;
       btn.setAttribute('aria-pressed', String(onlyPinned));
       try{
         const aToB = (window.activeTab==='route-a');
+        const mb=document.getElementById('moreBtn');
+        if(onlyPinned){ if(mb) mb.disabled=true; }
+        else { if(mb) mb.disabled=false; }
         if(onlyPinned){
           const pins = await listRefreshedPinned(aToB);
           if(typeof renderJourneysInto_orig==='function'){
             renderJourneysInto_orig('cards', {journeys: pins}, aToB);
             const mi=document.getElementById('moreInfo'); if(mi) mi.textContent='Nur angepinnte Verbindungen';
-            const mb=document.getElementById('moreBtn'); if(mb) mb.disabled=true;
           }
         }else{
-          const mb=document.getElementById('moreBtn'); if(mb) mb.disabled=false;
           if(typeof loadRoute==='function') loadRoute(aToB);
         }
       }catch(e){ console.warn(e); }
-    });
+    }, true);
     const moreBtn=q('#moreBtn', wrap);
     wrap.insertBefore(btn, moreBtn||wrap.firstChild);
   }
 
+  // 2) Decorate renderer OR use fallback observer
   function decorateRenderer(){
-    if(typeof window.renderJourneysInto!=='function' || window.renderJourneysInto_orig) return;
-    window.renderJourneysInto_orig = window.renderJourneysInto;
-    window.renderJourneysInto = function(containerId, list, aToB){
-      if(!onlyPinned){
-        window.renderJourneysInto_orig(containerId, list, aToB);
-      }else{
-        const wrap=document.getElementById(containerId);
-        if(wrap) wrap.innerHTML='<div class="card">Lade angepinnte …</div>';
-      }
+    if(typeof window.renderJourneysInto==='function' && !window.renderJourneysInto_orig){
+      window.renderJourneysInto_orig = window.renderJourneysInto;
+      window.renderJourneysInto = function(containerId, list, aToB){
+        if(!onlyPinned){
+          window.renderJourneysInto_orig(containerId, list, aToB);
+        }else{
+          const wrap=document.getElementById(containerId);
+          if(wrap) wrap.innerHTML='<div class="card">Lade angepinnte …</div>';
+        }
+        (async()=>{
+          const pins = await listRefreshedPinned(aToB);
+          const finalList = onlyPinned ? pins : mergePins(pins, list?.journeys||[]);
+          window.renderJourneysInto_orig(containerId, {journeys: finalList}, aToB);
+          wirePins(containerId, finalList, aToB);
+        })().catch(console.warn);
+      };
+    }else{
+      // Fallback: observe #cards and try to inject buttons; won't support refreshing without journey objects
+      const target=q('#cards');
+      if(!target) return;
+      const mo=new MutationObserver(()=>{
+        wirePins('cards', null, (window.activeTab==='route-a'));
+      });
+      mo.observe(target, {childList:true, subtree:true});
+    }
+  }
 
-      (async()=>{
-        const pins = await listRefreshedPinned(aToB);
-        const finalList = onlyPinned ? pins : mergePins(pins, list?.journeys||[]);
-        window.renderJourneysInto_orig(containerId, {journeys: finalList}, aToB);
-
-        const cards=Array.from(document.querySelectorAll('#'+containerId+' .card'));
-        const journeys = finalList;
-        cards.forEach((card, idx)=>{
-          const j = journeys[idx]; if(!j) return;
-          const key = deriveKey(j);
-          card.dataset.key = key;
-          card.dataset.dir = aToB?'A2B':'B2A';
-          card.__journey = j;
-          if(!card.querySelector('.pin-btn')){
-            const btn=document.createElement('button');
-            btn.className='pin-btn pressy';
-            const pinnedNow=isPinnedKey(key);
-            btn.setAttribute('aria-pressed', pinnedNow?'true':'false');
-            btn.setAttribute('title', pinnedNow?'Angepinnt – entfernen':'Verbindung anheften');
-            btn.setAttribute('aria-label', pinnedNow?'Angepinnt – entfernen':'Verbindung anheften');
-            btn.innerHTML='<i class="fa-solid fa-thumbtack" aria-hidden="true"></i>';
-            btn.addEventListener('click', (e)=>{
-              e.preventDefault();
-              e.stopPropagation();
-              if(e.stopImmediatePropagation) e.stopImmediatePropagation();
-              const pressed = btn.getAttribute('aria-pressed')==='true';
-              if(pressed){
-                unpinKey(key);
-                btn.setAttribute('aria-pressed','false');
-                card.classList.remove('pinned');
-                if(onlyPinned){ card.remove(); }
-              }else{
-                pinJourney(j, aToB);
-                btn.setAttribute('aria-pressed','true');
-                card.classList.add('pinned');
-              }
-            }, true); // capture to beat bubbling handlers
-            card.prepend(btn);
+  function wirePins(containerId, journeys, aToB){
+    const cards=qa('#'+containerId+' .card');
+    cards.forEach((card, idx)=>{
+      const j = journeys ? journeys[idx] : (card.__journey || null);
+      if(j){ card.__journey = j; }
+      const key = j ? deriveKey(j) : (card.dataset.key || null);
+      if(key) card.dataset.key = key;
+      card.dataset.dir = aToB ? 'A2B' : 'B2A';
+      if(!card.querySelector('.pin-btn')){
+        const btn=document.createElement('button');
+        btn.className='pin-btn pressy';
+        const pinnedNow= key ? isPinnedKey(key) : false;
+        btn.setAttribute('aria-pressed', pinnedNow?'true':'false');
+        btn.setAttribute('title', pinnedNow?'Angepinnt – entfernen':'Verbindung anheften');
+        btn.setAttribute('aria-label', pinnedNow?'Angepinnt – entfernen':'Verbindung anheften');
+        btn.innerHTML='<i class="fa-solid fa-thumbtack" aria-hidden="true"></i>';
+        btn.addEventListener('click', (e)=>{
+          e.preventDefault(); e.stopPropagation(); if(e.stopImmediatePropagation) e.stopImmediatePropagation();
+          const pressed = btn.getAttribute('aria-pressed')==='true';
+          const k = key || card.dataset.key;
+          if(pressed){
+            if(k) unpinKey(k);
+            btn.setAttribute('aria-pressed','false');
+            card.classList.remove('pinned');
+            if(onlyPinned){ card.remove(); }
+          }else{
+            const jj = j || card.__journey;
+            if(jj) pinJourney(jj, aToB);
+            btn.setAttribute('aria-pressed','true');
+            card.classList.add('pinned');
           }
-          if(isPinnedKey(key)) card.classList.add('pinned'); else card.classList.remove('pinned');
-        });
-      })().catch(console.warn);
-    };
+        }, true); // capture
+        card.prepend(btn);
+      }
+      const k2=card.dataset.key;
+      if(k2 && isPinnedKey(k2)) card.classList.add('pinned'); else card.classList.remove('pinned');
+    });
+  }
+
+  function init(){
+    ensurePinnedToggle();
+    decorateRenderer();
   }
 
   if(document.readyState==='loading'){
-    document.addEventListener('DOMContentLoaded', ()=>{ ensurePinnedToggle(); decorateRenderer(); });
-  }else{
-    ensurePinnedToggle(); decorateRenderer();
-  }
+    document.addEventListener('DOMContentLoaded', init, {once:true});
+  }else{ init(); }
 })();
 </script>
 
