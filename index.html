@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="color-scheme" content="light dark">
 <title>Pendler Dashboard</title>
 
 <!-- iOS/PWA -->
@@ -125,24 +126,86 @@ function applyTheme(m){
   document.documentElement.setAttribute('data-theme',m);
   if(m==='dark'){sunIcon.style.display='none';moonIcon.style.display='inline-block'}
   else {moonIcon.style.display='none';sunIcon.style.display='inline-block'}
+  // soft cross-fade
+  document.body.classList.add('theme-fade');
+  setTimeout(()=>document.body.classList.remove('theme-fade'), 300);
 }
 applyTheme(mediaDark?.matches?'dark':'light');
 mediaDark?.addEventListener?.('change',e=>applyTheme(e.matches?'dark':'light'));
 themeBtn.addEventListener('click',()=>applyTheme((document.documentElement.getAttribute('data-theme')==='light')?'dark':'light'));
 
-/* ========= Drawer ========= */
+/* ========= Drawer (mit Animation) ========= */
 const drawer=document.getElementById('drawer');
 const menuBtn=document.getElementById('menuBtn');
 const drawerBackdrop=document.getElementById('drawerBackdrop');
 const drawerClose=document.getElementById('drawerClose');
-function openDrawer(){ drawer.hidden=false; menuBtn.setAttribute('aria-expanded','true'); document.body.classList.add('drawer-open');
-    const h=document.querySelector('.tabs')?.offsetHeight||0; drawer.querySelector('.drawer-panel').style.paddingTop=(h+16)+'px'; }
-function closeDrawer(){ drawer.hidden=true; menuBtn.setAttribute('aria-expanded','false'); document.body.classList.remove('drawer-open'); }
+function openDrawer(){ 
+  drawer.hidden=false; 
+  requestAnimationFrame(()=>{
+    drawer.classList.add('open');
+  });
+  menuBtn.setAttribute('aria-expanded','true'); 
+  document.body.classList.add('drawer-open');
+  const h=document.querySelector('.tabs')?.offsetHeight||0; 
+  const panel=drawer.querySelector('.drawer-panel');
+  if(panel) panel.style.paddingTop=(h+16)+'px'; 
+}
+function closeDrawer(){ 
+  drawer.classList.remove('open'); 
+  menuBtn.setAttribute('aria-expanded','false'); 
+  document.body.classList.remove('drawer-open'); 
+  // wait for transition end then hide
+  setTimeout(()=>{ drawer.hidden=true; }, 280);
+}
 menuBtn.addEventListener('click', ()=> (drawer.hidden?openDrawer():closeDrawer()));
 drawerBackdrop.addEventListener('click', closeDrawer);
 drawerClose.addEventListener('click', closeDrawer);
 drawer.addEventListener('keydown', e=>{ if(e.key==='Escape') closeDrawer(); });
 drawer.querySelectorAll('[data-drawer-link]').forEach(a=>a.addEventListener('click', ()=>{ closeDrawer(); setTimeout(()=>handleHash(), 0); }));
+
+/* ========= Motion helpers ========= */
+const prefersReduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+function animateStagger(selector){
+  if(prefersReduced) return;
+  const items = document.querySelectorAll(selector);
+  let i=0;
+  for(const el of items){
+    el.animate(
+      [
+        { opacity:0, transform:'translateY(6px) scale(0.996)' },
+        { opacity:1, transform:'translateY(0) scale(1)' }
+      ],
+      { duration:320, easing:'cubic-bezier(.2,.8,.2,1)', delay: i*30, fill:'both' }
+    );
+    i++;
+  }
+}
+function showRouteSkeleton(count){
+  const wrap=document.getElementById('cards');
+  const n=Math.max(1, count|0);
+  const blocks = Array.from({length:n}).map(()=>`
+    <div class="card skeleton">
+      <div class="s-row s-w40"></div>
+      <div class="s-chip"></div>
+      <div class="s-chip"></div>
+      <div class="s-row s-w70"></div>
+      <div class="s-timeline"></div>
+    </div>`).join('');
+  wrap.innerHTML = blocks;
+}
+function showTableSkeleton(containerId, rows){
+  const box=document.getElementById(containerId);
+  const n=Math.max(3, rows|0);
+  box.innerHTML = Array.from({length:n}).map(()=>`
+    <div class="row-item skeleton">
+      <div class="s-row s-w40"></div>
+      <div class="s-row s-w30"></div>
+      <div class="s-row s-w60"></div>
+      <div class="s-row s-w50"></div>
+      <div class="s-row s-w20 hide-sm"></div>
+      <div class="s-row s-w20 hide-sm"></div>
+    </div>`).join('');
+}
 
 /* ========= Helpers ========= */
 const fmtHM = d => new Date(d).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
@@ -255,7 +318,8 @@ function buildTimeline(legs){
 
 /* ========= Journeys Renderer ========= */
 function renderJourneysInto(containerId, list, aToB){
-  const wrap=document.getElementById(containerId); wrap.innerHTML='';
+  const wrap=document.getElementById(containerId); 
+  wrap.innerHTML='';
   const journeys=list?.journeys||[];
   if(!journeys.length){
     wrap.innerHTML=`<div class="card">Keine Verbindungen gefunden.</div>`;
@@ -266,7 +330,7 @@ function renderJourneysInto(containerId, list, aToB){
     const changes=Math.max(0, legs.filter(l=>l.line).length - 1); const dur=isoDurToHuman(j.duration,dep,arr);
     let delay=0; const l0=legs.find(l=>!!l.departure); if(l0&&l0.plannedDeparture&&l0.departure) delay=Math.round((new Date(l0.departure)-new Date(l0.plannedDeparture))/60000);
     const chipDelay=(delay!==0)?`<span class="chip" style="color:${delay>0?'var(--bad)':'var(--ok)'}"><i class="fa-solid fa-clock-rotate-left"></i> ${delay>0?`+${delay}`:delay}′</span>`:'';
-    const chips=legs.filter(l=>l.line).map(l=>`<span class="chip line-chip" style="color:${lineColor(l.line?.name||l.mode||'')}">${iconForProduct(l.line?.product,l.mode)} ${l.line?.name||l.mode||''}</span>`).join('');
+    const chips=legs.filter(l=>l.line).map(l=>`<span class="chip line-chip" style="--line-color:${lineColor(l.line?.name||l.mode||'')}">${iconForProduct(l.line?.product,l.mode)} ${l.line?.name||l.mode||''}</span>`).join('');
 
     // Losgeh-Zeit: aToB (Schule -> FFM) 5′, sonst 13′
     const offsetMin = aToB ? 5 : 13;
@@ -297,6 +361,7 @@ function renderJourneysInto(containerId, list, aToB){
     `;
     wrap.appendChild(el);
   }
+  animateStagger('#'+containerId+' .card');
 }
 
 /* ========= Departures Renderer ========= */
@@ -320,18 +385,19 @@ function renderDeparturesInto(containerId, deps, mode){
         <div>${tRt?fmtHM(tRt):(tPl?fmtHM(tPl):'–')}</div>
         <div class="col-plan">${tPl?fmtHM(tPl):'–'}</div>
         <div>${origin}</div>
-        <div><span class="chip" style="color:${color}">${iconForProduct(d.line?.product,d.line?.mode)} ${line}</span></div>
+        <div><span class="chip" style="--line-color:${color}" class="line-chip">${iconForProduct(d.line?.product,d.line?.mode)} ${line}</span></div>
         <div class="col-steig">–</div>
         <div class="delta ${cls}">${deltaTxt}</div>`
       : `
         <div>${tRt?fmtHM(tRt):(tPl?fmtHM(tPl):'–')}</div>
         <div class="col-plan">${tPl?fmtHM(tPl):'–'}</div>
-        <div><span class="chip" style="color:${color}">${iconForProduct(d.line?.product,d.line?.mode)} ${line}</span></div>
+        <div><span class="chip line-chip" style="--line-color:${color}">${iconForProduct(d.line?.product,d.line?.mode)} ${line}</span></div>
         <div>${dir}</div>
         <div class="col-steig">${pl}</div>
         <div class="delta ${cls}">${deltaTxt}</div>`;
     box.appendChild(row);
   }
+  animateStagger('#'+containerId+' .row-item');
 }
 
 /* ========= Loaders ========= */
@@ -367,8 +433,11 @@ function filterByTimeWindow(journeys, minutes){
 async function loadRoute(aToB=true){
   try{
     await ensureIds();
-    const from=aToB?ids.school:ids.ffm, to=aToB?ids.ffm:ids.school;
+    // Skeleton während Fetch
     const cols=gridCols();
+    showRouteSkeleton(desiredCardsForCols(cols));
+
+    const from=aToB?ids.school:ids.ffm, to=aToB?ids.ffm:ids.school;
     const desired=desiredCardsForCols(cols);
     const results = 80; // großzügig
     const data=await fetchJSON(`${API}/journeys?from=${from}&to=${to}&results=${results}&stopovers=true&language=de`);
@@ -400,6 +469,7 @@ async function loadRoute(aToB=true){
 async function loadInbound(){
   try{
     await ensureIds();
+    showTableSkeleton('rows', 6);
     const deps=normalizeDepartures(await fetchJSON(`${API}/stops/${ids.school}/departures?duration=120&language=de`));
     const filtered=deps.filter(d=>!EXCLUDE_DIRECTIONS.some(rx=>rx.test(String(d.direction||d.destination||''))));
     renderDeparturesInto('rows', filtered, 'in');
@@ -410,6 +480,7 @@ async function loadInbound(){
 async function loadHomebound(){
   try{
     await ensureIds();
+    showTableSkeleton('rows-home', 6);
     const [depsBhf,depsFriedr]=await Promise.all([
       fetchJSON(`${API}/stops/${ids.giessenBhf}/departures?duration=120&language=de`),
       fetchJSON(`${API}/stops/${ids.friedr}/departures?duration=120&language=de`)
@@ -498,11 +569,15 @@ moreBtn.addEventListener('click', async ()=>{
   }
 });
 
-/* ========= Init & Resize ========= */
+/* ========= Init, Resize & Scroll Shadow ========= */
 (function init(){ handleHash(); })();
 window.addEventListener('resize', ()=>{
   // Reflow: Kartenanzahl passt sich beim Resize an
   if(activeTab==='route-a'||activeTab==='route-b') loadRoute(activeTab==='route-a');
+});
+window.addEventListener('scroll', ()=>{
+  const scrolled = (window.scrollY||document.documentElement.scrollTop) > 2;
+  document.body.classList.toggle('scrolled', scrolled);
 });
 </script>
 </body>
