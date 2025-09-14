@@ -392,7 +392,18 @@ if (typeof delay==='number'){
       <div class="timeline">${buildTimeline(legs)}</div>
       <div class="sub">${subText}</div>
     `;
-    wrap.appendChild(el);
+    
+  // Make line chips clickable to open the trip modal
+  el.querySelectorAll('.line-chip').forEach(ch=>{
+    ch.classList.add('clickable');
+    ch.tabIndex = 0;
+    ch.addEventListener('click', ()=>{
+      try{ window.__openTripModal(j, { color: getComputedStyle(ch).getPropertyValue('--line-color') }); }catch(e){ console.error(e); }
+    });
+    ch.addEventListener('keydown', (e)=>{ if(e.key==='Enter' || e.key===' ') { e.preventDefault(); ch.click(); } });
+  });
+  wrap.appendChild(el);
+
   }
 
 }
@@ -626,6 +637,237 @@ window.addEventListener('scroll', ()=>{
   document.body.classList.toggle('scrolled', scrolled);
 });
 </script>
+<script id="trip-modal-js">
+(function(){
+  const $ = (sel, root=document)=>root.querySelector(sel);
+  const $$ = (sel, root=document)=>Array.from(root.querySelectorAll(sel));
+  const modal = $('#tripModal');
+  const bar = $('#tripColorBar');
+  const titleEl = $('#tripTitle');
+  const metaLeft = $('#tripMetaLeft');
+  const stopGrid = $('#stopGrid');
+  const opsBox = $('#tripOps');
+  const opsList = $('#opsList');
+  const closeBtn = $('#tripClose');
+
+  function plannedIfDiff(actual, planned){
+    if(!actual || !planned) return '';
+    const a=new Date(actual), p=new Date(planned);
+    const diff=Math.round((a-p)/60000);
+    return diff!==0 ? ` <span class="planned">(${fmtHM(planned)})</span>` : '';
+  }
+  function timeClass(actual, planned){
+    if(!actual||!planned) return '';
+    const m=Math.round((new Date(actual)-new Date(planned))/60000);
+    return m>0?'late':(m<0?'early':'');
+  }
+  function rowTimeCell(arr, parr, dep, pdep){
+    // If arrival and departure are in the same minute, show it once
+    function sameMinute(a,b){
+      if(!a||!b) return false;
+      const A=new Date(a), B=new Date(b);
+      return A.getHours()===B.getHours() && A.getMinutes()===B.getMinutes();
+    }
+    if(arr && dep && sameMinute(arr,dep)){
+      const cls=timeClass(arr,parr);
+      return `<div class="t-time ${cls}"><span class="actual">${fmtHM(arr)}</span>${plannedIfDiff(arr,parr)}</div>`;
+    }
+    let bits=[];
+    if(arr){
+      const cls=timeClass(arr,parr);
+      bits.push(`<div class="t-time ${cls}">An <span class="actual">${fmtHM(arr)}</span>${plannedIfDiff(arr,parr)}</div>`);
+    }
+    if(dep){
+      const cls=timeClass(dep,pdep);
+      bits.push(`<div class="t-time ${cls}">Ab <span class="actual">${fmtHM(dep)}</span>${plannedIfDiff(dep,pdep)}</div>`);
+    }
+    if(bits.length===0) bits.push(`<div class="t-time">—</div>`);
+    return bits.join('');
+  }
+
+  function uniqueStopsFromLegs(legs){
+    // prefer stopovers if present for granular station/platforms
+    const rows=[];
+    for(const leg of legs){
+      const sv = Array.isArray(leg.stopovers) ? leg.stopovers : [];
+      if(sv.length){
+        for(const so of sv){
+          rows.push({
+            key:`${so.stop?.name||''}|${so.arrival||''}|${so.departure||''}`,
+            name: so.stop?.name || '—',
+            arr: so.arrival || null,
+            parr: so.plannedArrival || null,
+            dep: so.departure || null,
+            pdep: so.plannedDeparture || null,
+            platform: so.prognosedPlatform || so.platform || so.plannedPlatform || '—'
+          });
+        }
+      }else{
+        // fallback to leg endpoints
+        rows.push({
+          key:`${leg.origin?.name||''}|${leg.departure||''}`,
+          name: leg.origin?.name || '—',
+          arr: null, parr: null,
+          dep: leg.departure || null, pdep: leg.plannedDeparture || null,
+          platform: leg.prognosedPlatform || leg.departurePlatform || leg.plannedDeparturePlatform || '—'
+        });
+        rows.push({
+          key:`${leg.destination?.name||''}|${leg.arrival||''}`,
+          name: leg.destination?.name || '—',
+          arr: leg.arrival || null, parr: leg.plannedArrival || null,
+          dep: null, pdep: null,
+          platform: leg.prognosedPlatform || leg.arrivalPlatform || leg.plannedArrivalPlatform || '—'
+        });
+      }
+    }
+    // merge consecutive duplicates by name and minute
+    const merged=[];
+    for(const r of rows){
+      const last=merged[merged.length-1];
+      if(last && last.name===r.name){
+        last.arr = last.arr || r.arr;
+        last.parr = last.parr || r.parr;
+        last.dep = last.dep || r.dep;
+        last.pdep = last.pdep || r.pdep;
+        last.platform = last.platform !== '—' ? last.platform : r.platform;
+      }else{
+        merged.push({...r});
+      }
+    }
+    // remove exact duplicates
+    const out=[]; const seen=new Set();
+    for(const r of merged){
+      if(seen.has(r.key)) continue;
+      seen.add(r.key); out.push(r);
+    }
+    return out;
+  }
+
+  function setProgress(trackCol){
+    // Compute a live progress bar height based on now between first dep and last arr
+    try{
+      const dots = $$('.t-track .dot', stopGrid);
+      if(!dots.length) return;
+      const first=dots[0].getBoundingClientRect();
+      const last=dots[dots.length-1].getBoundingClientRect();
+      const top=first.top + first.height/2 + window.scrollY;
+      const bottom=last.top + last.height/2 + window.scrollY;
+      const total = Math.max(4, bottom - top);
+      const depISO = stopGrid.dataset.dep;
+      const arrISO = stopGrid.dataset.arr;
+      if(!depISO || !arrISO) return;
+      const now = Date.now();
+      const t0 = new Date(depISO).getTime();
+      const t1 = new Date(arrISO).getTime();
+      const ratio = Math.min(1, Math.max(0, (now - t0) / Math.max(1, t1 - t0)));
+      const h = Math.round(total * ratio);
+      const prog = $('.t-track .progress', stopGrid); // first progress element
+      if(prog){
+        prog.style.height = h + 'px';
+      }
+    }catch(e){ /* ignore */ }
+  }
+
+  function buildStops(legs){
+    const rows = uniqueStopsFromLegs(legs);
+    // clear previous
+    stopGrid.querySelectorAll('.row').forEach(n=>n.remove());
+    // data attributes for progress
+    const dep = legs?.[0]?.departure || legs?.[0]?.plannedDeparture || '';
+    const arr = legs?.[legs.length-1]?.arrival || legs?.[legs.length-1]?.plannedArrival || '';
+    stopGrid.dataset.dep = dep;
+    stopGrid.dataset.arr = arr;
+
+    let html = '';
+    rows.forEach((r,i)=>{
+      html += `<div class="row cell">
+        <div class="t-time-wrap">${rowTimeCell(r.arr,r.parr,r.dep,r.pdep)}</div>
+        <div class="t-track">${i===0?'<div class="progress"></div>':''}<span class="dot ${i===0?'start':(i===rows.length-1?'end':'mid')}"></span></div>
+        <div class="t-name">${r.name||'—'}</div>
+        <div class="t-plat">${r.platform||'—'}</div>
+      </div>`;
+    });
+    stopGrid.insertAdjacentHTML('beforeend', html);
+
+    // after render, compute progress
+    requestAnimationFrame(()=>setProgress());
+  }
+
+  function listOpsFromRemarks(j){
+    // Simple heuristic from legs[].remarks[].type or .code
+    const items = [];
+    try{
+      const remarks = [];
+      for(const l of (j.legs||[])){
+        if(Array.isArray(l.remarks)) remarks.push(...l.remarks);
+      }
+      const seen = new Set();
+      for(const r of remarks){
+        const str = (r.summary || r.text || r.code || '').trim();
+        if(!str || seen.has(str)) continue;
+        seen.add(str);
+        // pick icon
+        let ico = 'circle-info';
+        const s = str.toLowerCase();
+        if(/fahrrad|bicy/i.test(s)) ico = 'bicycle';
+        else if(/klima|air.?condition/i.test(s)) ico = 'snowflake';
+        else if(/rollstuhl|barrier|einstieg/i.test(s)) ico = 'wheelchair';
+        else if(/baust|störung|signal/i.test(s)) ico = 'triangle-exclamation';
+        items.push({icon:ico, text:str});
+        if(items.length>=6) break;
+      }
+    }catch(e){}
+    return items;
+  }
+
+  function openTripModal(j, options={}){
+    const legs = j?.legs||[];
+    const dep = j.departure || legs[0]?.departure;
+    const arr = j.arrival || legs[legs.length-1]?.arrival;
+    const dur = j.duration || null;
+    const changes = Math.max(0, legs.filter(l=>l.line).length - 1);
+    const line = legs.find(l=>l.line)?.line;
+    const lineName = line?.name || line?.id || legs.find(l=>l.mode)?.mode || '';
+    const color = options.color || (lineName ? lineColor(lineName) : getComputedStyle(document.documentElement).getPropertyValue('--accent'));
+
+    // header
+    bar.style.background = color;
+    metaLeft.innerHTML = `<span class="trip-chip line" style="--line-color:${color}">${iconForProduct(line?.product, line?.mode)} ${lineName||''}</span>`;
+    const dest = legs[legs.length-1]?.destination?.name || '—';
+    const dtext = `${fmtHM(dep)} → ${fmtHM(arr)} · ${isoDurToHuman(dur, dep, arr)} · ${changes} Umst.`;
+    titleEl.textContent = `${dest} — ${dtext}`;
+
+    // ops
+    const ops = listOpsFromRemarks(j);
+    if(ops.length){
+      opsList.innerHTML = ops.map(o=>`<li class="ops-item"><i class="fa-solid fa-${o.icon}"></i><span>${o.text}</span></li>`).join('');
+      opsBox.style.display='block';
+    }else{
+      opsBox.style.display='none';
+      opsList.innerHTML='';
+    }
+
+    // stops
+    buildStops(legs);
+
+    // show
+    modal.hidden = false;
+    document.body.style.overflow='hidden';
+  }
+
+  function close(){
+    modal.hidden = true;
+    document.body.style.overflow='';
+  }
+  closeBtn.addEventListener('click', close);
+  $('[data-close]', modal).addEventListener('click', close);
+  modal.addEventListener('keydown', (e)=>{ if(e.key==='Escape') close(); });
+
+  // Expose to app scope
+  window.__openTripModal = openTripModal;
+})();
+</script>
+
 
 <script id="pin-feature">
 (()=>{

@@ -698,3 +698,45 @@ html, body{
 
 /* ensure chips remain clickable above overlays */
 .line-chip{pointer-events:auto; position:relative; z-index:1}
+
+
+
+/* === Rebuilt Trip Modal (wide, readable, full-width) === */
+.modal[hidden]{display:none!important}
+.modal{position:fixed;inset:0;z-index:1300;display:grid;place-items:center}
+.modal-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.28);backdrop-filter:blur(2px)}
+.trip-panel{position:relative;width:min(1040px,96vw);max-height:88vh;overflow:auto;background:var(--panel);color:var(--text);border:1px solid var(--rule);border-radius:var(--radius);box-shadow:var(--shadow)}
+.trip-bar{height:6px;background:var(--accent)}
+.trip-head{display:flex;gap:12px;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--bar);border-bottom:1px solid var(--rule)}
+.trip-title{font-weight:800;font-size:18px}
+.trip-meta{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.trip-body{padding:14px 16px;display:flex;flex-direction:column;gap:12px}
+.trip-close{border:1px solid var(--rule);background:var(--panel);color:var(--text);border-radius:999px;width:34px;height:34px;display:grid;place-items:center;cursor:pointer}
+.trip-chip{display:inline-flex;gap:8px;align-items:center;padding:6px 10px;border-radius:var(--radius);font-weight:700;border:1px solid var(--pill-border);background:var(--pill-bg)}
+.trip-chip.line{--line-color:var(--accent);background:color-mix(in oklab, var(--pill-bg) 88%, var(--line-color) 12%);border-color:color-mix(in oklab, var(--pill-border) 50%, var(--line-color) 50%);color:color-mix(in oklab, var(--line-color) 70%, #fff 30%)}
+/* Betriebsinfos panel */
+.ops{border:1px solid var(--rule);background:var(--panel-2);border-radius:var(--radius);padding:10px 12px}
+.ops h4{margin:0 0 8px 0;font-size:14px;opacity:.9}
+.ops-list{display:flex;flex-direction:column;gap:8px;margin:0;padding:0;list-style:none}
+.ops-item{display:flex;gap:10px;align-items:flex-start;color:var(--text)}
+.ops-item i{color:var(--muted);margin-top:2px}
+/* Stop table with vertical timeline using the full width */
+.stopgrid{position:relative;border:1px solid var(--rule);background:var(--panel-2);border-radius:var(--radius);padding:10px 12px;display:grid;grid-template-columns:120px 24px 1fr 80px;gap:10px 12px;align-items:start}
+.stopgrid .hdr{color:var(--muted);font-weight:700}
+.stopgrid .cell{display:contents}
+.t-time{font-variant-numeric:tabular-nums}
+.t-plat{text-align:right}
+.t-track{position:relative;min-height:22px}
+.t-track::before{content:"";position:absolute;left:50%;transform:translateX(-50%);top:0;bottom:0;width:3px;background:color-mix(in oklab,var(--rule) 70%, var(--text) 30%);border-radius:999px;opacity:.6}
+.t-track .dot{position:absolute;left:50%;width:12px;height:12px;border-radius:999px;border:2px solid var(--panel);background:var(--panel);box-shadow:0 0 0 2px color-mix(in oklab,var(--muted) 60%, #0000);transform:translate(-50%,-50%);top:50%}
+.t-track .dot.start,.t-track .dot.end{background:var(--panel);}
+.t-track .progress{content:"";position:absolute;left:50%;transform:translateX(-50%);top:0;width:3px;height:0;background:var(--accent);border-radius:999px;opacity:.9}
+/* timing colors */
+.t-time .actual{font-weight:800}
+.t-time .planned{font-size:12px;opacity:.75;margin-left:6px}
+.t-time.late .actual{color:var(--bad)} .t-time.early .actual{color:var(--ok)}
+/* Mobile */
+@media (max-width:560px){
+  .trip-panel{width:min(100vw, 100%);border-radius:0}
+  .stopgrid{grid-template-columns:96px 20px 1fr 64px}
+}
