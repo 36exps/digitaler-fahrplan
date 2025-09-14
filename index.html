@@ -20,12 +20,6 @@
 <body>
 
   <!-- Pull-to-Refresh indicator (hidden until pulling) -->
-  <div id="ptr" class="ptr" aria-hidden="true">
-    <div class="ptr-inner">
-      <i id="ptrArrow" class="fa-solid fa-arrow-down-long"></i>
-      <i id="ptrSpin" class="fa-solid fa-spinner fa-spin" style="display:none"></i>
-      <span id="ptrLabel">Ziehen zum Aktualisieren</span>
-    </div>
   </div>
 
   <!-- Topbar -->
@@ -241,80 +235,7 @@ new ResizeObserver(updateTabIndicator).observe(document.body);
 window.addEventListener('resize', updateTabIndicator);
 window.addEventListener('load', updateTabIndicator);
 
-/* ========= Pull-to-Refresh (touch) ========= */
-let ptrActive=false, ptrStartY=0, ptrPull=0, ptrThreshold=76, ptrDragging=false;
-const ptrEl=document.getElementById('ptr'), ptrArrow=document.getElementById('ptrArrow'), ptrSpin=document.getElementById('ptrSpin'), ptrLabel=document.getElementById('ptrLabel');
-
-function setPtrTransform(y){
-  ptrEl.style.transform = 'translateY('+Math.max(0, y)+'px)';
-  const rot = Math.min(1, y/ptrThreshold)*180;
-  ptrArrow.style.transform = 'rotate('+rot+'deg)';
-  ptrLabel.textContent = (y>=ptrThreshold?'Loslassen zum Aktualisieren':'Ziehen zum Aktualisieren');
-}
-
-function attachPullToRefresh(){
-  let lastTouchY=0;
-  window.addEventListener('touchstart', (e)=>{
-    if(window.scrollY>0 || document.body.classList.contains('drawer-open')) return;
-    ptrDragging=true;
-    ptrStartY=e.touches[0].clientY;
-    lastTouchY=ptrStartY;
-    ptrPull=0;
-    setPtrTransform(0);
-    ptrEl.classList.add('show');
-  }, {passive:true});
-
-  window.addEventListener('touchmove', (e)=>{
-    if(!ptrDragging) return;
-    const y=e.touches[0].clientY;
-    const dy=y - ptrStartY;
-    if(dy>0){
-      e.preventDefault();
-      ptrPull = dy * 0.6; // dampen
-      setPtrTransform(ptrPull);
-    }else{
-      // upward cancel
-      ptrDragging=false;
-      ptrEl.classList.remove('show');
-      setPtrTransform(0);
-    }
-  }, {passive:false});
-
-  function finishRefresh(){
-    ptrArrow.style.display='inline-block';
-    ptrSpin.style.display='none';
-    ptrEl.classList.remove('refreshing');
-    ptrEl.classList.remove('show');
-    setPtrTransform(0);
-    ptrActive=false; ptrDragging=false; ptrPull=0;
-  }
-
-  window.addEventListener('touchend', async ()=>{
-    if(!ptrDragging) return;
-    ptrDragging=false;
-    if(ptrPull>=ptrThreshold){
-      // trigger refresh for active view
-      ptrActive=true;
-      ptrEl.classList.add('refreshing');
-      ptrArrow.style.display='none';
-      ptrSpin.style.display='inline-block';
-      ptrLabel.textContent='Aktualisiere …';
-      try{
-        if(activeTab==='abfahrten') await loadInbound();
-        else if(activeTab==='homebound') await loadHomebound();
-        else await loadRoute(activeTab==='route-a');
-      }catch(e){ console.error(e); }
-      // nice settle
-      setTimeout(finishRefresh, 300);
-    }else{
-      // snap back
-      ptrEl.classList.remove('show');
-      setPtrTransform(0);
-    }
-  }, {passive:true});
-}
-attachPullToRefresh();
-
+/* PTR removed per request: touch-based pull-to-refresh disabled */
 /* ========= Helpers ========= */
 const fmtHM = d => new Date(d).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
 const fmtHMS= d => new Date(d).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
@@ -704,59 +625,6 @@ window.addEventListener('scroll', ()=>{
   const scrolled = (window.scrollY||document.documentElement.scrollTop) > 2;
   document.body.classList.toggle('scrolled', scrolled);
 });
-</script>
-
-<!-- Mobile pull-to-refresh guard: triggers only when scrolled to top -->
-<script>
-(function(){
-  const scroller = document.scrollingElement || document.documentElement;
-  let startY = 0, pulling = false, pulled = 0;
-  const THRESHOLD = 70;
-
-  // Optional: attach an indicator element with [data-ptr] if you have one
-  const indicator = document.querySelector('[data-ptr]');
-
-  window.addEventListener('touchstart', function(e){
-    // Only arm if we're at the very top
-    pulling = (scroller.scrollTop <= 0);
-    startY = e.touches[0].clientY;
-    pulled = 0;
-  }, {passive: true});
-
-  window.addEventListener('touchmove', function(e){
-    if (!pulling) return;
-    const y = e.touches[0].clientY;
-    pulled = Math.max(0, y - startY);
-    // Only prevent default when actually pulling down from top;
-    // otherwise let normal scroll happen so it doesn't "block" upward scrolling.
-    if (pulled > 0) {
-      e.preventDefault(); // requires {passive:false}
-      if (indicator){
-        indicator.style.transform = 'translateY(' + Math.min(pulled, 90) + 'px)';
-        indicator.style.opacity = Math.min(1, pulled/THRESHOLD);
-      }
-    }
-  }, {passive: false});
-
-  window.addEventListener('touchend', function(){
-    if (!pulling) return;
-    if (indicator){
-      indicator.style.transform = '';
-      indicator.style.opacity = '';
-    }
-    if (pulled >= THRESHOLD){
-      // Fire a custom event for your existing refresh logic to hook into.
-      // If nothing handles it, fall back to a light reload.
-      const handled = window.dispatchEvent(new CustomEvent('ptr-refresh'));
-      if (!handled) {
-        // Optional: replace with your own data-refresh function
-        location.reload();
-      }
-    }
-    pulling = false;
-    pulled = 0;
-  }, {passive: true});
-})();
 </script>
 
 <script id="pin-feature">
