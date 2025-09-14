@@ -812,5 +812,180 @@ window.addEventListener('scroll', ()=>{
 })();
 </script>
 
+
+<!-- Trip Detail Modal -->
+<div id="tripModal" class="modal" hidden>
+  <div class="modal-backdrop" data-close></div>
+  <div class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="tripTitle">
+    <div class="modal-head">
+      <h3 id="tripTitle">Fahrtdetails</h3>
+      <button class="modal-close pressy" aria-label="Schließen" data-close>
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+    <div id="tripContent" class="modal-body">Lade …</div>
+  </div>
+</div>
+
+<script>
+/* ===== Trip Detail + RIS (client-side) ===== */
+(function(){
+  const q = (sel, el=document) => el.querySelector(sel);
+  const qa = (sel, el=document) => Array.from(el.querySelectorAll(sel));
+
+  const modal = document.getElementById('tripModal');
+  const modalBody = document.getElementById('tripContent');
+  function openModal(html){ modalBody.innerHTML = html; modal.hidden = false; }
+  function closeModal(){ modal.hidden = true; }
+  modal.addEventListener('click', (e)=>{ if(e.target.matches('[data-close], .modal-backdrop')) closeModal(); });
+  window.addEventListener('keydown', (e)=>{ if(e.key==='Escape' && !modal.hidden) closeModal(); });
+
+  function fmtHM(d){
+    try{ return d ? new Date(d).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'}) : '—'; }catch(e){ return '—'; }
+  }
+  function deltaMin(actual, planned){
+    if(!actual || !planned) return 0;
+    return Math.round((new Date(actual) - new Date(planned))/60000);
+  }
+  function deltaClass(m){ return m>0?'late':(m<0?'early':'ontime'); }
+  function iconForType(t){
+    const T=(t||'').toLowerCase();
+    if(T.includes('disruption')) return 'fa-triangle-exclamation';
+    if(T.includes('warning')) return 'fa-circle-exclamation';
+    if(T.includes('status')) return 'fa-circle-exclamation';
+    if(T.includes('construction')) return 'fa-person-digging';
+    if(T.includes('information') || T.includes('hint')) return 'fa-circle-info';
+    return 'fa-circle-info';
+  }
+
+  function risBlock(remarks){
+    if(!remarks || !remarks.length) return '';
+    const items = remarks.map(r => {
+      const icon = iconForType(r?.type || r?.category || r?.priority);
+      const title = r?.summary || r?.title || r?.code || 'Hinweis';
+      const text = r?.text || '';
+      return \`<li class="ris-item">
+        <i class="fa-solid \${icon}" aria-hidden="true"></i>
+        <div class="ris-text">
+          <div class="ris-title">\${title}</div>
+          \${text? \`<div class="ris-desc">\${text}</div>\` : ''}
+        </div>
+      </li>\`;
+    }).join('');
+    return \`<div class="trip-ris">
+      <div class="trip-section-title"><i class="fa-solid fa-bolt"></i> Betriebsinfos</div>
+      <ul class="ris-list">\${items}</ul>
+    </div>\`;
+  }
+
+  function buildTripHTML(journey, leg){
+    const lineName = leg?.line?.name || leg?.mode || '';
+    const product = (leg?.line?.product || leg?.mode || '').toUpperCase();
+    const title = [product, lineName].filter(Boolean).join(' ');
+
+    const stopovers = (leg?.stopovers || []);
+    const rows = stopovers.map(s=>{
+      const aC = deltaClass(deltaMin(s.arrival, s.plannedArrival));
+      const dC = deltaClass(deltaMin(s.departure, s.plannedDeparture));
+      const time = (s.arrival && s.departure)
+        ? \`<span class="\${aC} time">\${fmtHM(s.arrival)}\${s.plannedArrival? \` <span class="planned">(\${fmtHM(s.plannedArrival)})</span>\`: ''}</span>
+           ▸
+           <span class="\${dC} time">\${fmtHM(s.departure)}\${s.plannedDeparture? \` <span class="planned">(\${fmtHM(s.plannedDeparture)})</span>\`: ''}</span>\`
+        : (s.arrival
+           ? \`<span class="\${aC} time">\${fmtHM(s.arrival)}\${s.plannedArrival? \` <span class="planned">(\${fmtHM(s.plannedArrival)})</span>\`: ''}</span>\`
+           : (s.departure
+              ? \`<span class="\${dC} time">\${fmtHM(s.departure)}\${s.plannedDeparture? \` <span class="planned">(\${fmtHM(s.plannedDeparture)})</span>\`: ''}</span>\`
+              : '—'
+             )
+          );
+      const platform = s.platform || s.prognosedPlatform || s.plannedPlatform || '—';
+      return \`
+        <div class="row">
+          <div class="time">\${time}</div>
+          <div class="stop">\${s.stop?.name || s.station?.name || '—'}</div>
+          <div class="plat">\${platform ? 'Gl. '+platform : '—'}</div>
+        </div>\`;
+    }).join('');
+
+    // RIS remarks from leg + journey (dedup by text+summary+code)
+    const allRemarks = [...(journey?.remarks||[]), ...(leg?.remarks||[])].filter(Boolean);
+    const seen = new Set();
+    const remarks = allRemarks.filter(r=>{
+      const key = [r.summary, r.text, r.code].filter(Boolean).join('|');
+      if(seen.has(key)) return false; seen.add(key); return true;
+    });
+
+    return \`
+      <div class="trip-meta">
+        <span class="chip line-chip clickable">\${title || 'Linie'}</span>
+        \${leg?.direction ? \`<span class="chip">\${leg.direction}</span>\` : ''}
+      </div>
+      \${remarks.length ? risBlock(remarks) : ''}
+      <div class="trip-stops">
+        <div class="hdr">Zeit</div><div class="hdr">Station</div><div class="hdr plat">Gleis</div>
+        \${rows || '<div style="grid-column:1/-1" class="hint">Keine Stopps verfügbar.</div>'}
+      </div>\`;
+  }
+
+  // Make line chips open modal (both Route cards and Abfahrten tables)
+  function attachChipHandlers(scope){
+    scope.addEventListener('click', (e)=>{
+      const chip = e.target.closest('.line-chip');
+      if(!chip) return;
+      const card = e.target.closest('.card');
+      let journey = null, leg = null;
+      if(card && card.__journey){
+        journey = card.__journey;
+        const legs = journey.legs || [];
+        // Map n-th visible chip to n-th leg with a .line
+        const chips = Array.from(card.querySelectorAll('.line-chip'));
+        const n = chips.indexOf(chip);
+        const indices = legs.reduce((acc,l,i)=>{ if(l && l.line) acc.push(i); return acc; }, []);
+        const legIndex = indices[n] ?? -1;
+        leg = legs[legIndex] || null;
+      }
+      // Abfahrten tables (no card) — try to read cached journey from window if present.
+      if(!journey){
+        journey = window.__lastJourneyForAbfahrten || null;
+        leg = journey?.legs?.find(l => (l?.line?.name||'') === chip.textContent.trim()) || null;
+      }
+      if(!leg) return;
+      const title = \`Fahrtdetails – \${(leg?.line?.product||leg?.mode||'').toUpperCase()} \${leg?.line?.name||leg?.mode||''}\`.trim();
+      document.getElementById('tripTitle').textContent = title;
+      openModal(buildTripHTML(journey, leg));
+    }, {passive:true});
+  }
+
+  // Hook into existing content areas
+  const routeView = document.getElementById('view-route');
+  if(routeView) attachChipHandlers(routeView);
+
+  // Also allow opening via keyboard
+  document.addEventListener('keydown', (e)=>{
+    if(e.key==='Enter'){
+      const chip = document.activeElement?.classList?.contains('line-chip') ? document.activeElement : null;
+      if(chip){
+        chip.click();
+      }
+    }
+  });
+
+  // After the original renderer runs, label chips with tabindex & cursor
+  const orig = window.renderJourneysInto_orig || window.renderJourneysInto;
+  if(orig && !window.__labeledLineChips){
+    window.__labeledLineChips = true;
+    const wrap = (containerId, list, aToB)=>{
+      (window.renderJourneysInto_orig || window.renderJourneysInto)(containerId, list, aToB);
+      const cards = document.querySelectorAll('#'+containerId+' .card');
+      cards.forEach(card=>{
+        const chips = card.querySelectorAll('.line-chip');
+        chips.forEach(ch=>{ ch.setAttribute('tabindex','0'); ch.classList.add('clickable'); });
+      });
+    };
+    window.renderJourneysInto = wrap;
+  }
+})();
+</script>
+
 </body>
 </html>
