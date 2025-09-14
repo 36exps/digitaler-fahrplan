@@ -68,12 +68,9 @@
     <div id="view-route" hidden>
       <div id="cards" class="cards"><div class="card">Lade Verbindungen …</div></div>
       <div class="more-wrap">
-  <button id="pinnedToggle" class="btn pressy" aria-pressed="false" title="Nur angepinnte anzeigen">
-    <i class="fa-solid fa-thumbtack"></i> Nur angepinnte
-  </button>
-  <button id="moreBtn" class="btn pressy">Weitere Verbindungen (+60 min)</button>
-  <span id="moreInfo" class="badge"></span>
-</div>
+        <button id="moreBtn" class="btn pressy">Weitere Verbindungen (+60 min)</button>
+        <span id="moreInfo" class="badge"></span>
+      </div>
       <div id="noJourneys" class="hint" style="display:none">Für das gewählte Zeitfenster sind keine Verbindungen verfügbar.</div>
     </div>
 
@@ -199,7 +196,7 @@ function animateStagger(selector){
 /* Springy press feedback */
 function addSpringyPress(root=document){
   if(prefersReduced) return;
-  root.querySelectorAll('.pressy, .card, .btn').forEach(el=>{
+  root.querySelectorAll('.pressy, .btn').forEach(el=>{
     el.addEventListener('pointerdown', e=>{
       if(e.button!==0) return;
       el.setPointerCapture?.(e.pointerId);
@@ -425,95 +422,7 @@ function buildTimeline(legs){
   }).join('');
 }
 
-
-/* ========= Pinning (persist, refresh, filter) ========= */
-const PIN_STORE_KEY='pinnedJourneysV1';
-const AUTO_UNPIN_AFTER_MS = 30*60*1000; // 30 min after arrival
-let pinned = loadPinned();
-let onlyPinned = false; // UI toggle
-
-function loadPinned(){
-  try{ return JSON.parse(localStorage.getItem(PIN_STORE_KEY)||'{}')||{} }catch(e){ return {} }
-}
-function savePinned(){ localStorage.setItem(PIN_STORE_KEY, JSON.stringify(pinned)); }
-function getDirTag(aToB){ return aToB?'A2B':'B2A'; }
-function deriveKey(j){
-  try{
-    const legs=j?.legs||[];
-    const dep=j?.departure||legs?.[0]?.departure||legs?.[0]?.plannedDeparture||'';
-    const arr=j?.arrival||legs?.[legs.length-1]?.arrival||legs?.[legs.length-1]?.plannedArrival||'';
-    const sig=(legs||[]).map(l=>[(l.line?.name||l.mode||''),(l.origin?.name||''),(l.destination?.name||'')].join('@')).join('|');
-    const token=j?.refreshToken||j?.refreshTokenStr||'';
-    return token || [dep,arr,sig].join('•');
-  }catch(e){ return Math.random().toString(36).slice(2); }
-}
-function isPinnedKey(k){ return !!pinned[k]; }
-function pinJourney(j, aToB){
-  const key=deriveKey(j);
-  pinned[key]={ dir:getDirTag(aToB), token:j?.refreshToken||j?.refreshTokenStr||null, pinnedAt:Date.now(), lastData:j };
-  savePinned();
-  return key;
-}
-function unpinKey(k){ delete pinned[k]; savePinned(); }
-function getArrivalTs(j){
-  try{
-    const legs=j?.legs||[];
-    const a=j?.arrival||legs?.[legs.length-1]?.arrival||null;
-    const p=j?.plannedArrival||legs?.[legs.length-1]?.plannedArrival||null;
-    const use=a||p;
-    return use ? new Date(use).getTime() : null;
-  }catch{ return null; }
-}
-function cleanupPinned(){
-  const now=Date.now();
-  let changed=false;
-  for(const [k,info] of Object.entries(pinned)){
-    const ts=getArrivalTs(info?.lastData);
-    if(ts && now > ts + AUTO_UNPIN_AFTER_MS){ delete pinned[k]; changed=true; }
-  }
-  if(changed) savePinned();
-}
-async function refreshPinned(info){
-  let j=null;
-  if(info?.token){
-    try{
-      const resp = await fetchJSON(`${API}/journeys/refresh?refreshToken=${encodeURIComponent(info.token)}&stopovers=true&language=de`);
-      j = resp?.journey || resp?.journeys?.[0] || null;
-    }catch(e){ /* ignore */ }
-  }
-  if(!j) j = info?.lastData||null;
-  if(j){ info.lastData=j; }
-  return j;
-}
-async function listRefreshedPinned(aToB){
-  cleanupPinned();
-  const tag=getDirTag(aToB);
-  const tuples = Object.entries(pinned).filter(([k,info])=>info?.dir===tag);
-  const refreshed = await Promise.all(tuples.map(([k,info])=>refreshPinned(info)));
-  const res=[];
-  for(const j of refreshed){ if(j) res.push(j); }
-  res.sort((a,b)=>{
-    const da=new Date(a?.departure||a?.legs?.[0]?.departure||a?.legs?.[0]?.plannedDeparture||0).getTime();
-    const db=new Date(b?.departure||b?.legs?.[0]?.departure||b?.legs?.[0]?.plannedDeparture||0).getTime();
-    return da-db;
-  });
-  return res;
-}
-function mergePinnedJourneys(visible, aToB){
-  const keys = new Set((visible||[]).map(j=>deriveKey(j)));
-  const tag=getDirTag(aToB);
-  const out=[];
-  for(const [k,info] of Object.entries(pinned)){
-    if(info?.dir!==tag) continue;
-    const j=info?.lastData; if(!j) continue;
-    const kk=deriveKey(j);
-    if(!keys.has(kk)){ out.push(j); keys.add(kk); }
-  }
-  return [...out, ...visible];
-}
-
 /* ========= Journeys Renderer ========= */
-
 function renderJourneysInto(containerId, list, aToB){
   const wrap=document.getElementById(containerId); 
   wrap.innerHTML='';
@@ -535,13 +444,7 @@ function renderJourneysInto(containerId, list, aToB){
     const subText = aToB ? 'Sophie-Scholl-Schule → Frankfurt(Main) Hbf'
                          : 'Frankfurt(Main) Hbf → Sophie-Scholl-Schule';
 
-    const el=document.createElement('div'); 
-    const key = deriveKey(j);
-    const pinnedNow = isPinnedKey(key);
-    el.className='card' + (pinnedNow?' pinned':'');
-    el.dataset.key = key;
-    el.dataset.dir = aToB?'A2B':'B2A';
-    el.__journey = j;
+    const el=document.createElement('div'); el.className='card';
 let __d=(typeof delay==='number')?delay:0;
 if (typeof delay==='number'){
   if (__d<=-1){ el.classList.add('is-early'); }
@@ -550,10 +453,6 @@ if (typeof delay==='number'){
   else if (__d>=1){ el.classList.add('is-late-1'); }
 }
     el.innerHTML=`
-      <button class="pin-btn pressy" aria-label="${pinnedNow?'Angepinnt – entfernen':'Verbindung anheften'}" aria-pressed="${pinnedNow?'true':'false'}" title="${pinnedNow?'Angepinnt – entfernen':'Verbindung anheften'}">
-        <i class="fa-solid fa-thumbtack" aria-hidden="true"></i>
-      </button>
-
       <div class="leave-badge" title="Zeit zum Loslaufen">
         <i class="fa-solid fa-person-walking" aria-hidden="true"></i>
         <span class="leave-time">${fmtHM(leaveTime)}</span>
@@ -574,33 +473,7 @@ if (typeof delay==='number'){
     `;
     wrap.appendChild(el);
   }
-  animateStagger('#'+containerId+' .card');
-  addSpringyPress(wrap);
-}
 
-    el.innerHTML=`
-      <div class="leave-badge" title="Zeit zum Loslaufen">
-        <i class="fa-solid fa-person-walking" aria-hidden="true"></i>
-        <span class="leave-time">${fmtHM(leaveTime)}</span>
-      </div>
-
-      <div class="row">
-        <div class="time">${fmtHM(dep)}</div>
-        <div class="sep">→</div>
-        <div class="time">${fmtHM(arr)}</div>
-        <span class="chip"><i class="fa-regular fa-clock"></i> ${dur}</span>
-        <span class="chip"><i class="fa-solid fa-right-left"></i> ${changes}</span>
-        ${chipDelay}
-      </div>
-
-      <div class="row" style="gap:8px; margin-top:8px">${chips || '<span class="chip"><i class="fa-solid fa-person-walking"></i> Fußweg</span>'}</div>
-      <div class="timeline">${buildTimeline(legs)}</div>
-      <div class="sub">${subText}</div>
-    `;
-    wrap.appendChild(el);
-  }
-  animateStagger('#'+containerId+' .card');
-  addSpringyPress(wrap);
 }
 
 /* ========= Departures Renderer ========= */
@@ -688,7 +561,6 @@ function showTableSkeleton(containerId, rows){
     </div>`).join('');
 }
 
-
 async function loadRoute(aToB=true){
   try{
     await ensureIds();
@@ -716,21 +588,11 @@ async function loadRoute(aToB=true){
       document.getElementById('moreInfo').textContent = within.length ? `Zeitraum: jetzt bis +${routeWindowMin} min, Treffer: ${within.length}` : `Keine Verbindungen bis +${routeWindowMin} min.`;
     }
 
-    let finalList = [];
-    if(onlyPinned){
-      finalList = await listRefreshedPinned(aToB);
-      document.getElementById('noJourneys').style.display = finalList.length? 'none':'block';
-      document.getElementById('moreInfo').textContent = finalList.length ? `Nur angepinnte: ${finalList.length}` : `Keine angepinnten Verbindungen.`;
-    }else{
-      finalList = mergePinnedJourneys(visible, aToB);
-    }
-
-    renderJourneysInto('cards', {journeys: finalList}, aToB);
+    renderJourneysInto('cards', {journeys: visible}, aToB);
   }catch(e){
     document.getElementById('cards').innerHTML=`<div class="card">Fehler: ${e.message}</div>`;
   }
 }
-
 
 async function loadInbound(){
   try{
@@ -897,40 +759,189 @@ window.addEventListener('scroll', ()=>{
 })();
 </script>
 
+<script id="pin-feature">
+(()=>{
+  const PIN_STORE_KEY='pinnedJourneysV1';
+  const AUTO_UNPIN_AFTER_MS = 30*60*1000; // 30 min after arrival
+  let onlyPinned = false;
 
-<script>
-// Pin button (event delegation)
-document.addEventListener('click', function(e){
-  const btn = e.target.closest('.pin-btn');
-  if(!btn) return;
-  e.preventDefault();
-  e.stopPropagation();
-  if(e.stopImmediatePropagation) e.stopImmediatePropagation();
-  const card = btn.closest('.card');
-  const aToBCurrent = (activeTab==='route-a');
-  const key = card?.dataset?.key;
-  if(btn.getAttribute('aria-pressed')==='true'){
-    if(key) unpinKey(key);
-    btn.setAttribute('aria-pressed','false');
-    card.classList.remove('pinned');
-    if(onlyPinned){ card.remove(); }
-  }else{
-    const j = card.__journey;
-    if(j) pinJourney(j, aToBCurrent);
-    btn.setAttribute('aria-pressed','true');
-    card.classList.add('pinned');
+  const q = (sel, root=document)=>root.querySelector(sel);
+  const qa = (sel, root=document)=>Array.from(root.querySelectorAll(sel));
+
+  function loadPinned(){
+    try{ return JSON.parse(localStorage.getItem(PIN_STORE_KEY)||'{}')||{} }catch(e){ return {} }
   }
-}, true);
+  function savePinned(obj){ localStorage.setItem(PIN_STORE_KEY, JSON.stringify(obj)); }
+  function getDirTag(aToB){ return aToB?'A2B':'B2A'; }
+  function deriveKey(j){
+    try{
+      const legs=j?.legs||[];
+      const dep=j?.departure||legs?.[0]?.departure||legs?.[0]?.plannedDeparture||'';
+      const arr=j?.arrival||legs?.[legs.length-1]?.arrival||legs?.[legs.length-1]?.plannedArrival||'';
+      const sig=(legs||[]).map(l=>[(l.line?.name||l.mode||''),(l.origin?.name||''),(l.destination?.name||'')].join('@')).join('|');
+      const token=j?.refreshToken||j?.refreshTokenStr||'';
+      return token || [dep,arr,sig].join('•');
+    }catch(e){ return Math.random().toString(36).slice(2); }
+  }
+  function getArrivalTs(j){
+    try{
+      const legs=j?.legs||[];
+      const a=j?.arrival||legs?.[legs.length-1]?.arrival||null;
+      const p=j?.plannedArrival||legs?.[legs.length-1]?.plannedArrival||null;
+      const use=a||p;
+      return use ? new Date(use).getTime() : null;
+    }catch{ return null; }
+  }
+  function cleanupPinned(pinned){
+    const now=Date.now();
+    let changed=false;
+    for(const [k,info] of Object.entries(pinned)){
+      const ts=getArrivalTs(info?.lastData);
+      if(ts && now > ts + AUTO_UNPIN_AFTER_MS){ delete pinned[k]; changed=true; }
+    }
+    if(changed) savePinned(pinned);
+    return pinned;
+  }
+  async function refreshPinnedEntry(info){
+    let j=null;
+    if(info?.token && typeof fetchJSON==='function' && typeof API==='string'){
+      try{
+        const resp=await fetchJSON(`${API}/journeys/refresh?refreshToken=${encodeURIComponent(info.token)}&stopovers=true&language=de`);
+        j = resp?.journey || resp?.journeys?.[0] || null;
+      }catch(e){ /* ignore */ }
+    }
+    if(!j) j = info?.lastData||null;
+    if(j) info.lastData=j;
+    return j;
+  }
+  async function listRefreshedPinned(aToB){
+    let pinned=cleanupPinned(loadPinned());
+    const tag=getDirTag(aToB);
+    const tuples=Object.entries(pinned).filter(([k,info])=>info?.dir===tag);
+    const refreshed = await Promise.all(tuples.map(([k,info])=>refreshPinnedEntry(info)));
+    const res=[];
+    for(const j of refreshed){ if(j) res.push(j); }
+    res.sort((a,b)=>{
+      const da=new Date(a?.departure||a?.legs?.[0]?.departure||a?.legs?.[0]?.plannedDeparture||0).getTime();
+      const db=new Date(b?.departure||b?.legs?.[0]?.departure||b?.legs?.[0]?.plannedDeparture||0).getTime();
+      return da-db;
+    });
+    // persist potential updates
+    const newPinned=loadPinned();
+    tuples.forEach(([k,info])=>{ if(info?.lastData) newPinned[k]=info; });
+    savePinned(newPinned);
+    return res;
+  }
+  function mergePins(pins, visible){
+    const keys=new Set((visible||[]).map(deriveKey));
+    const out=[];
+    for(const j of pins){
+      const k=deriveKey(j);
+      if(!keys.has(k)){ out.push(j); keys.add(k); }
+    }
+    return [...out, ...(visible||[])];
+  }
+  function isPinnedKey(k){ return !!loadPinned()[k]; }
+  function pinJourney(j, aToB){
+    const key=deriveKey(j);
+    const data=loadPinned();
+    data[key]={ dir:getDirTag(aToB), token:j?.refreshToken||j?.refreshTokenStr||null, pinnedAt:Date.now(), lastData:j };
+    savePinned(data);
+    return key;
+  }
+  function unpinKey(k){
+    const data=loadPinned(); delete data[k]; savePinned(data);
+  }
 
-// Pinned-only toggle
-document.addEventListener('click', async function(e){
-  const t=e.target.closest('#pinnedToggle'); if(!t) return;
-  e.preventDefault(); e.stopPropagation(); if(e.stopImmediatePropagation) e.stopImmediatePropagation();
-  onlyPinned = !(t.getAttribute('aria-pressed')==='true');
-  t.setAttribute('aria-pressed', String(onlyPinned));
-  const mb=document.getElementById('moreBtn'); if(mb) mb.disabled=onlyPinned;
-  await loadRoute(activeTab==='route-a');
-}, true);
+  function ensurePinnedToggle(){
+    const wrap = q('.more-wrap');
+    if(!wrap || q('#pinnedToggle', wrap)) return;
+    const btn=document.createElement('button');
+    btn.id='pinnedToggle'; btn.className='btn pressy';
+    btn.setAttribute('aria-pressed','false');
+    btn.innerHTML='<i class="fa-solid fa-thumbtack"></i> Nur angepinnte';
+    btn.addEventListener('click', async ()=>{
+      onlyPinned=!onlyPinned;
+      btn.setAttribute('aria-pressed', String(onlyPinned));
+      try{
+        const aToB = (window.activeTab==='route-a');
+        if(onlyPinned){
+          const pins = await listRefreshedPinned(aToB);
+          if(typeof renderJourneysInto_orig==='function'){
+            renderJourneysInto_orig('cards', {journeys: pins}, aToB);
+            const mi=document.getElementById('moreInfo'); if(mi) mi.textContent='Nur angepinnte Verbindungen';
+            const mb=document.getElementById('moreBtn'); if(mb) mb.disabled=true;
+          }
+        }else{
+          const mb=document.getElementById('moreBtn'); if(mb) mb.disabled=false;
+          if(typeof loadRoute==='function') loadRoute(aToB);
+        }
+      }catch(e){ console.warn(e); }
+    });
+    const moreBtn=q('#moreBtn', wrap);
+    wrap.insertBefore(btn, moreBtn||wrap.firstChild);
+  }
+
+  function decorateRenderer(){
+    if(typeof window.renderJourneysInto!=='function' || window.renderJourneysInto_orig) return;
+    window.renderJourneysInto_orig = window.renderJourneysInto;
+    window.renderJourneysInto = function(containerId, list, aToB){
+      if(!onlyPinned){
+        window.renderJourneysInto_orig(containerId, list, aToB);
+      }else{
+        const wrap=document.getElementById(containerId);
+        if(wrap) wrap.innerHTML='<div class="card">Lade angepinnte …</div>';
+      }
+
+      (async()=>{
+        const pins = await listRefreshedPinned(aToB);
+        const finalList = onlyPinned ? pins : mergePins(pins, list?.journeys||[]);
+        window.renderJourneysInto_orig(containerId, {journeys: finalList}, aToB);
+
+        const cards=Array.from(document.querySelectorAll('#'+containerId+' .card'));
+        const journeys = finalList;
+        cards.forEach((card, idx)=>{
+          const j = journeys[idx]; if(!j) return;
+          const key = deriveKey(j);
+          card.dataset.key = key;
+          card.dataset.dir = aToB?'A2B':'B2A';
+          card.__journey = j;
+          if(!card.querySelector('.pin-btn')){
+            const btn=document.createElement('button');
+            btn.className='pin-btn pressy';
+            const pinnedNow=isPinnedKey(key);
+            btn.setAttribute('aria-pressed', pinnedNow?'true':'false');
+            btn.setAttribute('title', pinnedNow?'Angepinnt – entfernen':'Verbindung anheften');
+            btn.setAttribute('aria-label', pinnedNow?'Angepinnt – entfernen':'Verbindung anheften');
+            btn.innerHTML='<i class="fa-solid fa-thumbtack" aria-hidden="true"></i>';
+            btn.addEventListener('click', (e)=>{
+              e.preventDefault(); e.stopPropagation();
+              const pressed = btn.getAttribute('aria-pressed')==='true';
+              if(pressed){
+                unpinKey(key);
+                btn.setAttribute('aria-pressed','false');
+                card.classList.remove('pinned');
+                if(onlyPinned){ card.remove(); }
+              }else{
+                pinJourney(j, aToB);
+                btn.setAttribute('aria-pressed','true');
+                card.classList.add('pinned');
+              }
+            });
+            card.prepend(btn);
+          }
+          if(isPinnedKey(key)) card.classList.add('pinned'); else card.classList.remove('pinned');
+        });
+      })().catch(console.warn);
+    };
+  }
+
+  if(document.readyState==='loading'){
+    document.addEventListener('DOMContentLoaded', ()=>{ ensurePinnedToggle(); decorateRenderer(); });
+  }else{
+    ensurePinnedToggle(); decorateRenderer();
+  }
+})();
 </script>
 
 </body>
