@@ -890,16 +890,11 @@ window.addEventListener('scroll', ()=>{
   }
 
   function timeCell(s){
-  const a = s.arrival || s.prognosedArrival, ap = s.plannedArrival;
-  const d = s.departure || s.prognosedDeparture, dp = s.plannedDeparture;
-  const isSame = !!(a && d && a === d);
-  const fmt = (t)=>fmtHM(t);
-  const line = (lbl, t, p)=>`<div class="tline"><span class="lbl">${lbl}</span><span class="actual ${dcls(t,p)}">${fmt(t||p)}</span>${p?` <span class="planned">(${fmt(p)})</span>`:''}</div>`;
-  if(a && d && !isSame){ return line('AN', a, ap) + line('AB', d, dp); }
-  if(d){ return `<div class="tmain"><span class="actual ${dcls(d,dp)}">${fmt(d||dp)}</span>${dp?` <span class="planned">(${fmt(dp)})</span>`:''}</div>`; }
-  if(a){ return `<div class="tmain"><span class="actual ${dcls(a,ap)}">${fmt(a||ap)}</span>${ap?` <span class="planned">(${fmt(ap)})</span>`:''}</div>`; }
-  return `<div class="tmain">—</div>`;
-}">${fmtHM(a)}</span>${ap?` <span class="planned">(${fmtHM(ap)})</span>`:''}</div>`);
+    const a = s.arrival, ap = s.plannedArrival;
+    const d = s.departure, dp = s.plannedDeparture;
+    const parts = [];
+    if(a && d && a !== d){
+      parts.push(`<div class="tline"><span class="lbl">An</span> <span class="actual ${dcls(dmin(a,ap))}">${fmtHM(a)}</span>${ap?` <span class="planned">(${fmtHM(ap)})</span>`:''}</div>`);
       parts.push(`<div class="tline"><span class="lbl">Ab</span> <span class="actual ${dcls(dmin(d,dp))}">${fmtHM(d)}</span>${dp?` <span class="planned">(${fmtHM(dp)})</span>`:''}</div>`);
     } else if(a){
       parts.push(`<div class="tline"><span class="actual ${dcls(dmin(a,ap))}">${fmtHM(a)}</span>${ap?` <span class="planned">(${fmtHM(ap)})</span>`:''}</div>`);
@@ -962,49 +957,38 @@ window.addEventListener('scroll', ()=>{
     const ris = buildRIS(remarksRaw);
 
     content.innerHTML = `${ris}<div class="trip-stops"><div class="table scroll">${header}<div class="tbody">${rows}</div></div></div>`;
-  
-    // === Progress rail coloring & live update ===
-    const railRoot = content.querySelector('.trip-stops');
-    if(railRoot){
-      const rows = Array.from(railRoot.querySelectorAll('.row'));
-      const segStart = [], segEnd = [];
-      const getT = (a,b)=> a || b || null;
-      const dep0 = getT(stops?.[0]?.departure, stops?.[0]?.plannedDeparture);
-      if(rows.length>0){ segStart.push(dep0); segEnd.push(getT(stops?.[0]?.arrival, stops?.[0]?.plannedArrival)); }
-      for(let i=1;i<rows.length;i++){
-        const start = getT(stops?.[i-1]?.departure, stops?.[i-1]?.plannedDeparture) || getT(stops?.[i-1]?.arrival, stops?.[i-1]?.plannedArrival);
-        const end   = getT(stops?.[i]?.arrival,   stops?.[i]?.plannedArrival);
-        segStart.push(start); segEnd.push(end);
-      }
-      function applyProgress(){
-        const now = Date.now();
-        rows.forEach(r=>{ r.classList.remove('past','now','future'); r.style.removeProperty('--progress-px'); });
-        let j = segEnd.findIndex(t => t && (new Date(t).getTime() > now));
-        if(j === -1) j = rows.length-1;
-        for(let i=0;i<rows.length;i++){
-          if(i<j) rows[i].classList.add('past');
-          else if(i===j) rows[i].classList.add('now');
-          else rows[i].classList.add('future');
-        }
-        if(j>=0 && j<rows.length){
-          const s = segStart[j] ? new Date(segStart[j]).getTime() : null;
-          const e = segEnd[j]   ? new Date(segEnd[j]).getTime()   : null;
-          if(s && e && e>s){
-            const ratio = Math.max(0, Math.min(1, (Date.now() - s) / (e - s)));
-            const row = rows[j];
-            const extra = 32;
-            const h = (row.getBoundingClientRect().height + extra) * ratio;
-            row.style.setProperty('--progress-px', h.toFixed(1)+'px');
-          }
-        }
-      }
-      applyProgress();
-      clearInterval(window.__tripProgressTimer);
-      window.__tripProgressTimer = setInterval(applyProgress, 30000);
-    }
-}
+  }
 
-  // Delegation
+  
+  async function openTripForChip(chip){
+    if(!chip) return;
+    const card = chip.closest('.card'); if(!card || !card.__journey) return;
+    const j = card.__journey;
+    const chips = Array.from(card.querySelectorAll('.line-chip'));
+    const idx = chips.indexOf(chip);
+    let k=-1, leg=null;
+    for(const L of (j.legs||[])){ if(L && L.line){ k++; if(k===idx){ leg=L; break; } } }
+    if(!leg) return;
+    try{
+      const cs = getComputedStyle(chip);
+      const col = cs.getPropertyValue('background-color') || cs.getPropertyValue('color');
+      if(col){
+        const panel = document.querySelector('.trip-panel');
+        panel?.style.setProperty('--accent-band', col.trim());
+        panel?.style.setProperty('--accent', col.trim());
+        panel?.style.setProperty('--accent-rail', col.trim());
+      }
+    }catch(_){}
+    // Open quickly, then render
+    content.innerHTML = '<div class="skeleton"><div class="bar"></div><div class="bar"></div><div class="bar w50"></div></div>';
+    destEl.textContent = leg?.direction || 'Fahrtdetails';
+    pillEl.textContent = ((leg?.line?.product||leg?.mode||'').toUpperCase() + ' ' + (leg?.line?.name||leg?.mode||'')).trim();
+    metaRow.textContent = 'Lade Fahrtdaten …';
+    openModal();
+    const fullTrip = await tryFetchFullTrip(leg);
+    renderTrip(j, leg, fullTrip);
+  }
+// Delegation
   document.addEventListener('click', async (ev)=>{
     const chip = ev.target.closest?.('.line-chip');
     if(!chip) return;
