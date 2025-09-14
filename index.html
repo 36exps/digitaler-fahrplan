@@ -928,8 +928,8 @@ window.addEventListener('scroll', ()=>{
     const name = escape(s.stop?.name || s.station?.name || '—');
     const railTop = first ? ' rail-top' : '';
     const railBot = last ? ' rail-bot' : '';
-    return `<div class="row${railTop}${railBot}">
-      <div class="rail"><span class="dot"></span></div>
+    return `<div class="row2${railTop}${railBot}">
+      <div class="rail2"><span class="dot"></span></div>
       <div class="time">${timeCell(s)}</div>
       <div class="stop">${name}</div>
       <div class="plat">${platform?('Gl. '+platform):'—'}</div>
@@ -973,7 +973,7 @@ window.addEventListener('scroll', ()=>{
     const remarksRaw = [...(journey?.remarks||[]), ...(leg?.remarks||[]), ...((fullTrip?.remarks)||[])].filter(Boolean);
     const ris = buildRIS(remarksRaw);
 
-    content.innerHTML = `${ris}<div class="trip-stops"><div class="table scroll">${header}<div class="tbody">${rows}</div></div></div>`;
+    content.innerHTML = `${ris}<div class="trip-stops2"><div class="thead">${header}</div><div class="tbody">${rows}</div></div>`;
   }
 
   // Delegation
