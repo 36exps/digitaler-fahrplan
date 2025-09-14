@@ -680,3 +680,43 @@ html, body{
 .modal-panel{max-height:90vh; overflow:auto}
 
 .modal-panel{-webkit-overflow-scrolling:touch}
+
+
+
+/* === Trip modal colored band tied to chip color === */
+.trip-panel .trip-head{ position:sticky; top:0; z-index:3; }
+.trip-panel .trip-head::before{
+  content:''; position:absolute; left:0; right:0; top:0; height:6px;
+  background: linear-gradient(90deg, var(--accent-chip, var(--accent)), color-mix(in oklab, var(--accent-chip, var(--accent)) 78%, transparent));
+  border-top-left-radius: var(--radius); border-top-right-radius: var(--radius);
+  pointer-events:none;
+}
+
+/* === Trip stops: full-width grid & sticky header === */
+.trip-panel .trip-stops .table{ display:block; max-height:60vh; overflow:auto; -webkit-overflow-scrolling:touch; }
+.trip-panel .trip-stops .thead{ display:grid !important; grid-template-columns:24px minmax(110px, 170px) 1fr minmax(90px,120px); gap:8px 12px; align-items:center; position:sticky; top:0; padding:8px 0; background:var(--panel); border-bottom:1px solid var(--rule); z-index:2; }
+.trip-panel .trip-stops .row{ display:grid !important; grid-template-columns:24px minmax(110px, 170px) 1fr minmax(90px,120px); gap:8px 12px; align-items:start; padding:8px 0; position:relative; }
+.trip-panel .trip-stops .time{ white-space:nowrap; font-variant-numeric:tabular-nums; }
+.trip-panel .trip-stops .stop{ min-width:0; word-break:break-word; }
+.trip-panel .trip-stops .plat{ text-align:right; opacity:.9; }
+
+/* Timeline rail */
+.trip-panel .trip-stops .rail{ position:relative; }
+.trip-panel .trip-stops .rail::before{ content:''; position:absolute; left:11px; top:0; bottom:0; width:2px; background:var(--rule-strong, rgba(0,0,0,.14)); }
+.trip-panel .trip-stops .row.rail-top .rail::before{ top:14px; }
+.trip-panel .trip-stops .row.rail-bot .rail::before{ bottom:14px; }
+.trip-panel .trip-stops .dot{ width:10px; height:10px; border-radius:50%; background:var(--fg); position:absolute; left:6px; top:8px; box-shadow:0 0 0 2px var(--panel); }
+
+/* Mobile: hide platform column if tight, keep excellent usability */
+@media (max-width: 560px){
+  .trip-panel .trip-stops .thead,
+  .trip-panel .trip-stops .row{ grid-template-columns:24px minmax(88px,120px) 1fr; }
+  .trip-panel .trip-stops .plat-h,
+  .trip-panel .trip-stops .plat{ display:none; }
+  .trip-panel .trip-stops .table{ max-height:62vh; }
+}
+
+/* Chip-style button for changes */
+.change-chip{ background:var(--panel); border:1px solid var(--rule); border-radius:999px; padding:6px 10px; margin-left:6px; display:inline-flex; align-items:center; gap:6px; }
+.change-chip i{ font-size:.9rem; color: var(--warn, #d99136); }
+.change-chip:hover{ box-shadow:var(--shadow-sm); }
