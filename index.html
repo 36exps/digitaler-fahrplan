@@ -828,7 +828,6 @@ window.addEventListener('scroll', ()=>{
       const db=new Date(b?.departure||b?.legs?.[0]?.departure||b?.legs?.[0]?.plannedDeparture||0).getTime();
       return da-db;
     });
-    // persist potential updates
     const newPinned=loadPinned();
     tuples.forEach(([k,info])=>{ if(info?.lastData) newPinned[k]=info; });
     savePinned(newPinned);
@@ -847,7 +846,7 @@ window.addEventListener('scroll', ()=>{
   function pinJourney(j, aToB){
     const key=deriveKey(j);
     const data=loadPinned();
-    data[key]={ dir:getDirTag(aToB), token:j?.refreshToken||j?.refreshTokenStr||null, pinnedAt:Date.now(), lastData:j };
+    data[key]={ dir:getDirTag(aToB), token=j?.refreshToken||j?.refreshTokenStr||null, pinnedAt:Date.now(), lastData=j };
     savePinned(data);
     return key;
   }
@@ -917,7 +916,9 @@ window.addEventListener('scroll', ()=>{
             btn.setAttribute('aria-label', pinnedNow?'Angepinnt – entfernen':'Verbindung anheften');
             btn.innerHTML='<i class="fa-solid fa-thumbtack" aria-hidden="true"></i>';
             btn.addEventListener('click', (e)=>{
-              e.preventDefault(); e.stopPropagation();
+              e.preventDefault();
+              e.stopPropagation();
+              if(e.stopImmediatePropagation) e.stopImmediatePropagation();
               const pressed = btn.getAttribute('aria-pressed')==='true';
               if(pressed){
                 unpinKey(key);
@@ -929,7 +930,7 @@ window.addEventListener('scroll', ()=>{
                 btn.setAttribute('aria-pressed','true');
                 card.classList.add('pinned');
               }
-            });
+            }, true); // capture to beat bubbling handlers
             card.prepend(btn);
           }
           if(isPinnedKey(key)) card.classList.add('pinned'); else card.classList.remove('pinned');
