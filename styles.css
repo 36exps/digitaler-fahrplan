@@ -358,3 +358,39 @@ body.drawer-open{ overflow:hidden }
   .chip{ font-size:12px; padding:4px 6px }
   .time{ font-size:18px }
 }
+
+
+/* === Mobile interaction/perf fixes ===
+   - Stop hover jitter on touch devices
+   - Keep hover animation lightweight on pointer devices
+   - Reduce repaint scope and promote cards to their own layer
+   - Avoid scroll chaining during pull-to-refresh
+*/
+html, body{
+  overscroll-behavior-y: contain;
+}
+
+.card, .route-card, article.card, .result-card{
+  backface-visibility: hidden;
+  transform: translateZ(0);
+  will-change: transform;
+  contain: paint;
+}
+
+/* Hover animations only on devices that actually support hover */
+@media (hover: hover){
+  .card, .route-card, article.card, .result-card{
+    transition: transform 160ms cubic-bezier(.2,.8,.2,1);
+  }
+  .card:hover, .route-card:hover, article.card:hover, .result-card:hover,
+  .card:focus-within, .route-card:focus-within, article.card:focus-within, .result-card:focus-within{
+    transform: translateY(-2px);
+  }
+}
+
+/* On touch devices: disable hover effects entirely to prevent flicker while scrolling */
+@media (hover: none){
+  .card:hover, .route-card:hover, article.card:hover, .result-card:hover{
+    transform: none !important;
+  }
+}
