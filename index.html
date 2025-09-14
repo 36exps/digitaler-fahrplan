@@ -357,7 +357,29 @@ function renderJourneysInto(containerId, list, aToB){
     const changes=Math.max(0, legs.filter(l=>l.line).length - 1); const dur=isoDurToHuman(j.duration,dep,arr);
     let delay=0; const l0=legs.find(l=>!!l.departure); if(l0&&l0.plannedDeparture&&l0.departure) delay=Math.round((new Date(l0.departure)-new Date(l0.plannedDeparture))/60000);
     const chipDelay=(delay!==0)?`<span class="chip" style="color:${delay>0?'var(--bad)':'var(--ok)'}"><i class="fa-solid fa-clock-rotate-left"></i> ${delay>0?`+${delay}`:delay}′</span>`:'';
-    const chips=legs.filter(l=>l.line).map(l=>`<span class="chip line-chip" style="--line-color:${lineColor(l.line?.name||l.mode||'')}">${iconForProduct(l.line?.product,l.mode)} ${l.line?.name||l.mode||''}</span>`).join('');
+    
+const chips = legs
+  .filter(l => l.line)
+  .map((l) => {
+    const payload = encodeURIComponent(JSON.stringify({
+      line: l.line?.name || l.mode || '',
+      product: l.line?.product || l.mode || '',
+      direction: l.direction || '',
+      remarks: (l.remarks||[]).map(r=>({type:r.type||r.category||'', summary:r.summary||r.title||'', text:r.text||'', code:r.code||''})),
+      stopovers: (l.stopovers||[]).map(s => ({
+        name: s.stop?.name || s.station?.name || '',
+        plannedA: s.plannedArrival || null,
+        a: s.arrival || null,
+        plannedD: s.plannedDeparture || null,
+        d: s.departure || null,
+        platform: s.platform || s.prognosedPlatform || s.plannedPlatform || null
+      }))
+    }));
+    return `<span class="chip line-chip" data-trip='${payload}' style="--line-color:${lineColor(l.line?.name||l.mode||'')}">
+              ${iconForProduct(l.line?.product,l.mode)} ${l.line?.name||l.mode||''}
+            </span>`;
+  }).join('');
+
 
     const offsetMin = aToB ? 5 : 13;
     const leaveTime = new Date(new Date(dep).getTime() - offsetMin*60000);
@@ -928,10 +950,31 @@ window.addEventListener('scroll', ()=>{
   }
 
   // Make line chips open modal (both Route cards and Abfahrten tables)
-  function attachChipHandlers(scope){
+  
+function attachChipHandlers(scope){
     scope.addEventListener('click', (e)=>{
       const chip = e.target.closest('.line-chip');
       if(!chip) return;
+      // Path 1: data-trip payload available directly on chip (most robust)
+      const ds = chip.getAttribute('data-trip');
+      if(ds){
+        try{
+          const data = JSON.parse(decodeURIComponent(ds));
+          const journey = { remarks: [] }; // could be extended to include journey-level remarks if needed
+          const leg = {
+            line: { name: data.line || '', product: data.product || '' },
+            mode: data.product || '',
+            direction: data.direction || '',
+            remarks: data.remarks || [],
+            stopovers: data.stopovers || []
+          };
+          const title = `Fahrtdetails – ${(leg?.line?.product||leg?.mode||'').toUpperCase()} ${leg?.line?.name||leg?.mode||''}`.trim();
+          document.getElementById('tripTitle').textContent = title;
+          openModal(buildTripHTML(journey, leg));
+          return;
+        }catch{ /* fallthrough */ }
+      }
+      // Path 2: derive from decorated cards (__journey injected by decorateRenderer)
       const card = e.target.closest('.card');
       let journey = null, leg = null;
       if(card && card.__journey){
@@ -944,6 +987,17 @@ window.addEventListener('scroll', ()=>{
         const legIndex = indices[n] ?? -1;
         leg = legs[legIndex] || null;
       }
+      // Path 3: fallback for other contexts
+      if(!journey){
+        journey = window.__lastJourneyForAbfahrten || null;
+        leg = journey?.legs?.find(l => (l?.line?.name||'') === chip.textContent.trim()) || null;
+      }
+      if(!leg) return;
+      const title = `Fahrtdetails – ${(leg?.line?.product||leg?.mode||'').toUpperCase()} ${leg?.line?.name||leg?.mode||''}`.trim();
+      document.getElementById('tripTitle').textContent = title;
+      openModal(buildTripHTML(journey, leg));
+    }, {passive:true});
+  }
       // Abfahrten tables (no card) — try to read cached journey from window if present.
       if(!journey){
         journey = window.__lastJourneyForAbfahrten || null;
