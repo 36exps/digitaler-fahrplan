@@ -890,11 +890,16 @@ window.addEventListener('scroll', ()=>{
   }
 
   function timeCell(s){
-    const a = s.arrival, ap = s.plannedArrival;
-    const d = s.departure, dp = s.plannedDeparture;
-    const parts = [];
-    if(a && d && a !== d){
-      parts.push(`<div class="tline"><span class="lbl">An</span> <span class="actual ${dcls(dmin(a,ap))}">${fmtHM(a)}</span>${ap?` <span class="planned">(${fmtHM(ap)})</span>`:''}</div>`);
+  const a = s.arrival || s.prognosedArrival, ap = s.plannedArrival;
+  const d = s.departure || s.prognosedDeparture, dp = s.plannedDeparture;
+  const isSame = !!(a && d && a === d);
+  const fmt = (t)=>fmtHM(t);
+  const line = (lbl, t, p)=>`<div class="tline"><span class="lbl">${lbl}</span><span class="actual ${dcls(t,p)}">${fmt(t||p)}</span>${p?` <span class="planned">(${fmt(p)})</span>`:''}</div>`;
+  if(a && d && !isSame){ return line('AN', a, ap) + line('AB', d, dp); }
+  if(d){ return `<div class="tmain"><span class="actual ${dcls(d,dp)}">${fmt(d||dp)}</span>${dp?` <span class="planned">(${fmt(dp)})</span>`:''}</div>`; }
+  if(a){ return `<div class="tmain"><span class="actual ${dcls(a,ap)}">${fmt(a||ap)}</span>${ap?` <span class="planned">(${fmt(ap)})</span>`:''}</div>`; }
+  return `<div class="tmain">—</div>`;
+}">${fmtHM(a)}</span>${ap?` <span class="planned">(${fmtHM(ap)})</span>`:''}</div>`);
       parts.push(`<div class="tline"><span class="lbl">Ab</span> <span class="actual ${dcls(dmin(d,dp))}">${fmtHM(d)}</span>${dp?` <span class="planned">(${fmtHM(dp)})</span>`:''}</div>`);
     } else if(a){
       parts.push(`<div class="tline"><span class="actual ${dcls(dmin(a,ap))}">${fmtHM(a)}</span>${ap?` <span class="planned">(${fmtHM(ap)})</span>`:''}</div>`);
@@ -959,15 +964,10 @@ window.addEventListener('scroll', ()=>{
     content.innerHTML = `${ris}<div class="trip-stops"><div class="table scroll">${header}<div class="tbody">${rows}</div></div></div>`;
   
     // === Progress rail coloring & live update ===
-    const panelEl = document.querySelector('.trip-panel');
-    // allow JS to override the rail accent color (solid) derived from chip color earlier
-    // falls back to computed --accent
     const railRoot = content.querySelector('.trip-stops');
     if(railRoot){
       const rows = Array.from(railRoot.querySelectorAll('.row'));
-      // Build segments: from departure of previous stop -> arrival of current stop
-      const segStart = [];
-      const segEnd   = [];
+      const segStart = [], segEnd = [];
       const getT = (a,b)=> a || b || null;
       const dep0 = getT(stops?.[0]?.departure, stops?.[0]?.plannedDeparture);
       if(rows.length>0){ segStart.push(dep0); segEnd.push(getT(stops?.[0]?.arrival, stops?.[0]?.plannedArrival)); }
@@ -978,42 +978,29 @@ window.addEventListener('scroll', ()=>{
       }
       function applyProgress(){
         const now = Date.now();
-        // Clear classes
         rows.forEach(r=>{ r.classList.remove('past','now','future'); r.style.removeProperty('--progress-px'); });
-        // Find first segment whose end is after now
         let j = segEnd.findIndex(t => t && (new Date(t).getTime() > now));
         if(j === -1) j = rows.length-1;
-        // Mark past rows
         for(let i=0;i<rows.length;i++){
           if(i<j) rows[i].classList.add('past');
           else if(i===j) rows[i].classList.add('now');
           else rows[i].classList.add('future');
         }
-        // Partial progress within current segment
         if(j>=0 && j<rows.length){
           const s = segStart[j] ? new Date(segStart[j]).getTime() : null;
           const e = segEnd[j]   ? new Date(segEnd[j]).getTime()   : null;
           if(s && e && e>s){
-            const ratio = Math.max(0, Math.min(1, (now - s) / (e - s)));
+            const ratio = Math.max(0, Math.min(1, (Date.now() - s) / (e - s)));
             const row = rows[j];
-            const extra = 32; // because the rail pseudo-element extends 16px up & down
+            const extra = 32;
             const h = (row.getBoundingClientRect().height + extra) * ratio;
             row.style.setProperty('--progress-px', h.toFixed(1)+'px');
-          }else if(segEnd[j]){
-            // Train not yet departed for first leg
-            rows[j].style.setProperty('--progress-px', '0px');
           }
         }
       }
       applyProgress();
-      // Update every 30s while modal is open
       clearInterval(window.__tripProgressTimer);
       window.__tripProgressTimer = setInterval(applyProgress, 30000);
-      // Stop timer when modal closes
-      const m = document.getElementById('tripModal');
-      const stop = () => { clearInterval(window.__tripProgressTimer); };
-      m?.addEventListener('click', (ev)=>{ if(ev.target.matches('[data-close], .modal-backdrop')) stop(); }, { once:false });
-      window.addEventListener('keydown', (ev)=>{ if(ev.key==='Escape') stop(); }, { once:false });
     }
 }
 
