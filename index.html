@@ -219,32 +219,6 @@ function addSpringyPress(root=document){
 }
 addSpringyPress();
 
-// Pin toggle (event delegation)
-const cardsWrap = document.getElementById('cards');
-cardsWrap.addEventListener('click', (e)=>{
-  const btn = e.target.closest('.pin-btn');
-  if(!btn) return;
-  e.preventDefault();
-  const card = btn.closest('.card');
-  const key = card?.dataset?.key;
-  const dirTag = card?.dataset?.dir;
-  const aToBCurrent = (dirTag==='A2B') || (activeTab==='route-a');
-  if(btn.getAttribute('aria-pressed')==='true'){
-    unpinKey(key);
-    btn.setAttribute('aria-pressed','false');
-    card.classList.remove('pinned');
-    // If the item is outside the current visible window, re-render to remove it
-    loadRoute(aToBCurrent);
-  }else{
-    const j = card.__journey;
-    if(!j) return;
-    pinJourney(j, aToBCurrent);
-    btn.setAttribute('aria-pressed','true');
-    card.classList.add('pinned');
-  }
-});
-
-
 /* ========= Dynamic Tab Underline ========= */
 const tabsInline=document.getElementById('tabsInline');
 const tabIndicator=document.getElementById('tabIndicator');
@@ -448,88 +422,6 @@ function buildTimeline(legs){
   }).join('');
 }
 
-
-/* ========= Pinning (persist & refresh) ========= */
-const PIN_STORE_KEY='pinnedJourneysV1';
-const PIN_TTL_MS = 6*60*60*1000; // auto-clean pins ~6h after arrival
-
-let pinned = loadPinned();
-
-function loadPinned(){
-  try{ return JSON.parse(localStorage.getItem(PIN_STORE_KEY)||'{}')||{} }catch(e){ return {} }
-}
-function savePinned(){ localStorage.setItem(PIN_STORE_KEY, JSON.stringify(pinned)); }
-function getDirTag(aToB){ return aToB?'A2B':'B2A'; }
-function deriveKey(j){
-  try{
-    const legs=j?.legs||[];
-    const dep=j?.departure||legs?.[0]?.departure||legs?.[0]?.plannedDeparture||'';
-    const arr=j?.arrival||legs?.[legs.length-1]?.arrival||legs?.[legs.length-1]?.plannedArrival||'';
-    const sig=(legs||[]).map(l=>[(l.line?.name||l.mode||''),(l.origin?.name||''),(l.destination?.name||'')].join('@')).join('|');
-    const token=j?.refreshToken||j?.refreshTokenStr||'';
-    return token || [dep,arr,sig].join('•');
-  }catch(e){ return Math.random().toString(36).slice(2); }
-}
-function isPinnedKey(k){ return !!pinned[k]; }
-function isPinnedJourney(j){ return isPinnedKey(deriveKey(j)); }
-function pinJourney(j, aToB){
-  const key=deriveKey(j);
-  pinned[key]={ dir:getDirTag(aToB), token:j?.refreshToken||j?.refreshTokenStr||null, pinnedAt:Date.now(), lastData:j };
-  savePinned();
-  return key;
-}
-function unpinKey(k){ delete pinned[k]; savePinned(); }
-function cleanupPinned(){
-  const now=Date.now();
-  let changed=false;
-  for(const [k,info] of Object.entries(pinned)){
-    try{
-      const j=info?.lastData||{};
-      const legs=j?.legs||[];
-      const arr=j?.arrival||legs?.[legs.length-1]?.arrival||legs?.[legs.length-1]?.plannedArrival;
-      if(arr && (now - new Date(arr).getTime()) > PIN_TTL_MS){
-        delete pinned[k]; changed=true;
-      }
-    }catch{}
-  }
-  if(changed) savePinned();
-}
-async function refreshPinned(info){
-  let j=null;
-  if(info?.token){
-    try{
-      const resp = await fetchJSON(`${API}/journeys/refresh?refreshToken=${encodeURIComponent(info.token)}&stopovers=true&language=de`);
-      j = resp?.journey || resp?.journeys?.[0] || null;
-    }catch(e){ /* ignore refresh errors */ }
-  }
-  if(!j) j = info?.lastData||null;
-  if(j){ info.lastData=j; }
-  return j;
-}
-function getPinnedForDir(aToB){
-  cleanupPinned();
-  const tag=getDirTag(aToB);
-  return Object.entries(pinned).filter(([k,info])=>info?.dir===tag);
-}
-async function mergePinnedJourneys(visible, aToB){
-  const keys = new Set((visible||[]).map(j=>deriveKey(j)));
-  const pins = getPinnedForDir(aToB);
-  const refreshed = await Promise.all(pins.map(([k,info])=>refreshPinned(info)));
-  const pinList = [];
-  for(const j of refreshed){
-    if(!j) continue;
-    const k=deriveKey(j);
-    if(!keys.has(k)){ pinList.push(j); keys.add(k); }
-  }
-  // sort pinned by (actual/planned) departure time ASC
-  pinList.sort((a,b)=>{
-    const da=new Date(a?.departure||a?.legs?.[0]?.departure||a?.legs?.[0]?.plannedDeparture||0).getTime();
-    const db=new Date(b?.departure||b?.legs?.[0]?.departure||b?.legs?.[0]?.plannedDeparture||0).getTime();
-    return da-db;
-  });
-  return [...pinList, ...visible];
-}
-
 /* ========= Journeys Renderer ========= */
 function renderJourneysInto(containerId, list, aToB){
   const wrap=document.getElementById(containerId); 
@@ -552,47 +444,13 @@ function renderJourneysInto(containerId, list, aToB){
     const subText = aToB ? 'Sophie-Scholl-Schule → Frankfurt(Main) Hbf'
                          : 'Frankfurt(Main) Hbf → Sophie-Scholl-Schule';
 
-    const el=document.createElement('div'); 
-    const key = deriveKey(j);
-    const pinnedNow = isPinnedKey(key);
-    el.className='card' + (pinnedNow?' pinned':'');
-    el.dataset.key = key;
-    el.dataset.dir = aToB?'A2B':'B2A';
-    el.__journey = j;
+    const el=document.createElement('div'); el.className='card';
 let __d=(typeof delay==='number')?delay:0;
 if (typeof delay==='number'){
   if (__d<=-1){ el.classList.add('is-early'); }
   else if (__d>=10){ el.classList.add('is-late-10'); }
   else if (__d>=5){ el.classList.add('is-late-5'); }
   else if (__d>=1){ el.classList.add('is-late-1'); }
-}
-    el.innerHTML=`
-      <button class="pin-btn pressy" aria-label="${pinnedNow?'Angepinnt – entfernen':'Verbindung anheften'}" aria-pressed="${pinnedNow?'true':'false'}" title="${pinnedNow?'Angepinnt – entfernen':'Verbindung anheften'}">
-        <i class="fa-solid fa-thumbtack" aria-hidden="true"></i>
-      </button>
-
-      <div class="leave-badge" title="Zeit zum Loslaufen">
-        <i class="fa-solid fa-person-walking" aria-hidden="true"></i>
-        <span class="leave-time">${fmtHM(leaveTime)}</span>
-      </div>
-
-      <div class="row">
-        <div class="time">${fmtHM(dep)}</div>
-        <div class="sep">→</div>
-        <div class="time">${fmtHM(arr)}</div>
-        <span class="chip"><i class="fa-regular fa-clock"></i> ${dur}</span>
-        <span class="chip"><i class="fa-solid fa-right-left"></i> ${changes}</span>
-        ${chipDelay}
-      </div>
-
-      <div class="row" style="gap:8px; margin-top:8px">${chips || '<span class="chip"><i class="fa-solid fa-person-walking"></i> Fußweg</span>'}</div>
-      <div class="timeline">${buildTimeline(legs)}</div>
-      <div class="sub">${subText}</div>
-    `;
-    wrap.appendChild(el);
-  }
-  animateStagger('#'+containerId+' .card');
-  addSpringyPress(wrap);
 }
     el.innerHTML=`
       <div class="leave-badge" title="Zeit zum Loslaufen">
@@ -731,10 +589,7 @@ async function loadRoute(aToB=true){
       document.getElementById('moreInfo').textContent = within.length ? `Zeitraum: jetzt bis +${routeWindowMin} min, Treffer: ${within.length}` : `Keine Verbindungen bis +${routeWindowMin} min.`;
     }
 
-    // Always merge pinned journeys for this direction (kept even after departure)
-    const merged = await mergePinnedJourneys(visible, aToB);
-
-    renderJourneysInto('cards', {journeys: merged}, aToB);
+    renderJourneysInto('cards', {journeys: visible}, aToB);
   }catch(e){
     document.getElementById('cards').innerHTML=`<div class="card">Fehler: ${e.message}</div>`;
   }

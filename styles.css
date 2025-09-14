@@ -437,33 +437,3 @@ html, body{
 .card.is-late-1 .timeline{ border-color: color-mix(in oklab, var(--rule, #0000) 60%, var(--tone-warn) 40%); }
 .card.is-late-5 .timeline{ border-color: color-mix(in oklab, var(--rule, #0000) 60%, var(--tone-caut) 40%); }
 .card.is-late-10 .timeline{ border-color: color-mix(in oklab, var(--rule, #0000) 60%, var(--tone-danger) 40%); }
-
-
-/* === Pin control for route cards === */
-.card{ position:relative; }
-
-.pin-btn{
-  position:absolute; top:10px; right:10px; z-index:2;
-  display:inline-flex; align-items:center; justify-content:center;
-  width:34px; height:34px;
-  border-radius:999px; border:1px solid var(--pill-border);
-  background:var(--pill-bg); color:var(--muted);
-  box-shadow:var(--shadow-press);
-  opacity:0; transform: translateY(-2px) scale(.96);
-  transition: opacity var(--fast) var(--easing), transform var(--fast) var(--easing), background-color var(--normal) var(--easing), border-color var(--normal) var(--easing), color var(--normal) var(--easing);
-  cursor:pointer;
-}
-.card:hover .pin-btn{ opacity:1; transform: translateY(0) scale(1) }
-.pin-btn:focus-visible{ outline:3px solid color-mix(in oklab, var(--accent) 35%, #fff); outline-offset:2px }
-.pin-btn[aria-pressed="true"]{
-  color: var(--accent);
-  border-color: color-mix(in oklab, var(--pill-border) 40%, var(--accent) 60%);
-  background: color-mix(in oklab, var(--pill-bg) 85%, var(--accent) 15%);
-}
-.pin-btn[aria-pressed="true"] i{ transform: rotate(-25deg) }
-.pin-btn i{ font-size:14px; opacity:.95; transition: transform var(--fast) var(--easing) }
-
-/* On touch devices: keep the pin visible so users can tap it */
-@media (hover: none){
-  .pin-btn{ opacity:.9; }
-}
