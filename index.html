@@ -971,19 +971,22 @@ window.addEventListener('scroll', ()=>{
     for(const L of (j.legs||[])){ if(L && L.line){ k++; if(k===idx){ leg=L; break; } } }
     if(!leg) return;
 
-    // Accent band from chip background color
+    // Accent band from chip color (match route chip color exactly)
     try{
       const cs = getComputedStyle(chip);
-      const col = cs.getPropertyValue('background-color') || cs.getPropertyValue('color');
-      if(col) document.querySelector('.trip-panel').style.setProperty('--accent-band', col.trim());
+      const varCol = cs.getPropertyValue('--line-color')?.trim();
+      // Fall back to computed colors if custom property not present
+      const bgCol = cs.getPropertyValue('background-color') || '';
+      const txtCol = cs.getPropertyValue('color') || '';
+      const baseCol = varCol || txtCol || bgCol || '';
+      if(baseCol){
+        // Provide a solid base color and let CSS create a subtle gradient from it
+        panel.style.setProperty('--accent-chip', baseCol);
+      }
     }catch(_){}
 
     // Open quickly, then render
-    content.innerHTML = '<div class="skeleton"><div class="bar"></div><div class="bar"></div><div class="bar w50"></div></div>';
-    destEl.textContent = leg?.direction || 'Fahrtdetails';
-    pillEl.textContent = ((leg?.line?.product||leg?.mode||'').toUpperCase() + ' ' + (leg?.line?.name||leg?.mode||'')).trim();
-    metaRow.textContent = 'Lade Fahrtdaten …';
-    openModal();
+
     const fullTrip = await tryFetchFullTrip(leg);
     renderTrip(j, leg, fullTrip);
   }, true);
