@@ -69,8 +69,7 @@
       <div id="cards" class="cards"><div class="card">Lade Verbindungen …</div></div>
       <div class="more-wrap">
         <button id="moreBtn" class="btn pressy">Weitere Verbindungen (+60 min)</button>
-        <span id="moreInfo" class="badge"></span>
-      </div>
+</div>
       <div id="noJourneys" class="hint" style="display:none">Für das gewählte Zeitfenster sind keine Verbindungen verfügbar.</div>
     </div>
 
@@ -869,7 +868,7 @@ window.addEventListener('scroll', ()=>{
           const pins = await listRefreshedPinned(aToB);
           if(typeof renderJourneysInto_orig==='function'){
             renderJourneysInto_orig('cards', {journeys: pins}, aToB);
-            const mi=document.getElementById('moreInfo'); if(mi) mi.textContent='Nur angepinnte Verbindungen';
+            /* removed moreInfo label */
             const mb=document.getElementById('moreBtn'); if(mb) mb.disabled=true;
           }
         }else{
