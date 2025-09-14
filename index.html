@@ -444,7 +444,7 @@ function renderJourneysInto(containerId, list, aToB){
     const subText = aToB ? 'Sophie-Scholl-Schule → Frankfurt(Main) Hbf'
                          : 'Frankfurt(Main) Hbf → Sophie-Scholl-Schule';
 
-    const el=document.createElement('div'); el.className='card';
+    const el=document.createElement('div'); el.className='card'; if(delay>0) el.classList.add('is-delayed');
     el.innerHTML=`
       <div class="leave-badge" title="Zeit zum Loslaufen">
         <i class="fa-solid fa-person-walking" aria-hidden="true"></i>

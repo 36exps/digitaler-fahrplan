@@ -1,5 +1,7 @@
 /* ===== iPadOS-ähnliche Tokens ===== */
 :root{
+  --shadow-danger: 0 1px 2px rgba(229,57,53,.08), 0 10px 26px rgba(229,57,53,.28), 0 16px 48px rgba(229,57,53,.18);
+
   --bg:#F9F7F7;
   --panel:#FFFFFF;
   --panel-2:#F3F6FB;
@@ -34,6 +36,8 @@
   --line-ice: #B71C1C;
 }
 [data-theme="dark"]{
+  --shadow-danger: 0 0 0 1px rgba(229,57,53,.35), 0 0 0 6px rgba(229,57,53,.14), 0 16px 46px rgba(229,57,53,.32);
+
   --bg:#1B262C;
   --panel:#0F1A24;
   --panel-2:#13212E;
@@ -394,3 +398,13 @@ html, body{
     transform: none !important;
   }
 }
+
+
+/* Emphasize delayed journeys with a red glow */
+
+.card.is-delayed{
+  box-shadow: var(--shadow-danger);
+  border-color: color-mix(in oklab, var(--pill-border) 60%, var(--bad) 40%);
+}
+.card.is-delayed:active{ box-shadow: var(--shadow-danger); }
+.card.is-delayed .timeline{ border-color: color-mix(in oklab, var(--rule) 60%, var(--bad) 40%); }
