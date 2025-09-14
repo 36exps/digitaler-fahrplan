@@ -6,48 +6,51 @@
 <meta name="color-scheme" content="light dark">
 <title>Pendler Dashboard</title>
 
-<!-- iOS/PWA -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Pendler Dashboard">
 
-<!-- Icons -->
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="alternate icon" type="image/png" sizes="512x512" href="apple-touch-icon.png">
 
-<!-- Font Awesome -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.2/css/all.min.css">
-
 <link rel="stylesheet" href="styles.css">
-
 </head>
 <body>
 
+  <!-- Pull-to-Refresh indicator (hidden until pulling) -->
+  <div id="ptr" class="ptr" aria-hidden="true">
+    <div class="ptr-inner">
+      <i id="ptrArrow" class="fa-solid fa-arrow-down-long"></i>
+      <i id="ptrSpin" class="fa-solid fa-spinner fa-spin" style="display:none"></i>
+      <span id="ptrLabel">Ziehen zum Aktualisieren</span>
+    </div>
+  </div>
+
   <!-- Topbar -->
   <div class="tabs">
-    <button id="menuBtn" class="hamburger" aria-label="Menü öffnen" aria-expanded="false">
+    <button id="menuBtn" class="hamburger pressy" aria-label="Menü öffnen" aria-expanded="false">
       <i class="fa-solid fa-bars"></i> Menü
     </button>
 
-    <!-- Inline-Tabs (nur Desktop/Tablet) -->
     <div id="tabsInline" class="left" role="tablist" aria-label="Navigation">
-      <a href="#route-a" class="tab active">Gießen → Frankfurt(Main) Hbf</a>
-      <a href="#route-b" class="tab">Frankfurt(Main) Hbf → Gießen</a>
-      <a href="#abfahrten" class="tab">Abfahrten (stadt­einwärts)</a>
-      <a href="#homebound" class="tab">Abfahrten (heimwärts)</a>
+      <a href="#route-a" class="tab pressy active">Gießen → Frankfurt(Main) Hbf</a>
+      <a href="#route-b" class="tab pressy">Frankfurt(Main) Hbf → Gießen</a>
+      <a href="#abfahrten" class="tab pressy">Abfahrten (stadt­einwärts)</a>
+      <a href="#homebound" class="tab pressy">Abfahrten (heimwärts)</a>
+      <span id="tabIndicator" class="tab-indicator"></span>
     </div>
 
     <div class="spacer"></div>
 
-    <!-- Theme -->
-    <button id="themeBtn" class="theme-btn" aria-label="Theme umschalten">
+    <button id="themeBtn" class="theme-btn pressy" aria-label="Theme umschalten">
       <i class="fa-solid fa-sun" id="sunIcon"></i>
       <i class="fa-solid fa-moon" id="moonIcon" style="display:none"></i>
     </button>
   </div>
 
-  <!-- Drawer für kleine Screens -->
+  <!-- Drawer -->
   <div id="drawer" class="drawer" hidden>
     <div id="drawerBackdrop" class="drawer-backdrop" role="button" aria-label="Menü schließen"></div>
     <nav class="drawer-panel" aria-label="Menü">
@@ -55,7 +58,7 @@
       <a href="#route-b" class="tab" data-drawer-link>Frankfurt(Main) Hbf → Gießen</a>
       <a href="#abfahrten" class="tab" data-drawer-link>Abfahrten (stadt­einwärts)</a>
       <a href="#homebound" class="tab" data-drawer-link>Abfahrten (heimwärts)</a>
-      <button id="drawerClose" class="btn" style="margin-top:8px"><i class="fa-solid fa-xmark"></i> Schließen</button>
+      <button id="drawerClose" class="btn pressy" style="margin-top:8px"><i class="fa-solid fa-xmark"></i> Schließen</button>
     </nav>
   </div>
 
@@ -65,7 +68,7 @@
     <div id="view-route" hidden>
       <div id="cards" class="cards"><div class="card">Lade Verbindungen …</div></div>
       <div class="more-wrap">
-        <button id="moreBtn" class="btn">Weitere Verbindungen (+60 min)</button>
+        <button id="moreBtn" class="btn pressy">Weitere Verbindungen (+60 min)</button>
         <span id="moreInfo" class="badge"></span>
       </div>
       <div id="noJourneys" class="hint" style="display:none">Für das gewählte Zeitfenster sind keine Verbindungen verfügbar.</div>
@@ -115,9 +118,9 @@ const EXCLUDE_DIRECTIONS=[/rödgen/i,/coleman\s*str/i];
 let ids={school:null,ffm:null,friedr:null,giessenBhf:null};
 let activeTab='route-a', timer=null, lastUpdated=null;
 
-/* Routen-„Mehr“-Logik: jedes Klicken +60min */
-let routeLongMode=false;    // false = feste Kartenanzahl, true = Zeitfensteranzeige
-let routeWindowMin=60;      // aktuelles Zeitfenster in Minuten (wächst in 60er-Schritten)
+/* Routen-Mehr */
+let routeLongMode=false;
+let routeWindowMin=60;
 
 /* ========= Theme ========= */
 const mediaDark=window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)');
@@ -126,15 +129,15 @@ function applyTheme(m){
   document.documentElement.setAttribute('data-theme',m);
   if(m==='dark'){sunIcon.style.display='none';moonIcon.style.display='inline-block'}
   else {moonIcon.style.display='none';sunIcon.style.display='inline-block'}
-  // soft cross-fade
   document.body.classList.add('theme-fade');
   setTimeout(()=>document.body.classList.remove('theme-fade'), 300);
+  queueMicrotask(updateTabIndicator);
 }
 applyTheme(mediaDark?.matches?'dark':'light');
 mediaDark?.addEventListener?.('change',e=>applyTheme(e.matches?'dark':'light'));
 themeBtn.addEventListener('click',()=>applyTheme((document.documentElement.getAttribute('data-theme')==='light')?'dark':'light'));
 
-/* ========= Drawer (mit Animation) ========= */
+/* ========= Drawer with subtle overshoot ========= */
 const drawer=document.getElementById('drawer');
 const menuBtn=document.getElementById('menuBtn');
 const drawerBackdrop=document.getElementById('drawerBackdrop');
@@ -143,6 +146,13 @@ function openDrawer(){
   drawer.hidden=false; 
   requestAnimationFrame(()=>{
     drawer.classList.add('open');
+    const panel=drawer.querySelector('.drawer-panel');
+    if(panel && !window.matchMedia('(prefers-reduced-motion: reduce)').matches){
+      panel.animate(
+        [{ transform:'translateX(-104%)' }, { transform:'translateX(0)' }, { transform:'translateX(-8px)' }, { transform:'translateX(0)' }],
+        { duration:360, easing:'cubic-bezier(.2,.8,.2,1)' }
+      );
+    }
   });
   menuBtn.setAttribute('aria-expanded','true'); 
   document.body.classList.add('drawer-open');
@@ -151,11 +161,17 @@ function openDrawer(){
   if(panel) panel.style.paddingTop=(h+16)+'px'; 
 }
 function closeDrawer(){ 
+  const panel=drawer.querySelector('.drawer-panel');
+  if(panel && !window.matchMedia('(prefers-reduced-motion: reduce)').matches){
+    panel.animate(
+      [{ transform:'translateX(0)' }, { transform:'translateX(6px)' }, { transform:'translateX(-104%)' }],
+      { duration:280, easing:'cubic-bezier(.2,.8,.2,1)' }
+    );
+  }
   drawer.classList.remove('open'); 
   menuBtn.setAttribute('aria-expanded','false'); 
   document.body.classList.remove('drawer-open'); 
-  // wait for transition end then hide
-  setTimeout(()=>{ drawer.hidden=true; }, 280);
+  setTimeout(()=>{ drawer.hidden=true; }, 260);
 }
 menuBtn.addEventListener('click', ()=> (drawer.hidden?openDrawer():closeDrawer()));
 drawerBackdrop.addEventListener('click', closeDrawer);
@@ -171,41 +187,133 @@ function animateStagger(selector){
   let i=0;
   for(const el of items){
     el.animate(
-      [
-        { opacity:0, transform:'translateY(6px) scale(0.996)' },
-        { opacity:1, transform:'translateY(0) scale(1)' }
-      ],
+      [{ opacity:0, transform:'translateY(6px) scale(0.996)' },{ opacity:1, transform:'translateY(0) scale(1)' }],
       { duration:320, easing:'cubic-bezier(.2,.8,.2,1)', delay: i*30, fill:'both' }
     );
     i++;
   }
 }
-function showRouteSkeleton(count){
-  const wrap=document.getElementById('cards');
-  const n=Math.max(1, count|0);
-  const blocks = Array.from({length:n}).map(()=>`
-    <div class="card skeleton">
-      <div class="s-row s-w40"></div>
-      <div class="s-chip"></div>
-      <div class="s-chip"></div>
-      <div class="s-row s-w70"></div>
-      <div class="s-timeline"></div>
-    </div>`).join('');
-  wrap.innerHTML = blocks;
+/* Springy press feedback */
+function addSpringyPress(root=document){
+  if(prefersReduced) return;
+  root.querySelectorAll('.pressy, .card, .btn').forEach(el=>{
+    el.addEventListener('pointerdown', e=>{
+      if(e.button!==0) return;
+      el.setPointerCapture?.(e.pointerId);
+      el.animate(
+        [{ transform:'scale(1)' }, { transform:'scale(0.985)' }],
+        { duration:90, easing:'cubic-bezier(.2,.8,.2,1)', fill:'forwards' }
+      );
+    });
+    const up=()=>{
+      el.getAnimations().forEach(a=>a.cancel());
+      el.animate(
+        [{ transform:'scale(0.985)' }, { transform:'scale(1.012)' }, { transform:'scale(1)' }],
+        { duration:220, easing:'cubic-bezier(.2,.8,.2,1)', fill:'forwards' }
+      );
+    };
+    el.addEventListener('pointerup', up);
+    el.addEventListener('pointercancel', up);
+    el.addEventListener('pointerleave', up);
+  });
 }
-function showTableSkeleton(containerId, rows){
-  const box=document.getElementById(containerId);
-  const n=Math.max(3, rows|0);
-  box.innerHTML = Array.from({length:n}).map(()=>`
-    <div class="row-item skeleton">
-      <div class="s-row s-w40"></div>
-      <div class="s-row s-w30"></div>
-      <div class="s-row s-w60"></div>
-      <div class="s-row s-w50"></div>
-      <div class="s-row s-w20 hide-sm"></div>
-      <div class="s-row s-w20 hide-sm"></div>
-    </div>`).join('');
+addSpringyPress();
+
+/* ========= Dynamic Tab Underline ========= */
+const tabsInline=document.getElementById('tabsInline');
+const tabIndicator=document.getElementById('tabIndicator');
+function updateTabIndicator(){
+  if(!tabsInline || !tabIndicator) return;
+  const act=tabsInline.querySelector('.tab.active');
+  if(!act || getComputedStyle(tabsInline).display==='none'){
+    tabIndicator.style.transform='translateX(0) scaleX(0)';
+    tabIndicator.style.opacity='0';
+    return;
+  }
+  const parentRect=tabsInline.getBoundingClientRect();
+  const rect=act.getBoundingClientRect();
+  const x = rect.left - parentRect.left;
+  tabIndicator.style.opacity='1';
+  tabIndicator.style.width = rect.width + 'px';
+  tabIndicator.style.transform='translateX('+x+'px)';
 }
+new ResizeObserver(updateTabIndicator).observe(document.body);
+window.addEventListener('resize', updateTabIndicator);
+window.addEventListener('load', updateTabIndicator);
+
+/* ========= Pull-to-Refresh (touch) ========= */
+let ptrActive=false, ptrStartY=0, ptrPull=0, ptrThreshold=76, ptrDragging=false;
+const ptrEl=document.getElementById('ptr'), ptrArrow=document.getElementById('ptrArrow'), ptrSpin=document.getElementById('ptrSpin'), ptrLabel=document.getElementById('ptrLabel');
+
+function setPtrTransform(y){
+  ptrEl.style.transform = 'translateY('+Math.max(0, y)+'px)';
+  const rot = Math.min(1, y/ptrThreshold)*180;
+  ptrArrow.style.transform = 'rotate('+rot+'deg)';
+  ptrLabel.textContent = (y>=ptrThreshold?'Loslassen zum Aktualisieren':'Ziehen zum Aktualisieren');
+}
+
+function attachPullToRefresh(){
+  let lastTouchY=0;
+  window.addEventListener('touchstart', (e)=>{
+    if(window.scrollY>0 || document.body.classList.contains('drawer-open')) return;
+    ptrDragging=true;
+    ptrStartY=e.touches[0].clientY;
+    lastTouchY=ptrStartY;
+    ptrPull=0;
+    setPtrTransform(0);
+    ptrEl.classList.add('show');
+  }, {passive:true});
+
+  window.addEventListener('touchmove', (e)=>{
+    if(!ptrDragging) return;
+    const y=e.touches[0].clientY;
+    const dy=y - ptrStartY;
+    if(dy>0){
+      e.preventDefault();
+      ptrPull = dy * 0.6; // dampen
+      setPtrTransform(ptrPull);
+    }else{
+      // upward cancel
+      ptrDragging=false;
+      ptrEl.classList.remove('show');
+      setPtrTransform(0);
+    }
+  }, {passive:false});
+
+  function finishRefresh(){
+    ptrArrow.style.display='inline-block';
+    ptrSpin.style.display='none';
+    ptrEl.classList.remove('refreshing');
+    ptrEl.classList.remove('show');
+    setPtrTransform(0);
+    ptrActive=false; ptrDragging=false; ptrPull=0;
+  }
+
+  window.addEventListener('touchend', async ()=>{
+    if(!ptrDragging) return;
+    ptrDragging=false;
+    if(ptrPull>=ptrThreshold){
+      // trigger refresh for active view
+      ptrActive=true;
+      ptrEl.classList.add('refreshing');
+      ptrArrow.style.display='none';
+      ptrSpin.style.display='inline-block';
+      ptrLabel.textContent='Aktualisiere …';
+      try{
+        if(activeTab==='abfahrten') await loadInbound();
+        else if(activeTab==='homebound') await loadHomebound();
+        else await loadRoute(activeTab==='route-a');
+      }catch(e){ console.error(e); }
+      // nice settle
+      setTimeout(finishRefresh, 300);
+    }else{
+      // snap back
+      ptrEl.classList.remove('show');
+      setPtrTransform(0);
+    }
+  }, {passive:true});
+}
+attachPullToRefresh();
 
 /* ========= Helpers ========= */
 const fmtHM = d => new Date(d).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
@@ -239,7 +347,7 @@ function lineColor(name){ if(!name) return '#7f8c8d'; const key=String(name).tri
 function iconForProduct(p,m){p=(p||'').toLowerCase(); m=(m||'').toLowerCase(); if(p.includes('bus')||m==='bus')return'<i class="fa-solid fa-bus"></i>'; if(p.includes('suburban')||p.includes('s-bahn')||m==='subway')return'<i class="fa-solid fa-train-subway"></i>'; if(p.includes('tram'))return'<i class="fa-solid fa-train-tram"></i>'; return'<i class="fa-solid fa-train"></i>'}
 function prettyStop(n){return n==='Gießen'?'Gießen Bahnhof':n}
 
-/* ========= Timeline (geplante Zeit nur wenn abweichend; Duplikate vermeiden) ========= */
+/* ========= Timeline ========= */
 function buildTimeline(legs){
   if(!legs?.length) return '';
   function plannedIfDiff(actual, planned){
@@ -266,7 +374,6 @@ function buildTimeline(legs){
   }
   nodes[nodes.length-1].type='end';
 
-  // → NEU: Dedupe/Komprimierung gleicher, direkt aufeinanderfolgender Stationen (z.B. durch Walk-Legs)
   const merged=[];
   for(const n of nodes){
     const last=merged[merged.length-1];
@@ -296,7 +403,6 @@ function buildTimeline(legs){
       const wait=(n.arr&&n.dep)?Math.max(0,Math.round((new Date(n.dep)-new Date(n.arr))/60000)):null;
 
       if(n.arr && n.dep && sameMinute(n.arr,n.dep)){
-        // Wunsch: bei gleicher Minute nur einmal anzeigen
         right=`<span class="tl-meta ${c1}"><span class="actual">${fmt(n.arr)}</span>${plannedIfDiff(n.arr,n.parr)}</span>`;
       } else if(n.arr && n.dep){
         const range=
@@ -332,7 +438,6 @@ function renderJourneysInto(containerId, list, aToB){
     const chipDelay=(delay!==0)?`<span class="chip" style="color:${delay>0?'var(--bad)':'var(--ok)'}"><i class="fa-solid fa-clock-rotate-left"></i> ${delay>0?`+${delay}`:delay}′</span>`:'';
     const chips=legs.filter(l=>l.line).map(l=>`<span class="chip line-chip" style="--line-color:${lineColor(l.line?.name||l.mode||'')}">${iconForProduct(l.line?.product,l.mode)} ${l.line?.name||l.mode||''}</span>`).join('');
 
-    // Losgeh-Zeit: aToB (Schule -> FFM) 5′, sonst 13′
     const offsetMin = aToB ? 5 : 13;
     const leaveTime = new Date(new Date(dep).getTime() - offsetMin*60000);
 
@@ -362,6 +467,7 @@ function renderJourneysInto(containerId, list, aToB){
     wrap.appendChild(el);
   }
   animateStagger('#'+containerId+' .card');
+  addSpringyPress(wrap);
 }
 
 /* ========= Departures Renderer ========= */
@@ -398,6 +504,7 @@ function renderDeparturesInto(containerId, deps, mode){
     box.appendChild(row);
   }
   animateStagger('#'+containerId+' .row-item');
+  addSpringyPress(box);
 }
 
 /* ========= Loaders ========= */
@@ -408,17 +515,8 @@ async function ensureIds(){
   if(!ids.giessenBhf) ids.giessenBhf = await findStopId(Q_GIESSEN, /(gie(s|ß)en).*(bahnhof|hbf)/i);
 }
 
-function gridCols(){
-  const w=window.innerWidth;
-  if(w>=1800) return 4;
-  if(w>=1440) return 3;
-  if(w>=1000) return 2;
-  return 1;
-}
-function desiredCardsForCols(cols){
-  // Vorgabe: 1 Spalte 4, 2 Spalten 6, 3 Spalten 6, 4 Spalten 8
-  return cols===1?4:(cols===2?6:(cols===3?6:8));
-}
+function gridCols(){ const w=window.innerWidth; if(w>=1800) return 4; if(w>=1440) return 3; if(w>=1000) return 2; return 1; }
+function desiredCardsForCols(cols){ return cols===1?4:(cols===2?6:(cols===3?6:8)); }
 
 function filterByTimeWindow(journeys, minutes){
   const now=Date.now(), limit=now+minutes*60000;
@@ -430,16 +528,42 @@ function filterByTimeWindow(journeys, minutes){
   });
 }
 
+function showRouteSkeleton(count){
+  const wrap=document.getElementById('cards');
+  const n=Math.max(1, count|0);
+  const blocks = Array.from({length:n}).map(()=>`
+    <div class="card skeleton">
+      <div class="s-row s-w40"></div>
+      <div class="s-chip"></div>
+      <div class="s-chip"></div>
+      <div class="s-row s-w70"></div>
+      <div class="s-timeline"></div>
+    </div>`).join('');
+  wrap.innerHTML = blocks;
+}
+function showTableSkeleton(containerId, rows){
+  const box=document.getElementById(containerId);
+  const n=Math.max(3, rows|0);
+  box.innerHTML = Array.from({length:n}).map(()=>`
+    <div class="row-item skeleton">
+      <div class="s-row s-w40"></div>
+      <div class="s-row s-w30"></div>
+      <div class="s-row s-w60"></div>
+      <div class="s-row s-w50"></div>
+      <div class="s-row s-w20 hide-sm"></div>
+      <div class="s-row s-w20 hide-sm"></div>
+    </div>`).join('');
+}
+
 async function loadRoute(aToB=true){
   try{
     await ensureIds();
-    // Skeleton während Fetch
     const cols=gridCols();
     showRouteSkeleton(desiredCardsForCols(cols));
 
     const from=aToB?ids.school:ids.ffm, to=aToB?ids.ffm:ids.school;
     const desired=desiredCardsForCols(cols);
-    const results = 80; // großzügig
+    const results = 80;
     const data=await fetchJSON(`${API}/journeys?from=${from}&to=${to}&results=${results}&stopovers=true&language=de`);
     const all=(data.journeys||[]).filter(j=>{
       const t=j.departure || j.legs?.[0]?.departure || j.legs?.[0]?.plannedDeparture;
@@ -448,12 +572,10 @@ async function loadRoute(aToB=true){
 
     let visible=[];
     if(!routeLongMode){
-      // Feste Kartenanzahl – NICHT aufs 60-Min Fenster begrenzen
       visible = all.slice(0, desired);
       document.getElementById('noJourneys').style.display = visible.length? 'none':'block';
       document.getElementById('moreInfo').textContent = '';
     }else{
-      // Zeitfensteranzeige – wächst pro Klick um +60 min
       const within=filterByTimeWindow(all, routeWindowMin);
       visible = within.length ? within : [];
       document.getElementById('noJourneys').style.display = within.length? 'none':'block';
@@ -476,7 +598,6 @@ async function loadInbound(){
   }catch(e){ document.getElementById('rows').innerHTML=`<div class="hint" style="color:var(--bad)">${e.message}</div>`; }
 }
 
-/* Heimwärts */
 async function loadHomebound(){
   try{
     await ensureIds();
@@ -490,7 +611,7 @@ async function loadHomebound(){
         const lineName=d.line?.name||'';
         const dir=(d.direction||d.destination||'').toLowerCase();
         if(!rxLine.test(lineName)) continue;
-        if(!/sophie.*scholl.*schule/.test(dir)) continue; // Richtung Schule
+        if(!/sophie.*scholl.*schule/.test(dir)) continue;
         out.push({
           originLabel:srcLabel,
           line:{name:lineName, product:d.line?.product, mode:d.line?.mode},
@@ -523,7 +644,6 @@ async function loadHomebound(){
 /* ========= Tabs / Refresh ========= */
 function setTabs(tab){
   activeTab=tab;
-  // Routen-Mehr zurücksetzen beim Tabwechsel
   routeLongMode=false;
   routeWindowMin=60;
 
@@ -533,6 +653,7 @@ function setTabs(tab){
   document.getElementById('view-route').hidden=!(tab==='route-a'||tab==='route-b');
   document.getElementById('view-abfahrten').hidden=(tab!=='abfahrten');
   document.getElementById('view-homebound').hidden=(tab!=='homebound');
+  updateTabIndicator();
 }
 function startRefresh(){
   if(timer) clearInterval(timer);
@@ -553,13 +674,12 @@ function handleHash(){
 window.addEventListener('hashchange',handleHash);
 document.querySelectorAll('#tabsInline .tab').forEach(a=>a.addEventListener('click',e=>{e.preventDefault(); history.replaceState(null,'',a.getAttribute('href')); handleHash();}));
 
-/* ========= Weitere Verbindungen: +60min pro Klick ========= */
 const moreBtn=document.getElementById('moreBtn');
 const moreInfo=document.getElementById('moreInfo');
 moreBtn.addEventListener('click', async ()=>{
   if(!(activeTab==='route-a'||activeTab==='route-b')) return;
   routeLongMode=true;
-  routeWindowMin += 60; // +60min pro Klick
+  routeWindowMin += 60;
   const aToB=(activeTab==='route-a');
   if(timer) clearInterval(timer);
   const prev=moreBtn.innerHTML; moreBtn.disabled=true; moreBtn.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i> Lädt…';
@@ -569,11 +689,10 @@ moreBtn.addEventListener('click', async ()=>{
   }
 });
 
-/* ========= Init, Resize & Scroll Shadow ========= */
 (function init(){ handleHash(); })();
 window.addEventListener('resize', ()=>{
-  // Reflow: Kartenanzahl passt sich beim Resize an
   if(activeTab==='route-a'||activeTab==='route-b') loadRoute(activeTab==='route-a');
+  updateTabIndicator();
 });
 window.addEventListener('scroll', ()=>{
   const scrolled = (window.scrollY||document.documentElement.scrollTop) > 2;
