@@ -1,6 +1,16 @@
 /* ===== iPadOS-ähnliche Tokens ===== */
 :root{
-  --shadow-danger: 0 1px 2px rgba(229,57,53,.08), 0 10px 26px rgba(229,57,53,.28), 0 16px 48px rgba(229,57,53,.18);
+/* Delay tones */
+--tone-early: #2e7d32;   /* green 600 */
+--tone-warn:  #f9a825;   /* yellow 800 */
+--tone-caut:  #ef6c00;   /* orange 800 */
+--tone-danger:#e53935;   /* red 600 */
+
+/* Shadows (light) */
+--shadow-early:  0 1px 2px rgba(46,125,50,.08), 0 10px 26px rgba(46,125,50,.26), 0 16px 48px rgba(46,125,50,.16);
+--shadow-warn:   0 1px 2px rgba(249,168,37,.08), 0 10px 26px rgba(249,168,37,.24), 0 16px 48px rgba(249,168,37,.14);
+--shadow-caut:   0 1px 2px rgba(239,108,0,.08),  0 10px 26px rgba(239,108,0,.26),  0 16px 48px rgba(239,108,0,.16);
+--shadow-danger: 0 1px 2px rgba(229,57,53,.08),  0 10px 26px rgba(229,57,53,.28),  0 16px 48px rgba(229,57,53,.18);
 
   --bg:#F9F7F7;
   --panel:#FFFFFF;
@@ -36,7 +46,11 @@
   --line-ice: #B71C1C;
 }
 [data-theme="dark"]{
-  --shadow-danger: 0 0 0 1px rgba(229,57,53,.35), 0 0 0 6px rgba(229,57,53,.14), 0 16px 46px rgba(229,57,53,.32);
+/* Shadows (dark) */
+--shadow-early:  0 0 0 1px rgba(46,125,50,.35), 0 0 0 6px rgba(46,125,50,.14), 0 16px 46px rgba(46,125,50,.32);
+--shadow-warn:   0 0 0 1px rgba(249,168,37,.35), 0 0 0 6px rgba(249,168,37,.14), 0 16px 46px rgba(249,168,37,.32);
+--shadow-caut:   0 0 0 1px rgba(239,108,0,.35),  0 0 0 6px rgba(239,108,0,.14), 0 16px 46px rgba(239,108,0,.32);
+--shadow-danger: 0 0 0 1px rgba(229,57,53,.35),  0 0 0 6px rgba(229,57,53,.14), 0 16px 46px rgba(229,57,53,.32);
 
   --bg:#1B262C;
   --panel:#0F1A24;
@@ -400,11 +414,26 @@ html, body{
 }
 
 
-/* Emphasize delayed journeys with a red glow */
-
-.card.is-delayed{
-  box-shadow: var(--shadow-danger);
-  border-color: color-mix(in oklab, var(--pill-border) 60%, var(--bad) 40%);
+/* ===== Delay-based card emphasis ===== */
+.card.is-early{
+  box-shadow: var(--shadow-early);
+  border-color: color-mix(in oklab, var(--pill-border, #0000) 55%, var(--tone-early) 45%);
 }
-.card.is-delayed:active{ box-shadow: var(--shadow-danger); }
-.card.is-delayed .timeline{ border-color: color-mix(in oklab, var(--rule) 60%, var(--bad) 40%); }
+.card.is-late-1{ /* +1 to +4 minutes (yellow) */
+  box-shadow: var(--shadow-warn);
+  border-color: color-mix(in oklab, var(--pill-border, #0000) 55%, var(--tone-warn) 45%);
+}
+.card.is-late-5{ /* +5 to +9 minutes (orange) */
+  box-shadow: var(--shadow-caut);
+  border-color: color-mix(in oklab, var(--pill-border, #0000) 55%, var(--tone-caut) 45%);
+}
+.card.is-late-10{ /* +10 minutes or more (red) */
+  box-shadow: var(--shadow-danger);
+  border-color: color-mix(in oklab, var(--pill-border, #0000) 55%, var(--tone-danger) 45%);
+}
+
+/* Optional accents for inner elements (timeline etc.) */
+.card.is-early .timeline{ border-color: color-mix(in oklab, var(--rule, #0000) 60%, var(--tone-early) 40%); }
+.card.is-late-1 .timeline{ border-color: color-mix(in oklab, var(--rule, #0000) 60%, var(--tone-warn) 40%); }
+.card.is-late-5 .timeline{ border-color: color-mix(in oklab, var(--rule, #0000) 60%, var(--tone-caut) 40%); }
+.card.is-late-10 .timeline{ border-color: color-mix(in oklab, var(--rule, #0000) 60%, var(--tone-danger) 40%); }

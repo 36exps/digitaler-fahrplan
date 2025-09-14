@@ -444,7 +444,14 @@ function renderJourneysInto(containerId, list, aToB){
     const subText = aToB ? 'Sophie-Scholl-Schule → Frankfurt(Main) Hbf'
                          : 'Frankfurt(Main) Hbf → Sophie-Scholl-Schule';
 
-    const el=document.createElement('div'); el.className='card'; if(delay>0) el.classList.add('is-delayed');
+    const el=document.createElement('div'); el.className='card';
+let __d=(typeof delay==='number')?delay:0;
+if (typeof delay==='number'){
+  if (__d<=-1){ el.classList.add('is-early'); }
+  else if (__d>=10){ el.classList.add('is-late-10'); }
+  else if (__d>=5){ el.classList.add('is-late-5'); }
+  else if (__d>=1){ el.classList.add('is-late-1'); }
+}
     el.innerHTML=`
       <div class="leave-badge" title="Zeit zum Loslaufen">
         <i class="fa-solid fa-person-walking" aria-hidden="true"></i>
