@@ -721,7 +721,7 @@ html, body{
 .ops-item{display:flex;gap:10px;align-items:flex-start;color:var(--text)}
 .ops-item i{color:var(--muted);margin-top:2px}
 /* Stop table with vertical timeline using the full width */
-.stopgrid{position:relative;border:1px solid var(--rule);background:var(--panel-2);border-radius:var(--radius);padding:10px 12px;display:grid;grid-template-columns:120px 24px 1fr 80px;gap:10px 12px;align-items:start}
+.stopgrid{position:relative;border:1px solid var(--rule);background:var(--panel-2);border-radius:var(--radius);padding:10px 12px;display:grid;grid-template-columns:112px 28px 1fr 72px;gap:8px 12px;align-items:start;grid-auto-rows:minmax(26px,auto)}
 .stopgrid .hdr{color:var(--muted);font-weight:700}
 .stopgrid .cell{display:contents}
 .t-time{font-variant-numeric:tabular-nums}
@@ -739,4 +739,21 @@ html, body{
 @media (max-width:560px){
   .trip-panel{width:min(100vw, 100%);border-radius:0}
   .stopgrid{grid-template-columns:96px 20px 1fr 64px}
+}
+
+
+/* Refinements for DB-style stop list */
+.t-time-wrap{display:flex;flex-direction:column;gap:2px;white-space:nowrap}
+.t-time{line-height:1.15}
+.t-name{align-self:center}
+.t-plat{align-self:center;text-align:right}
+.t-track{position:relative;min-height:26px}
+.t-track::before{content:"";position:absolute;left:50%;transform:translateX(-50%);top:-14px;bottom:-14px;width:3px;background:color-mix(in oklab,var(--rule) 65%, var(--text) 35%);border-radius:2px;opacity:.6}
+.t-track .dot{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:14px;height:14px;border-radius:999px;background:var(--panel-2);box-shadow:0 0 0 3px var(--panel-2), 0 0 0 1.5px color-mix(in oklab,var(--muted) 45%, var(--text) 55%)}
+.t-track .progress{position:absolute;left:50%;transform:translateX(-50%);top:-14px;width:3px;height:0;background:var(--accent);border-radius:2px;opacity:.95}
+.t-time .label{font-size:11px;opacity:.75;margin-right:4px}
+.t-time .actual{font-weight:800}
+.t-time .planned{font-size:12px;opacity:.6;margin-left:6px}
+@media (max-width:560px){
+  .stopgrid{grid-template-columns:96px 24px 1fr 60px}
 }

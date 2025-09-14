@@ -271,385 +271,7 @@ function prettyStop(n){return n==='Gießen'?'Gießen Bahnhof':n}
 /* ========= Timeline ========= */
 function buildTimeline(legs){
   if(!legs?.length) return '';
-  function plannedIfDiff(actual, planned){
-    if(!actual || !planned) return '';
-    const a=new Date(actual), p=new Date(planned);
-    const diffMin=Math.round((a-p)/60000);
-    return diffMin!==0 ? ` <span class="planned">(${fmtHM(planned)})</span>` : '';
-  }
-  const fmt=v=>v?fmtHM(v):'—';
-  const cls=(a,p)=>{ if(!a||!p) return ''; const m=Math.round((new Date(a)-new Date(p))/60000); return m>0?'late':(m<0?'early':'') };
-  const ico=n=> n.type==='start' ? iconForProduct(n.product,'') :
-              n.type==='end'   ? '<i class="fa-solid fa-flag-checkered"></i>' :
-              (!n.dep||!n.arr) ? '<i class="fa-solid fa-location-dot"></i>' :
-              (/walk/i.test(n.product)?'<i class="fa-solid fa-person-walking"></i>':(/bus/i.test(n.product)?'<i class="fa-solid fa-bus"></i>':'<i class="fa-solid fa-train"></i>'));
-  const sameMinute=(a,b)=>{ if(!a||!b) return false; const A=new Date(a), B=new Date(b); return A.getHours()===B.getHours() && A.getMinutes()===B.getMinutes(); };
-
-  const nodes=[];
-  nodes.push({type:'start',name:prettyStop(legs[0]?.origin?.name||'—'),dep:legs[0]?.departure||null,pdep:legs[0]?.plannedDeparture||null,product:legs[0]?.line?.product||legs[0]?.mode||''});
-  for(let i=0;i<legs.length;i++){
-    const l=legs[i], next=legs[i+1], dest=prettyStop(l.destination?.name||'—');
-    const node={type:'mid',name:dest,arr:l.arrival||null,parr:l.plannedArrival||null,dep:null,pdep:null,product:(next?.line?.product||next?.mode||l?.line?.product||l?.mode||'')};
-    if(next && next.origin?.name===l.destination?.name){ node.dep=next.departure||null; node.pdep=next.plannedDeparture||null; }
-    nodes.push(node);
-  }
-  nodes[nodes.length-1].type='end';
-
-  const merged=[];
-  for(const n of nodes){
-    const last=merged[merged.length-1];
-    if(last && last.name===n.name){
-      last.arr   = last.arr   || n.arr;
-      last.parr  = last.parr  || n.parr;
-      last.dep   = last.dep   || n.dep;
-      last.pdep  = last.pdep  || n.pdep;
-      last.product = last.product || n.product;
-      if(n.type==='end') last.type='end';
-    } else {
-      merged.push({...n});
-    }
-  }
-  const use=merged;
-
-  return use.map(n=>{
-    let right='';
-    if(n.type==='start'){
-      const c=cls(n.dep,n.pdep);
-      right=`<span class="${c}"><span class="actual">${fmt(n.dep)}</span>${plannedIfDiff(n.dep,n.pdep)}</span>`;
-    }else if(n.type==='end'){
-      const c=cls(n.arr,n.parr);
-      right=`<span class="${c}"><span class="actual">${fmt(n.arr)}</span>${plannedIfDiff(n.arr,n.parr)}</span>`;
-    }else{
-      const c1=cls(n.arr,n.parr), c2=cls(n.dep,n.pdep);
-      const wait=(n.arr&&n.dep)?Math.max(0,Math.round((new Date(n.dep)-new Date(n.arr))/60000)):null;
-
-      if(n.arr && n.dep && sameMinute(n.arr,n.dep)){
-        right=`<span class="tl-meta ${c1}"><span class="actual">${fmt(n.arr)}</span>${plannedIfDiff(n.arr,n.parr)}</span>`;
-      } else if(n.arr && n.dep){
-        const range=
-          `<span class="${c1}"><span class="actual">${fmt(n.arr)}</span>${plannedIfDiff(n.arr,n.parr)}</span>
-           ▸
-           <span class="${c2}"><span class="actual">${fmt(n.dep)}</span>${plannedIfDiff(n.dep,n.pdep)}</span>`;
-        right=`<span class="tl-meta">${range}</span>${(wait&&wait>0)?` <span class="tl-meta">• <i class="fa-solid fa-pause"></i> ${wait}′</span>`:''}`;
-      } else if(n.arr){
-        right=`<span class="tl-meta ${c1}"><span class="actual">${fmt(n.arr)}</span>${plannedIfDiff(n.arr,n.parr)}</span>`;
-      } else if(n.dep){
-        right=`<span class="tl-meta ${c2}"><span class="actual">${fmt(n.dep)}</span>${plannedIfDiff(n.dep,n.pdep)}</span>`;
-      } else {
-        right=`<span class="tl-meta">—</span>`;
-      }
-    }
-    return `<div class="tl-ico">${ico(n)}</div><div class="tl-stop">${n.name}</div><div style="text-align:right">${right}</div>`;
-  }).join('');
-}
-
-/* ========= Journeys Renderer ========= */
-function renderJourneysInto(containerId, list, aToB){
-  const wrap=document.getElementById(containerId); 
-  wrap.innerHTML='';
-  const journeys=list?.journeys||[];
-  if(!journeys.length){
-    wrap.innerHTML=`<div class="card">Keine Verbindungen gefunden.</div>`;
-    return;
-  }
-  for(const j of journeys){
-    const legs=j.legs||[]; const dep=j.departure||legs[0]?.departure; const arr=j.arrival||legs[legs.length-1]?.arrival;
-    const changes=Math.max(0, legs.filter(l=>l.line).length - 1); const dur=isoDurToHuman(j.duration,dep,arr);
-    let delay=0; const l0=legs.find(l=>!!l.departure); if(l0&&l0.plannedDeparture&&l0.departure) delay=Math.round((new Date(l0.departure)-new Date(l0.plannedDeparture))/60000);
-    const chipDelay=(delay!==0)?`<span class="chip" style="color:${delay>0?'var(--bad)':'var(--ok)'}"><i class="fa-solid fa-clock-rotate-left"></i> ${delay>0?`+${delay}`:delay}′</span>`:'';
-    const chips=legs.filter(l=>l.line).map(l=>`<span class="chip line-chip" style="--line-color:${lineColor(l.line?.name||l.mode||'')}">${iconForProduct(l.line?.product,l.mode)} ${l.line?.name||l.mode||''}</span>`).join('');
-
-    const offsetMin = aToB ? 5 : 13;
-    const leaveTime = new Date(new Date(dep).getTime() - offsetMin*60000);
-
-    const subText = aToB ? 'Sophie-Scholl-Schule → Frankfurt(Main) Hbf'
-                         : 'Frankfurt(Main) Hbf → Sophie-Scholl-Schule';
-
-    const el=document.createElement('div'); el.className='card';
-let __d=(typeof delay==='number')?delay:0;
-if (typeof delay==='number'){
-  if (__d<=-1){ el.classList.add('is-early'); }
-  else if (__d>=10){ el.classList.add('is-late-10'); }
-  else if (__d>=5){ el.classList.add('is-late-5'); }
-  else if (__d>=1){ el.classList.add('is-late-1'); }
-}
-    el.innerHTML=`
-      <div class="leave-badge" title="Zeit zum Loslaufen">
-        <i class="fa-solid fa-person-walking" aria-hidden="true"></i>
-        <span class="leave-time">${fmtHM(leaveTime)}</span>
-      </div>
-
-      <div class="row">
-        <div class="time">${fmtHM(dep)}</div>
-        <div class="sep">→</div>
-        <div class="time">${fmtHM(arr)}</div>
-        <span class="chip"><i class="fa-regular fa-clock"></i> ${dur}</span>
-        <span class="chip"><i class="fa-solid fa-right-left"></i> ${changes}</span>
-        ${chipDelay}
-      </div>
-
-      <div class="row" style="gap:8px; margin-top:8px">${chips || '<span class="chip"><i class="fa-solid fa-person-walking"></i> Fußweg</span>'}</div>
-      <div class="timeline">${buildTimeline(legs)}</div>
-      <div class="sub">${subText}</div>
-    `;
-    
-  // Make line chips clickable to open the trip modal
-  el.querySelectorAll('.line-chip').forEach(ch=>{
-    ch.classList.add('clickable');
-    ch.tabIndex = 0;
-    ch.addEventListener('click', ()=>{
-      try{ window.__openTripModal(j, { color: getComputedStyle(ch).getPropertyValue('--line-color') }); }catch(e){ console.error(e); }
-    });
-    ch.addEventListener('keydown', (e)=>{ if(e.key==='Enter' || e.key===' ') { e.preventDefault(); ch.click(); } });
-  });
-  wrap.appendChild(el);
-
-  }
-
-}
-
-/* ========= Departures Renderer ========= */
-function normalizeDepartures(raw){ if(Array.isArray(raw)) return raw; if(raw?.departures) return raw.departures; return [] }
-function deltaClass(m){ if(m>0) return 'late'; if(m<0) return 'early'; return 'ontime' }
-
-function renderDeparturesInto(containerId, deps, mode){
-  const box=document.getElementById(containerId); box.innerHTML='';
-  if(!deps.length){ box.innerHTML=`<div class="hint">Keine passenden Abfahrten.</div>`; return; }
-  for(const d of deps){
-    const line=d.line?.name||d.line?.id||'–';
-    const dir = mode==='home' ? 'Sophie-Scholl-Schule, Gießen' : prettyStop(d.direction||d.destination||'–');
-    const origin = (mode==='home') ? (d.originLabel||'–') : null;
-    const pl=d.platform||d.prognosedPlatform||d.plannedPlatform||'–';
-    const tPl=d.plannedWhen||d.when||d.scheduledWhen, tRt=d.prognosedWhen||d.when||null;
-    let deltaTxt='–', cls='ontime'; if(tPl&&tRt){ const m=Math.round((new Date(tRt)-new Date(tPl))/60000); deltaTxt=(m>0?`+${m}`:m)+'′'; cls=deltaClass(m); }
-    const color=lineColor(line);
-    const row=document.createElement('div'); row.className='row-item';
-    row.innerHTML = (mode==='home')
-      ? `
-        <div>${tRt?fmtHM(tRt):(tPl?fmtHM(tPl):'–')}</div>
-        <div class="col-plan">${tPl?fmtHM(tPl):'–'}</div>
-        <div>${origin}</div>
-        <div><span class="chip line-chip" style="--line-color:${color}">${iconForProduct(d.line?.product,d.line?.mode)} ${line}</span></div>
-        <div class="col-steig">–</div>
-        <div class="delta ${cls}">${deltaTxt}</div>`
-      : `
-        <div>${tRt?fmtHM(tRt):(tPl?fmtHM(tPl):'–')}</div>
-        <div class="col-plan">${tPl?fmtHM(tPl):'–'}</div>
-        <div><span class="chip line-chip" style="--line-color:${color}">${iconForProduct(d.line?.product,d.line?.mode)} ${line}</span></div>
-        <div>${dir}</div>
-        <div class="col-steig">${pl}</div>
-        <div class="delta ${cls}">${deltaTxt}</div>`;
-    box.appendChild(row);
-  }
-  animateStagger('#'+containerId+' .row-item');
-  addSpringyPress(box);
-}
-
-/* ========= Loaders ========= */
-async function ensureIds(){
-  if(!ids.school)     ids.school     = await findStopId(Q_SCHOOL, /(sophie|scholl).*(gie(s|ß)en)/i);
-  if(!ids.ffm)        ids.ffm        = await findStopId(Q_FFMHBF, /(frankfurt).*(hbf)/i);
-  if(!ids.friedr)     ids.friedr     = await findStopId(Q_FRIEDR, /(friedrichs?tra(ß|ss)e).*(gie(s|ß)en)/i);
-  if(!ids.giessenBhf) ids.giessenBhf = await findStopId(Q_GIESSEN, /(gie(s|ß)en).*(bahnhof|hbf)/i);
-}
-
-function gridCols(){ const w=window.innerWidth; if(w>=1800) return 4; if(w>=1440) return 3; if(w>=1000) return 2; return 1; }
-function desiredCardsForCols(cols){ return cols===1?4:(cols===2?6:(cols===3?6:8)); }
-
-function filterByTimeWindow(journeys, minutes){
-  const now=Date.now(), limit=now+minutes*60000;
-  return (journeys||[]).filter(j=>{
-    const t=j.departure || j.legs?.[0]?.departure || j.legs?.[0]?.plannedDeparture;
-    if(!t) return false;
-    const ts=new Date(t).getTime();
-    return ts>=now && ts<=limit;
-  });
-}
-
-function showRouteSkeleton(count){
-  const wrap=document.getElementById('cards');
-  const n=Math.max(1, count|0);
-  const blocks = Array.from({length:n}).map(()=>`
-    <div class="card skeleton">
-      <div class="s-row s-w40"></div>
-      <div class="s-chip"></div>
-      <div class="s-chip"></div>
-      <div class="s-row s-w70"></div>
-      <div class="s-timeline"></div>
-    </div>`).join('');
-  wrap.innerHTML = blocks;
-}
-function showTableSkeleton(containerId, rows){
-  const box=document.getElementById(containerId);
-  const n=Math.max(3, rows|0);
-  box.innerHTML = Array.from({length:n}).map(()=>`
-    <div class="row-item skeleton">
-      <div class="s-row s-w40"></div>
-      <div class="s-row s-w30"></div>
-      <div class="s-row s-w60"></div>
-      <div class="s-row s-w50"></div>
-      <div class="s-row s-w20 hide-sm"></div>
-      <div class="s-row s-w20 hide-sm"></div>
-    </div>`).join('');
-}
-
-async function loadRoute(aToB=true){
-  try{
-    await ensureIds();
-    const cols=gridCols();
-    showRouteSkeleton(desiredCardsForCols(cols));
-
-    const from=aToB?ids.school:ids.ffm, to=aToB?ids.ffm:ids.school;
-    const desired=desiredCardsForCols(cols);
-    const results = 80;
-    const data=await fetchJSON(`${API}/journeys?from=${from}&to=${to}&results=${results}&stopovers=true&language=de`);
-    const all=(data.journeys||[]).filter(j=>{
-      const t=j.departure || j.legs?.[0]?.departure || j.legs?.[0]?.plannedDeparture;
-      return t && new Date(t).getTime()>=Date.now();
-    });
-
-    let visible=[];
-    if(!routeLongMode){
-      visible = all.slice(0, desired);
-      document.getElementById('noJourneys').style.display = visible.length? 'none':'block';
-      document.getElementById('moreInfo').textContent = '';
-    }else{
-      const within=filterByTimeWindow(all, routeWindowMin);
-      visible = within.length ? within : [];
-      document.getElementById('noJourneys').style.display = within.length? 'none':'block';
-      document.getElementById('moreInfo').textContent = within.length ? `Zeitraum: jetzt bis +${routeWindowMin} min, Treffer: ${within.length}` : `Keine Verbindungen bis +${routeWindowMin} min.`;
-    }
-
-    renderJourneysInto('cards', {journeys: visible}, aToB);
-  }catch(e){
-    document.getElementById('cards').innerHTML=`<div class="card">Fehler: ${e.message}</div>`;
-  }
-}
-
-async function loadInbound(){
-  try{
-    await ensureIds();
-    showTableSkeleton('rows', 6);
-    const deps=normalizeDepartures(await fetchJSON(`${API}/stops/${ids.school}/departures?duration=120&language=de`));
-    const filtered=deps.filter(d=>!EXCLUDE_DIRECTIONS.some(rx=>rx.test(String(d.direction||d.destination||''))));
-    renderDeparturesInto('rows', filtered, 'in');
-  }catch(e){ document.getElementById('rows').innerHTML=`<div class="hint" style="color:var(--bad)">${e.message}</div>`; }
-}
-
-async function loadHomebound(){
-  try{
-    await ensureIds();
-    showTableSkeleton('rows-home', 6);
-    const [depsBhf,depsFriedr]=await Promise.all([
-      fetchJSON(`${API}/stops/${ids.giessenBhf}/departures?duration=120&language=de`),
-      fetchJSON(`${API}/stops/${ids.friedr}/departures?duration=120&language=de`)
-    ]);
-    function pick(rows, srcLabel, rxLine){
-      for(const d of normalizeDepartures(rows)){
-        const lineName=d.line?.name||'';
-        const dir=(d.direction||d.destination||'').toLowerCase();
-        if(!rxLine.test(lineName)) continue;
-        if(!/sophie.*scholl.*schule/.test(dir)) continue;
-        out.push({
-          originLabel:srcLabel,
-          line:{name:lineName, product:d.line?.product, mode:d.line?.mode},
-          when:d.when||d.prognosedWhen||d.plannedWhen,
-          plannedWhen:d.plannedWhen||d.when,
-          prognosedWhen:d.prognosedWhen||d.when,
-          platform:d.platform||d.prognosedPlatform||d.plannedPlatform||'–'
-        });
-      }
-    }
-    const out=[];
-    pick(depsBhf, 'Gießen Bahnhof', /\b(17|Bus\s*17)\b/i);
-    pick(depsFriedr,'Friedrichstraße, Gießen', /\b(1|Bus\s*1)\b/i);
-
-    out.sort((a,b)=>new Date(a.when||a.plannedWhen)-new Date(b.when||b.plannedWhen));
-    const unique=[], seen=new Set();
-    for(const r of out){
-      const k=(r.originLabel||'')+'|'+(r.line?.name||'')+'|'+(r.when||r.plannedWhen);
-      if(!seen.has(k)){ seen.add(k); unique.push(r); }
-    }
-    renderDeparturesInto('rows-home', unique.slice(0,30), 'home');
-    if(unique.length===0){
-      document.getElementById('rows-home').innerHTML=`<div class="hint">Keine passenden Abfahrten in den nächsten 120 Minuten.</div>`;
-    }
-  }catch(e){
-    document.getElementById('rows-home').innerHTML=`<div class="hint" style="color:var(--bad)">${e.message}</div>`;
-  }
-}
-
-/* ========= Tabs / Refresh ========= */
-function setTabs(tab){
-  activeTab=tab;
-  routeLongMode=false;
-  routeWindowMin=60;
-
-  document.querySelectorAll('.tab').forEach(a=>{
-    const act=a.getAttribute('href')==='#'+tab; a.classList.toggle('active',act); a.setAttribute('aria-selected',String(act));
-  });
-  document.getElementById('view-route').hidden=!(tab==='route-a'||tab==='route-b');
-  document.getElementById('view-abfahrten').hidden=(tab!=='abfahrten');
-  document.getElementById('view-homebound').hidden=(tab!=='homebound');
-  updateTabIndicator();
-}
-function startRefresh(){
-  if(timer) clearInterval(timer);
-  if(activeTab==='abfahrten'){
-    setFooter(REFRESH_DEPS_MS); loadInbound();  timer=setInterval(loadInbound,REFRESH_DEPS_MS);
-  } else if(activeTab==='homebound'){
-    setFooter(REFRESH_DEPS_MS); loadHomebound(); timer=setInterval(loadHomebound,REFRESH_DEPS_MS);
-  } else {
-    const aToB=(activeTab==='route-a');
-    setFooter(REFRESH_ROUTE_MS); loadRoute(aToB); timer=setInterval(()=>loadRoute(aToB), REFRESH_ROUTE_MS);
-  }
-}
-function handleHash(){
-  const h=(location.hash||'#route-a').replace('#','');
-  const ok=['route-a','route-b','abfahrten','homebound'];
-  setTabs(ok.includes(h)?h:'route-a'); startRefresh();
-}
-window.addEventListener('hashchange',handleHash);
-document.querySelectorAll('#tabsInline .tab').forEach(a=>a.addEventListener('click',e=>{e.preventDefault(); history.replaceState(null,'',a.getAttribute('href')); handleHash();}));
-
-const moreBtn=document.getElementById('moreBtn');
-const moreInfo=document.getElementById('moreInfo');
-moreBtn.addEventListener('click', async ()=>{
-  if(!(activeTab==='route-a'||activeTab==='route-b')) return;
-  routeLongMode=true;
-  routeWindowMin += 60;
-  const aToB=(activeTab==='route-a');
-  if(timer) clearInterval(timer);
-  const prev=moreBtn.innerHTML; moreBtn.disabled=true; moreBtn.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i> Lädt…';
-  try{ await loadRoute(aToB); } finally {
-    moreBtn.disabled=false; moreBtn.innerHTML=prev;
-    timer=setInterval(()=>loadRoute(aToB), REFRESH_ROUTE_MS);
-  }
-});
-
-(function init(){ handleHash(); })();
-window.addEventListener('resize', ()=>{
-  if(activeTab==='route-a'||activeTab==='route-b') loadRoute(activeTab==='route-a');
-  updateTabIndicator();
-});
-window.addEventListener('scroll', ()=>{
-  const scrolled = (window.scrollY||document.documentElement.scrollTop) > 2;
-  document.body.classList.toggle('scrolled', scrolled);
-});
-</script>
-<script id="trip-modal-js">
-(function(){
-  const $ = (sel, root=document)=>root.querySelector(sel);
-  const $$ = (sel, root=document)=>Array.from(root.querySelectorAll(sel));
-  const modal = $('#tripModal');
-  const bar = $('#tripColorBar');
-  const titleEl = $('#tripTitle');
-  const metaLeft = $('#tripMetaLeft');
-  const stopGrid = $('#stopGrid');
-  const opsBox = $('#tripOps');
-  const opsList = $('#opsList');
-  const closeBtn = $('#tripClose');
-
+  
   function plannedIfDiff(actual, planned){
     if(!actual || !planned) return '';
     const a=new Date(actual), p=new Date(planned);
@@ -662,12 +284,27 @@ window.addEventListener('scroll', ()=>{
     return m>0?'late':(m<0?'early':'');
   }
   function rowTimeCell(arr, parr, dep, pdep){
-    // If arrival and departure are in the same minute, show it once
     function sameMinute(a,b){
       if(!a||!b) return false;
       const A=new Date(a), B=new Date(b);
       return A.getHours()===B.getHours() && A.getMinutes()===B.getMinutes();
     }
+    if(arr && dep && sameMinute(arr,dep)){
+      const cls=timeClass(arr,parr);
+      return `<div class="t-time ${cls}"><span class="actual">${fmtHM(arr)}</span>${plannedIfDiff(arr,parr)}</div>`;
+    }
+    let bits=[];
+    if(arr){
+      const cls=timeClass(arr,parr);
+      bits.push(`<div class="t-time ${cls}"><span class="label">An</span><span class="actual">${fmtHM(arr)}</span>${plannedIfDiff(arr,parr)}</div>`);
+    }
+    if(dep){
+      const cls=timeClass(dep,pdep);
+      bits.push(`<div class="t-time ${cls}"><span class="label">Ab</span><span class="actual">${fmtHM(dep)}</span>${plannedIfDiff(dep,pdep)}</div>`);
+    }
+    if(bits.length===0) bits.push(`<div class="t-time">—</div>`);
+    return bits.join('');
+  }
     if(arr && dep && sameMinute(arr,dep)){
       const cls=timeClass(arr,parr);
       return `<div class="t-time ${cls}"><span class="actual">${fmtHM(arr)}</span>${plannedIfDiff(arr,parr)}</div>`;
@@ -853,11 +490,15 @@ window.addEventListener('scroll', ()=>{
     // show
     modal.hidden = false;
     document.body.style.overflow='hidden';
+    if(__tripProgressTimer) clearInterval(__tripProgressTimer);
+    __tripProgressTimer = setInterval(()=>setProgress(), 20000);
   }
 
+  let __tripProgressTimer=null;
   function close(){
     modal.hidden = true;
     document.body.style.overflow='';
+    if(__tripProgressTimer) { clearInterval(__tripProgressTimer); __tripProgressTimer=null; }
   }
   closeBtn.addEventListener('click', close);
   $('[data-close]', modal).addEventListener('click', close);
