@@ -813,36 +813,54 @@ window.addEventListener('scroll', ()=>{
 </script>
 
 
-<!-- === Trip Detail Modal === -->
+
+<!-- === Trip Detail Modal (Premium) === -->
 <div id="tripModal" class="modal" hidden>
   <div class="modal-backdrop" data-close></div>
-  <div class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="tripTitle">
-    <div class="modal-head">
-      <h3 id="tripTitle">Fahrtdetails</h3>
-      <button class="modal-close pressy" aria-label="Schließen" data-close><i class="fa-solid fa-xmark"></i></button>
+  <div class="modal-panel trip-panel" role="dialog" aria-modal="true" aria-labelledby="tripTitle">
+    <div class="trip-head">
+      <div class="trip-line">
+        <span class="line-pill" id="tripLinePill">—</span>
+      </div>
+      <div class="trip-center">
+        <div class="trip-dest" id="tripDest">Fahrtdetails</div>
+        <div class="trip-meta-row" id="tripMetaRow">—</div>
+      </div>
+      <button class="modal-close pressy" aria-label="Schließen" data-close>
+        <i class="fa-solid fa-xmark"></i>
+      </button>
     </div>
-    <div id="tripContent" class="modal-body">Lade …</div>
+    <div class="modal-body trip-body">
+      <div id="tripInfo"></div>
+      <div id="tripContent" class="trip-scroll">Lade …</div>
+    </div>
   </div>
 </div>
 
 <script>
-/* ===== Trip Detail + RIS (robust click delegation) ===== */
+/* ===== Trip Detail (Premium) + RIS + Full Trip fetch ===== */
 (function(){
+  const API = (typeof window.API !== 'undefined') ? window.API : 'https://v6.db.transport.rest';
   const $ = (s,el=document)=>el.querySelector(s);
-  const $$ = (s,el=document)=>Array.from(el.querySelectorAll(s));
-
-  // Modal helpers
-  const modal = document.getElementById('tripModal');
-  const modalBody = document.getElementById('tripContent');
-  function openModal(html){ modalBody.innerHTML = html; modal.hidden = false; }
-  function closeModal(){ modal.hidden = true; }
-  modal.addEventListener('click', (e)=>{ if(e.target.matches('[data-close], .modal-backdrop')) closeModal(); });
-  window.addEventListener('keydown', (e)=>{ if(e.key==='Escape' && !modal.hidden) closeModal(); });
-
-  // Utils
+  const $$= (s,el=document)=>Array.from(el.querySelectorAll(s));
   const fmtHM = (d)=>{ try{ return d? new Date(d).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'}) : '—'; }catch(_){ return '—'; } };
   const dmin  = (a,p)=> (a&&p)? Math.round((new Date(a)-new Date(p))/60000) : 0;
   const dcls  = (m)=> m>0? 'late' : (m<0? 'early' : 'ontime');
+  const escape = (s)=> (s||'').toString().replace(/[&<>"]/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c]));
+  
+  // Modal elms
+  const modal = document.getElementById('tripModal');
+  const info  = document.getElementById('tripInfo');
+  const content = document.getElementById('tripContent');
+  const titleEl = document.getElementById('tripTitle'); // legacy id (not used for premium title)
+  const destEl  = document.getElementById('tripDest');
+  const pillEl  = document.getElementById('tripLinePill');
+  const metaRow = document.getElementById('tripMetaRow');
+
+  function openModal(){ modal.hidden = false; }
+  function closeModal(){ modal.hidden = true; }
+  modal.addEventListener('click', (e)=>{ if(e.target.matches('[data-close], .modal-backdrop')) closeModal(); });
+  window.addEventListener('keydown', (e)=>{ if(e.key==='Escape' && !modal.hidden) closeModal(); });
 
   function risIcon(t=''){
     const T=t.toLowerCase();
@@ -850,6 +868,32 @@ window.addEventListener('scroll', ()=>{
     if(T.includes('disruption') || T.includes('disturbance') || T.includes('fault')) return 'fa-triangle-exclamation';
     if(T.includes('warning')) return 'fa-circle-exclamation';
     return 'fa-circle-info';
+  }
+
+  function chip(html){ return `<span class="chip">${html}</span>`; }
+
+  function buildMeta(journey, leg){
+    const dep = leg?.departure || journey?.departure;
+    const arr = leg?.arrival || journey?.arrival;
+    const durMin = dep && arr ? Math.max(1, Math.round((new Date(arr)-new Date(dep))/60000)) : null;
+    const changes = Math.max(0, (journey?.legs||[]).filter(l=>l.line).length - 1);
+    const parts = [];
+    if(dep&&arr&&durMin) parts.push(`${fmtHM(dep)} → ${fmtHM(arr)} · ${durMin} min`);
+    parts.push(`${changes} Umst.`);
+    return parts.join(' · ');
+  }
+
+  function pickFeatures(remarks){
+    const out=[];
+    for(const r of (remarks||[])){
+      const t = (r.summary||'').toLowerCase();
+      if(/wifi|wlan/.test(t)) out.push(chip('<i class="fa-solid fa-wifi"></i> WLAN'));
+      if(/air-?conditioned|klima/.test(t)) out.push(chip('<i class="fa-solid fa-snowflake"></i> Klima'));
+      if(/bicycle|fahrrad/.test(t)) out.push(chip('<i class="fa-solid fa-person-biking"></i> Fahrrad'));
+      if(/ramp|einstiegshilfe|barrier-?free|barriere/.test(t)) out.push(chip('<i class="fa-solid fa-wheelchair"></i> Einstiegshilfe'));
+      if(/toilet|wc/.test(t)) out.push(chip('<i class="fa-solid fa-toilet"></i> WC'));
+    }
+    return out.join('');
   }
 
   function buildRIS(remarks){
@@ -860,103 +904,105 @@ window.addEventListener('scroll', ()=>{
       if(seen.has(key)) return false; seen.add(key); return true;
     }).map(r=>{
       const icon = risIcon(r?.type || r?.category || r?.priority || '');
-      const title = r?.summary || r?.title || r?.code || 'Hinweis';
-      const text  = r?.text || '';
+      const title = escape(r?.summary || r?.title || r?.code || 'Hinweis');
+      const text  = escape(r?.text || '');
       return `<li class="ris-item"><i class="fa-solid ${icon}" aria-hidden="true"></i><div class="ris-text"><div class="ris-title">${title}</div>${text?`<div class="ris-desc">${text}</div>`:''}</div></li>`;
     }).join('');
     return `<div class="trip-ris"><div class="trip-section-title"><i class="fa-solid fa-bolt"></i> Betriebsinfos</div><ul class="ris-list">${items}</ul></div>`;
   }
 
-  function buildTripHTML(journey, leg){
+  function rowHTML(s){
+    const aC = dcls(dmin(s.arrival, s.plannedArrival));
+    const dC = dcls(dmin(s.departure, s.plannedDeparture));
+    const t  = (s.arrival && s.departure)
+      ? `<span class="${aC} time">${fmtHM(s.arrival)}${s.plannedArrival?` <span class="planned">(${fmtHM(s.plannedArrival)})</span>`:''}</span> ▸ <span class="${dC} time">${fmtHM(s.departure)}${s.plannedDeparture?` <span class="planned">(${fmtHM(s.plannedDeparture)})</span>`:''}</span>`
+      : (s.arrival
+        ? `<span class="${aC} time">${fmtHM(s.arrival)}${s.plannedArrival?` <span class="planned">(${fmtHM(s.plannedArrival)})</span>`:''}</span>`
+        : (s.departure
+          ? `<span class="${dC} time">${fmtHM(s.departure)}${s.plannedDeparture?` <span class="planned">(${fmtHM(s.plannedDeparture)})</span>`:''}</span>`
+          : '—'));
+    const platform = s.platform || s.prognosedPlatform || s.plannedPlatform || '—';
+    const name = escape(s.stop?.name || s.station?.name || '—');
+    const clsNow = isNowBetween(s) ? ' now' : '';
+    return `<div class="row${clsNow}"><div class="rail"><span class="dot"></span></div><div class="time">${t}</div><div class="stop">${name}</div><div class="plat">${platform?('Gl. '+platform):'—'}</div></div>`;
+  }
+
+  function isNowBetween(s){
+    try{
+      const now = Date.now();
+      const a = s.arrival ? new Date(s.arrival).getTime() : null;
+      const d = s.departure ? new Date(s.departure).getTime() : null;
+      if(a && d) return now>=a && now<=d;
+      if(d) return Math.abs(now-d) < 60*1000;
+      if(a) return Math.abs(now-a) < 60*1000;
+      return false;
+    }catch(_){ return false; }
+  }
+
+  async function tryFetchFullTrip(leg){
+    const id = leg?.tripId || leg?.id || leg?.trip?.id || null;
+    if(!id) return null;
+    try{
+      const res = await fetch(`${API}/trips/${encodeURIComponent(id)}?stopovers=true&language=de`);
+      if(!res.ok) return null;
+      return await res.json();
+    }catch(_){ return null; }
+  }
+
+  function renderTrip(journey, leg, fullTrip){
     const lineName = leg?.line?.name || leg?.mode || '';
     const product  = (leg?.line?.product || leg?.mode || '').toUpperCase();
-    const title    = [product, lineName].filter(Boolean).join(' ');
+    const dest     = leg?.direction || journey?.to?.name || '';
+    destEl.textContent = dest || 'Fahrtdetails';
+    pillEl.textContent = [product, lineName].filter(Boolean).join(' ');
+    const meta = buildMeta(journey, leg);
+    metaRow.textContent = meta;
 
-    const stopovers = leg?.stopovers || [];
-    const rows = stopovers.map(s=>{
-      const aC = dcls(dmin(s.arrival, s.plannedArrival));
-      const dC = dcls(dmin(s.departure, s.plannedDeparture));
-      const t  = (s.arrival && s.departure)
-        ? `<span class="${aC} time">${fmtHM(s.arrival)}${s.plannedArrival?` <span class="planned">(${fmtHM(s.plannedArrival)})</span>`:''}</span> ▸ <span class="${dC} time">${fmtHM(s.departure)}${s.plannedDeparture?` <span class="planned">(${fmtHM(s.plannedDeparture)})</span>`:''}</span>`
-        : (s.arrival
-          ? `<span class="${aC} time">${fmtHM(s.arrival)}${s.plannedArrival?` <span class="planned">(${fmtHM(s.plannedArrival)})</span>`:''}</span>`
-          : (s.departure
-            ? `<span class="${dC} time">${fmtHM(s.departure)}${s.plannedDeparture?` <span class="planned">(${fmtHM(s.plannedDeparture)})</span>`:''}</span>`
-            : '—'));
-      const platform = s.platform || s.prognosedPlatform || s.plannedPlatform || '—';
-      const name = s.stop?.name || s.station?.name || '—';
-      return `<div class="row"><div class="time">${t}</div><div class="stop">${name}</div><div class="plat">${platform?('Gl. '+platform):'—'}</div></div>`;
-    }).join('');
+    // Build info row with features and delay
+    const remarksRaw = [...(journey?.remarks||[]), ...(leg?.remarks||[]), ...((fullTrip?.remarks)||[])].filter(Boolean);
+    const featureChips = pickFeatures(remarksRaw);
+    const delayMinutes = dmin(leg?.departure, leg?.plannedDeparture);
+    const delayChip = delayMinutes ? chip(`<i class="fa-solid fa-clock-rotate-left"></i> ${delayMinutes>0?`+${delayMinutes}`:delayMinutes}′`) : '';
+    info.innerHTML = featureChips ? `<div class="feature-chips">${delayChip}${featureChips}</div>` : (delayChip ? `<div class="feature-chips">${delayChip}</div>` : '');
 
-    const remarks = [...(journey?.remarks||[]), ...(leg?.remarks||[])].filter(Boolean);
-    return `
-      <div class="trip-meta">
-        <span class="chip line-chip clickable">${title||'Linie'}</span>
-        ${leg?.direction ? `<span class="chip">${leg.direction}</span>` : ''}
-      </div>
-      ${buildRIS(remarks)}
-      <div class="trip-stops">
-        <div class="hdr">Zeit</div><div class="hdr">Station</div><div class="hdr plat">Gleis</div>
-        ${rows || '<div style="grid-column:1/-1" class="hint">Keine Stopps verfügbar.</div>'}
-      </div>`;
+    // Stopovers (prefer full trip)
+    const stops = (fullTrip?.stopovers && fullTrip.stopovers.length) ? fullTrip.stopovers : (leg?.stopovers || []);
+    const header = `<div class="trip-stops sticky"><div class="hdr rail-h"></div><div class="hdr">Zeit</div><div class="hdr">Station</div><div class="hdr plat">Gleis</div></div>`;
+    const rows = stops.map(rowHTML).join('');
+    const ris = buildRIS(remarksRaw);
+    content.innerHTML = `${ris}<div class="trip-stops scroll">${header}${rows || '<div style="grid-column:1/-1" class="hint">Keine Stopps verfügbar.</div>'}</div>`;
   }
 
-  // Map clicked chip to its leg index among legs with a line
-  function getLegForChip(card, chip){
-    const j = card?.__journey; if(!j) return null;
-    const legs = j.legs || [];
-    // index of chip among visible chips in this card
+  // Global delegation (capture) for .line-chip clicks
+  document.addEventListener('click', async (ev)=>{
+    const chip = ev.target.closest?.('.line-chip');
+    if(!chip) return;
+    const card = chip.closest('.card'); if(!card || !card.__journey) return;
+    const j = card.__journey;
+    // Find leg index mapping to chip index
     const chips = Array.from(card.querySelectorAll('.line-chip'));
     const idx = chips.indexOf(chip);
-    if(idx < 0) return null;
-    let k = -1;
-    for(let i=0;i<legs.length;i++){
-      if(legs[i] && legs[i].line){ k++; if(k===idx) return legs[i]; }
-    }
-    return null;
-  }
-
-  // Make chips keyboard focusable after each render
-  const cardsRoot = document.getElementById('cards');
-  if(cardsRoot){
-    const markChips = ()=>{
-      cardsRoot.querySelectorAll('.line-chip').forEach(el=>{
-        if(!el.hasAttribute('tabindex')) el.setAttribute('tabindex','0');
-        el.setAttribute('role','button');
-        el.classList.add('clickable');
-      });
-    };
-    // Initial + on changes
-    markChips();
-    const mo = new MutationObserver(markChips);
-    mo.observe(cardsRoot, {childList:true, subtree:true});
-  }
-
-  // Global click handler (capture) – works even if inner elements stop propagation
-  document.addEventListener('click', (ev)=>{
-    let chip = ev.target.closest ? ev.target.closest('.line-chip') : null;
-    if(!chip && ev.composedPath){
-      for(const n of ev.composedPath()){
-        if(n && n.nodeType===1 && n.matches && n.matches('.line-chip')){ chip=n; break; }
-      }
-    }
-    if(!chip) return;
-    const card = chip.closest('.card');
-    if(!card || !card.__journey) return;
-    const leg = getLegForChip(card, chip);
+    let k=-1, leg=null;
+    for(const L of (j.legs||[])){ if(L && L.line){ k++; if(k===idx){ leg=L; break; } } }
     if(!leg) return;
-    const j = card.__journey;
-    document.getElementById('tripTitle').textContent = `Fahrtdetails – ${(leg?.line?.product||leg?.mode||'').toUpperCase()} ${leg?.line?.name||leg?.mode||''}`.trim();
-    openModal(buildTripHTML(j, leg));
+    // Open with skeleton fast, then try to enrich with full trip
+    content.innerHTML = '<div class="skeleton"><div class="bar"></div><div class="bar"></div><div class="bar w50"></div></div>';
+    info.innerHTML = '';
+    destEl.textContent = leg?.direction || 'Fahrtdetails';
+    pillEl.textContent = ((leg?.line?.product||leg?.mode||'').toUpperCase() + ' ' + (leg?.line?.name||leg?.mode||'')).trim();
+    metaRow.textContent = 'Lade Fahrtdaten …';
+    openModal();
+    const fullTrip = await tryFetchFullTrip(leg);
+    renderTrip(j, leg, fullTrip);
   }, true);
 
-  // Keyboard: open with Enter when focusing a chip
-  document.addEventListener('keydown', (e)=>{
-    if(e.key==='Enter'){
-      const el = document.activeElement;
-      if(el && el.classList && el.classList.contains('line-chip')) el.click();
-    }
-  });
+  // Make chips focusable
+  const cardsRoot = document.getElementById('cards');
+  if(cardsRoot){
+    const mark = ()=>{ cardsRoot.querySelectorAll('.line-chip').forEach(el=>{ el.tabIndex=0; el.setAttribute('role','button'); el.classList.add('clickable'); }); };
+    mark();
+    new MutationObserver(mark).observe(cardsRoot, {childList:true, subtree:true});
+  }
 })();
 </script>
 
