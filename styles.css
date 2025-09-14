@@ -438,7 +438,8 @@ html, body{
 .card.is-late-5 .timeline{ border-color: color-mix(in oklab, var(--rule, #0000) 60%, var(--tone-caut) 40%); }
 .card.is-late-10 .timeline{ border-color: color-mix(in oklab, var(--rule, #0000) 60%, var(--tone-danger) 40%); }
 
-/* === Pin control for route cards === */
+
+/* === Pin control for route cards (injected) === */
 .card{ position:relative; }
 
 .pin-btn{
@@ -464,12 +465,10 @@ html, body{
 
 .card.pinned{ outline: 2px dashed color-mix(in oklab, var(--accent) 60%, #fff 40%); outline-offset: 2px }
 
-/* On touch devices: keep the pin visible so users can tap it */
 @media (hover: none){
   .pin-btn{ opacity:.9; }
 }
 
-/* Pinned-only toggle visual */
 #pinnedToggle[aria-pressed="true"]{
   color: var(--accent);
   border-color: color-mix(in oklab, var(--pill-border) 40%, var(--accent) 60%);
