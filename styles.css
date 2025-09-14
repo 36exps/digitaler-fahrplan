@@ -575,3 +575,67 @@ html, body{
   .trip-stops .row{grid-template-columns:20px 100px 1fr}
   .trip-stops .plat{display:none}
 }
+
+
+/* === Premium v2 Styling === */
+.trip-panel{overflow:hidden; position:relative}
+.trip-panel::before{
+  content:""; position:absolute; left:0; right:0; top:0; height:4px; z-index:2;
+  background:var(--accent-band, linear-gradient(90deg, #7aa6ff, #9cc2ff));
+}
+.trip-head{
+  display:grid; grid-template-columns:auto 1fr auto; align-items:center;
+  gap:14px; padding:12px 16px; background:var(--bar);
+  border-bottom:1px solid var(--rule); position:sticky; top:0; z-index:1;
+}
+.trip-line{display:flex;align-items:center}
+.line-pill{
+  display:inline-flex; align-items:center; justify-content:center; padding:6px 12px;
+  border-radius:999px; border:1px solid var(--rule); background:var(--panel); font-weight:700;
+}
+.trip-center{min-width:0}
+.trip-dest{font-weight:800; font-size:1.18rem; letter-spacing:.2px; line-height:1.15}
+.trip-meta-row{opacity:.85; font-size:.95rem; margin-top:2px}
+.trip-body{display:flex; flex-direction:column; gap:12px}
+
+/* Accent palette per product */
+.trip-panel.prod-fern{ --accent-band: linear-gradient(90deg, #d50000, #ff6b6b); }
+.trip-panel.prod-regional{ --accent-band: linear-gradient(90deg, #0ea5e9, #38bdf8); }
+.trip-panel.prod-sbahn{ --accent-band: linear-gradient(90deg, #10b981, #34d399); }
+.trip-panel.prod-ubahn{ --accent-band: linear-gradient(90deg, #6366f1, #a78bfa); }
+.trip-panel.prod-tram{ --accent-band: linear-gradient(90deg, #f97316, #fb923c); }
+.trip-panel.prod-bus{ --accent-band: linear-gradient(90deg, #f59e0b, #fbbf24); }
+.trip-panel.prod-other{ --accent-band: linear-gradient(90deg, #7aa6ff, #9cc2ff); }
+
+/* RIS block */
+.trip-ris{border:1px solid var(--rule); background:var(--panel-2); border-radius:var(--radius); padding:12px; margin-top:4px}
+.trip-section-title{font-weight:700; margin:0 0 10px; opacity:.95}
+.ris-list{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:8px}
+.ris-item{display:flex; gap:10px; align-items:flex-start}
+.ris-item i{margin-top:3px}
+.ris-desc{opacity:.95;}
+
+/* Feature chips */
+.feature-chips{display:flex; flex-wrap:wrap; gap:8px; margin:4px 0 2px}
+.feature-chips .chip{background:var(--panel-2); border:1px solid var(--rule)}
+
+/* Table/Stopovers (fixed clipping) */
+.trip-stops{border:1px solid var(--rule); background:var(--panel-2); border-radius:var(--radius);}
+.trip-stops .table{max-height:56vh; overflow:auto; padding:8px 12px 12px}
+.trip-stops .thead{position:sticky; top:0; display:grid; grid-template-columns:24px 140px 1fr 100px; gap:8px 12px; background:var(--panel-2); padding:8px 0; border-bottom:1px solid var(--rule); z-index:1}
+.trip-stops .tbody{display:block}
+.trip-stops .row{display:grid; grid-template-columns:24px 140px 1fr 100px; gap:8px 12px; align-items:start; padding:8px 0; position:relative}
+.trip-stops .rail{position:relative}
+.trip-stops .rail::before{content:""; position:absolute; left:11px; top:0; bottom:0; width:2px; background:var(--rule);}
+.trip-stops .dot{display:block; width:10px; height:10px; border-radius:999px; background:var(--muted); position:relative; top:3px; left:6px}
+.trip-stops .time{font-variant-numeric:tabular-nums}
+.trip-stops .late .actual,.trip-stops .late{color:var(--bad)}
+.trip-stops .early .actual,.trip-stops .early{color:var(--ok)}
+.trip-stops .planned{opacity:.7;font-size:.95em}
+.trip-stops .plat{text-align:right}
+
+@media (max-width:560px){
+  .trip-stops .thead,
+  .trip-stops .row{grid-template-columns:24px 100px 1fr}
+  .trip-stops .thead .plat-h, .trip-stops .plat{display:none}
+}
