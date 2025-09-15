@@ -254,10 +254,27 @@ async function fetchJSON(url){
   lastUpdated=Date.now(); setFooter((activeTab==='abfahrten'||activeTab==='homebound')?REFRESH_DEPS_MS:REFRESH_ROUTE_MS);
   return r.json();
 }
-async function findStopId(q,rx){
-  const data=await fetchJSON(`${API}/locations?query=${encodeURIComponent(q)}&results=10&stops=true`);
-  if(rx){const hit=data.find(x=>(x.type==='stop'||x.type==='station') && rx.test((x.name||'')+' '+(x.address?.city||''))); if(hit) return hit.id}
-  const first=data.find(x=>x.type==='stop'||x.type==='station'); return first?.id||null;
+async function findStopId(q, rx){
+  const url = `${API}/locations?query=${encodeURIComponent(q)}&results=20&stops=true&poi=false&addresses=false&language=de`;
+  const data = await fetchJSON(url);
+  // 1) Filter by type + regex if provided
+  let cand = data.filter(x => (x.type === 'stop' || x.type === 'station'));
+  if (rx) {
+    cand = cand.filter(x => rx.test(((x.name||'') + ' ' + (x.address?.city||'')).trim()));
+  }
+  // 2) Prefer bus-capable stops, then names hinting at bus/ZOB, then by name length (more specific first)
+  cand.sort((a, b) => {
+    const ab = (a.products && a.products.bus) ? 1 : 0;
+    const bb = (b.products && b.products.bus) ? 1 : 0;
+    if (bb !== ab) return bb - ab;
+    const ah = /\b(bus|zob|busbahnhof)\b/i.test(a.name||'') ? 1 : 0;
+    const bh = /\b(bus|zob|busbahnhof)\b/i.test(b.name||'') ? 1 : 0;
+    if (bh !== ah) return bh - ah;
+    return (a.name||'').length - (b.name||'').length;
+  });
+  if (cand[0]) return cand[0].id;
+  const first = data.find(x => x.type === 'stop' || x.type === 'station');
+  return first?.id || null;
 }
 
 /* ========= Linienfarben / Icons ========= */
@@ -556,18 +573,13 @@ async function loadHomebound(){
     }
 
     // ---- Linie 17 ab Gießen Bahnhof: ALLE Ziele ----
-    for(const d of normalize(depsBhf)){
-      const lineName = String(d.line?.name || '');
-      const product  = String(d.line?.product || d.line?.mode || '').toLowerCase();
-      const isBus    = product.includes('bus');
-      const isBusish = isBus || /\bbus\b/i.test(lineName);
-      const digits = (lineName.match(/\d+/) || [])[0];
-      if(isBusish && Number(digits) === 17){
-        pushRow(d, 'Gießen Bahnhof');
-      }
-    }
-
-    // ---- Linie 1 ab Friedrichstraße → Rödgen / Sophie-Scholl-Schule (mind. einer der Begriffe) ----
+for (const d of normalize(depsBhf)) {
+  const lineName = String(d.line?.name || '');
+  const digits = (lineName.match(/\d+/) || [])[0];
+  if (Number(digits) === 17) {
+    pushRow(d, 'Gießen Bahnhof');
+  }
+}// ---- Linie 1 ab Friedrichstraße → Rödgen / Sophie-Scholl-Schule (mind. einer der Begriffe) ----
     for(const d of normalize(depsFriedr)){
       const lineName = String(d.line?.name || '');
       const dirText  = String(d.direction || d.destination || '');
@@ -1037,5 +1049,56 @@ window.addEventListener('scroll', ()=>{
 })();
 </script>
 
+<div id="debugPanel" style="position:fixed;right:12px;bottom:12px;max-width:520px;max-height:60vh;overflow:auto;background:var(--panel-bg,rgba(0,0,0,.75));color:#fff;border-radius:12px;padding:12px 14px;font:12px/1.4 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace; box-shadow: 0 10px 30px rgba(0,0,0,.35); z-index: 9999; display:none"></div>
+<script>
+(function(){
+  const qs = new URLSearchParams(location.search);
+  const debugEnabled = qs.get('debug') === '1';
+  const panel = document.getElementById('debugPanel');
+  function showDbg(){ panel.style.display = 'block'; }
+  function hideDbg(){ panel.style.display = 'none'; }
+  function logDbg(obj){
+    if (!panel) return;
+    const pre = document.createElement('pre');
+    try { pre.textContent = typeof obj === 'string' ? obj : JSON.stringify(obj, null, 2); }
+    catch(e){ pre.textContent = String(obj); }
+    panel.appendChild(pre);
+  }
+  window.__dbg = { show: showDbg, hide: hideDbg, log: logDbg };
+
+  // Hook into loadHomebound to print ids + first departures
+  const _loadHomebound = window.loadHomebound;
+  window.loadHomebound = async function(){
+    try{
+      await ensureIds();
+      if (debugEnabled) {
+        __dbg.show();
+        __dbg.log({ids});
+      }
+      const [depsBhf,depsFriedr] = await Promise.all([
+        fetchJSON(`${API}/stops/${ids.giessenBhf}/departures?duration=120&language=de`),
+        fetchJSON(`${API}/stops/${ids.friedr}/departures?duration=120&language=de`)
+      ]);
+      if (debugEnabled) {
+        __dbg.log({ giessenBhf: ids.giessenBhf, friedrichstr: ids.friedr });
+        __dbg.log({ depsBhf_preview: (Array.isArray(depsBhf?.departures)?depsBhf.departures:depsBhf).slice(0,10).map(d=>({line:d.line?.name, product:d.line?.product||d.line?.mode, dir:d.direction||d.destination, when:d.when||d.plannedWhen})) });
+        __dbg.log({ depsFriedr_preview: (Array.isArray(depsFriedr?.departures)?depsFriedr.departures:depsFriedr).slice(0,5).map(d=>({line:d.line?.name, dir:d.direction||d.destination, when:d.when||d.plannedWhen})) });
+      }
+    }catch(e){
+      if (debugEnabled) { __dbg.show(); __dbg.log({ error: e?.message||String(e) }); }
+    }
+    // finally call the original
+    return _loadHomebound.apply(this, arguments);
+  };
+
+  // Keyboard toggle "d"
+  window.addEventListener('keydown', (ev)=>{
+    if (ev.key.toLowerCase() === 'd' && (ev.ctrlKey || ev.metaKey) && ev.shiftKey) {
+      panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+    }
+  });
+  if (debugEnabled) showDbg();
+})();
+</script>
 </body>
 </html>
