@@ -529,39 +529,75 @@ async function loadHomebound(){
   try{
     await ensureIds();
     showTableSkeleton('rows-home', 6);
+
     const [depsBhf,depsFriedr]=await Promise.all([
       fetchJSON(`${API}/stops/${ids.giessenBhf}/departures?duration=120&language=de`),
       fetchJSON(`${API}/stops/${ids.friedr}/departures?duration=120&language=de`)
     ]);
-    function pick(rows, srcLabel, rxLine){
-      for(const d of normalizeDepartures(rows)){
-        const lineName=d.line?.name||'';
-        const dir=(d.direction||d.destination||'').toLowerCase();
-        if(!rxLine.test(lineName)) continue;
-        if(!/sophie.*scholl.*schule/.test(dir)) continue;
-        out.push({
-          originLabel:srcLabel,
-          line:{name:lineName, product:d.line?.product, mode:d.line?.mode},
-          when:d.when||d.prognosedWhen||d.plannedWhen,
-          plannedWhen:d.plannedWhen||d.when,
-          prognosedWhen:d.prognosedWhen||d.when,
-          platform:d.platform||d.prognosedPlatform||d.plannedPlatform||'–'
-        });
+
+    // Robust regex helpers (covers umlauts/variants and abbreviations)
+    const RX_COLEMAN = /coleman[\s-]*(?:stra(?:ß|ss)e|str\.?)/i;          // "Colemanstraße", "Coleman Str.", "Coleman Straße"
+    const RX_SSCHULE = /sophie[\s-]*scholl[\s-]*schule/i;                  // "Sophie-Scholl-Schule"
+    const RX_ROEDGEN = /r(?:ö|oe)dgen/i;                                   // "Rödgen" / "Roedgen"
+
+    function normalize(rows){ return normalizeDepartures(rows); }
+
+    // Collect desired departures only:
+    // 1) Linie 1 — ab "Friedrichstraße, Gießen" → Richtung "Rödgen und Sophie‑Scholl‑Schule"
+    //    (accept strings that contain BOTH tokens in any order, with a lenient fallback if only one appears)
+    // 2) Linie 17 — ab "Gießen Bahnhof" → Richtung "Coleman Straße"
+    const out = [];
+
+    // Helper to push a row into out[]
+    function pushRow(d, srcLabel){
+      const lineName = d.line?.name || d.line?.id || '';
+      out.push({
+        originLabel: srcLabel,
+        line: { name: lineName, product: d.line?.product, mode: d.line?.mode },
+        when: d.when || d.prognosedWhen || d.plannedWhen,
+        plannedWhen: d.plannedWhen || d.when,
+        prognosedWhen: d.prognosedWhen || d.when,
+        platform: d.platform || d.prognosedPlatform || d.plannedPlatform || '–'
+      });
+    }
+
+    // Linie 17 ab Gießen Bahnhof → Coleman Straße
+    for(const d of normalize(depsBhf)){
+      const lineName = String(d.line?.name || '');
+      const dirText  = String(d.direction || d.destination || '');
+      if(/\b(?:17|Bus\s*17)\b/i.test(lineName) && RX_COLEMAN.test(dirText)){
+        pushRow(d, 'Gießen Bahnhof');
       }
     }
-    const out=[];
-    pick(depsBhf, 'Gießen Bahnhof', /\b(17|Bus\s*17)\b/i);
-    pick(depsFriedr,'Friedrichstraße, Gießen', /\b(1|Bus\s*1)\b/i);
 
+    // Linie 1 ab Friedrichstraße → Rödgen und Sophie‑Scholl‑Schule
+    for(const d of normalize(depsFriedr)){
+      const lineName = String(d.line?.name || '');
+      const dirText  = String(d.direction || d.destination || '');
+      if(/\b(?:1|Bus\s*1)\b/i.test(lineName)){
+        const hasRoedgen = RX_ROEDGEN.test(dirText);
+        const hasSchule  = RX_SSCHULE.test(dirText);
+        // Prefer BOTH tokens present (matches e.g. "Rödgen + Sophie-Scholl-Schule"),
+        // but if the data sometimes omits one token, accept the one we have.
+        if((hasRoedgen && hasSchule) || hasRoedgen || hasSchule){
+          pushRow(d, 'Friedrichstraße, Gießen');
+        }
+      }
+    }
+
+    // Sort chronologically & de-duplicate
     out.sort((a,b)=>new Date(a.when||a.plannedWhen)-new Date(b.when||b.plannedWhen));
     const unique=[], seen=new Set();
     for(const r of out){
       const k=(r.originLabel||'')+'|'+(r.line?.name||'')+'|'+(r.when||r.plannedWhen);
       if(!seen.has(k)){ seen.add(k); unique.push(r); }
     }
-    renderDeparturesInto('rows-home', unique.slice(0,30), 'home');
+
+    // Render or hint
     if(unique.length===0){
       document.getElementById('rows-home').innerHTML=`<div class="hint">Keine passenden Abfahrten in den nächsten 120 Minuten.</div>`;
+    }else{
+      renderDeparturesInto('rows-home', unique.slice(0, 30), 'home');
     }
   }catch(e){
     document.getElementById('rows-home').innerHTML=`<div class="hint" style="color:var(--bad)">${e.message}</div>`;
