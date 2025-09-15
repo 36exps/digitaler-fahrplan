@@ -254,27 +254,10 @@ async function fetchJSON(url){
   lastUpdated=Date.now(); setFooter((activeTab==='abfahrten'||activeTab==='homebound')?REFRESH_DEPS_MS:REFRESH_ROUTE_MS);
   return r.json();
 }
-async function findStopId(q, rx){
-  const url = `${API}/locations?query=${encodeURIComponent(q)}&results=20&stops=true&poi=false&addresses=false&language=de`;
-  const data = await fetchJSON(url);
-  // 1) Filter by type + regex if provided
-  let cand = data.filter(x => (x.type === 'stop' || x.type === 'station'));
-  if (rx) {
-    cand = cand.filter(x => rx.test(((x.name||'') + ' ' + (x.address?.city||'')).trim()));
-  }
-  // 2) Prefer bus-capable stops, then names hinting at bus/ZOB, then by name length (more specific first)
-  cand.sort((a, b) => {
-    const ab = (a.products && a.products.bus) ? 1 : 0;
-    const bb = (b.products && b.products.bus) ? 1 : 0;
-    if (bb !== ab) return bb - ab;
-    const ah = /\b(bus|zob|busbahnhof)\b/i.test(a.name||'') ? 1 : 0;
-    const bh = /\b(bus|zob|busbahnhof)\b/i.test(b.name||'') ? 1 : 0;
-    if (bh !== ah) return bh - ah;
-    return (a.name||'').length - (b.name||'').length;
-  });
-  if (cand[0]) return cand[0].id;
-  const first = data.find(x => x.type === 'stop' || x.type === 'station');
-  return first?.id || null;
+async function findStopId(q,rx){
+  const data=await fetchJSON(`${API}/locations?query=${encodeURIComponent(q)}&results=10&stops=true`);
+  if(rx){const hit=data.find(x=>(x.type==='stop'||x.type==='station') && rx.test((x.name||'')+' '+(x.address?.city||''))); if(hit) return hit.id}
+  const first=data.find(x=>x.type==='stop'||x.type==='station'); return first?.id||null;
 }
 
 /* ========= Linienfarben / Icons ========= */
@@ -536,7 +519,7 @@ async function loadInbound(){
   try{
     await ensureIds();
     showTableSkeleton('rows', 6);
-    const deps=normalizeDepartures(await fetchJSON(`${API}/stops/${ids.school}/departures?duration=120&language=de`));
+    const deps=normalizeDepartures(await fetchJSON(`${API}/stops/${ids.school}/departures?duration=${window.__dbgDur||120}&language=de`));
     const filtered=deps.filter(d=>!EXCLUDE_DIRECTIONS.some(rx=>rx.test(String(d.direction||d.destination||''))));
     renderDeparturesInto('rows', filtered, 'in');
   }catch(e){ document.getElementById('rows').innerHTML=`<div class="hint" style="color:var(--bad)">${e.message}</div>`; }
@@ -548,8 +531,8 @@ async function loadHomebound(){
     showTableSkeleton('rows-home', 6);
 
     const [depsBhf,depsFriedr]=await Promise.all([
-      fetchJSON(`${API}/stops/${ids.giessenBhf}/departures?duration=120&language=de`),
-      fetchJSON(`${API}/stops/${ids.friedr}/departures?duration=120&language=de`)
+      fetchJSON(`${API}/stops/${ids.giessenBhf}/departures?duration=${window.__dbgDur||120}&language=de`),
+      fetchJSON(`${API}/stops/${ids.friedr}/departures?duration=${window.__dbgDur||120}&language=de`)
     ]);
 
     // Robust regex helpers
@@ -579,7 +562,8 @@ for (const d of normalize(depsBhf)) {
   if (Number(digits) === 17) {
     pushRow(d, 'Gießen Bahnhof');
   }
-}// ---- Linie 1 ab Friedrichstraße → Rödgen / Sophie-Scholl-Schule (mind. einer der Begriffe) ----
+}
+// ---- Linie 1 ab Friedrichstraße → Rödgen / Sophie-Scholl-Schule (mind. einer der Begriffe) ----
     for(const d of normalize(depsFriedr)){
       const lineName = String(d.line?.name || '');
       const dirText  = String(d.direction || d.destination || '');
@@ -1049,56 +1033,144 @@ window.addEventListener('scroll', ()=>{
 })();
 </script>
 
-<div id="debugPanel" style="position:fixed;right:12px;bottom:12px;max-width:520px;max-height:60vh;overflow:auto;background:var(--panel-bg,rgba(0,0,0,.75));color:#fff;border-radius:12px;padding:12px 14px;font:12px/1.4 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace; box-shadow: 0 10px 30px rgba(0,0,0,.35); z-index: 9999; display:none"></div>
+
+<!-- Debug Overlay -->
+<div id="df-debug-toggle" title="Debug"
+     style="position:fixed;right:12px;bottom:12px;width:42px;height:42px;border-radius:50%;
+            display:none;align-items:center;justify-content:center;z-index:9999;
+            background:rgba(0,0,0,.6);color:#fff;font-weight:700;backdrop-filter:blur(8px);
+            box-shadow:0 6px 20px rgba(0,0,0,.25);cursor:pointer;user-select:none;">🐞</div>
+
+<div id="df-debug-panel"
+     style="position:fixed;right:12px;bottom:64px;max-width:640px;max-height:65vh;overflow:auto;
+            background:var(--panel-bg,rgba(0,0,0,.80));color:#fff;border-radius:14px;
+            padding:12px 14px;font:12px/1.45 ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,'Liberation Mono','Courier New',monospace;
+            box-shadow:0 10px 30px rgba(0,0,0,.35);z-index:9999;display:none;">
+  <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;">
+    <strong style="font:600 12px ui-sans-serif,system-ui,Segoe UI,Roboto;">Digitaler Fahrplan · Debug</strong>
+    <span id="df-debug-status" style="opacity:.8;">…</span>
+    <div style="margin-left:auto;display:flex;gap:6px;align-items:center;">
+      <label style="display:flex;gap:6px;align-items:center;">
+        Dauer (min):
+        <input id="df-dur" type="number" min="30" max="360" step="5" value="180"
+               style="width:72px;border-radius:8px;border:1px solid rgba(255,255,255,.25);
+                      background:transparent;color:#fff;padding:4px 6px;">
+      </label>
+      <button id="df-apply" style="padding:6px 10px;border-radius:10px;border:1px solid rgba(255,255,255,.25);
+                      background:rgba(255,255,255,.08);color:#fff;cursor:pointer;">Apply</button>
+      <button id="df-reload" style="padding:6px 10px;border-radius:10px;border:1px solid rgba(255,255,255,.25);
+                      background:rgba(255,255,255,.08);color:#fff;cursor:pointer;">Reload</button>
+      <button id="df-close" style="padding:6px 10px;border-radius:10px;border:1px solid rgba(255,255,255,.25);
+                      background:rgba(255,255,255,.08);color:#fff;cursor:pointer;">×</button>
+    </div>
+  </div>
+  <div id="df-debug-body"></div>
+</div>
+
 <script>
 (function(){
   const qs = new URLSearchParams(location.search);
-  const debugEnabled = qs.get('debug') === '1';
-  const panel = document.getElementById('debugPanel');
-  function showDbg(){ panel.style.display = 'block'; }
-  function hideDbg(){ panel.style.display = 'none'; }
-  function logDbg(obj){
-    if (!panel) return;
-    const pre = document.createElement('pre');
-    try { pre.textContent = typeof obj === 'string' ? obj : JSON.stringify(obj, null, 2); }
-    catch(e){ pre.textContent = String(obj); }
-    panel.appendChild(pre);
-  }
-  window.__dbg = { show: showDbg, hide: hideDbg, log: logDbg };
+  const debugParam = qs.get('debug');
+  const durParam = parseInt(qs.get('dur'), 10);
+  // State: duration override + persistence
+  window.__dbgDur = (Number.isFinite(durParam) && durParam>0) ? durParam :
+                    Number(localStorage.getItem('df_debug_dur')||'') || 180;
 
-  // Hook into loadHomebound to print ids + first departures
+  const $ = (sel)=>document.querySelector(sel);
+  const panel = $('#df-debug-panel');
+  const toggleBtn = $('#df-debug-toggle');
+  const body = $('#df-debug-body');
+  const status = $('#df-debug-status');
+  const durInput = $('#df-dur');
+  const openDebug = ()=>{ panel.style.display='block'; toggleBtn.style.display='flex'; localStorage.setItem('df_debug','1'); };
+  const closeDebug = ()=>{ panel.style.display='none'; localStorage.setItem('df_debug','1'); toggleBtn.style.display='flex'; };
+  const toggleDebug = ()=>{ panel.style.display = (panel.style.display==='none'||!panel.style.display)?'block':'none'; if(panel.style.display==='block') localStorage.setItem('df_debug','1'); };
+  const isDebugWanted = debugParam==='1' || localStorage.getItem('df_debug')==='1';
+
+  durInput.value = String(window.__dbgDur||180);
+  document.getElementById('df-apply').addEventListener('click', ()=>{
+    const v = parseInt(durInput.value, 10);
+    if (Number.isFinite(v) && v>0) {
+      window.__dbgDur = v;
+      localStorage.setItem('df_debug_dur', String(v));
+      status.textContent = 'Dauer gesetzt auf '+v+' min';
+    }
+  });
+  document.getElementById('df-reload').addEventListener('click', ()=>location.reload());
+  document.getElementById('df-close').addEventListener('click', closeDebug);
+  toggleBtn.addEventListener('click', toggleDebug);
+
+  // New keybinding: F2 toggles. Alternative: Shift + D (double tap)
+  window.addEventListener('keydown', (ev)=>{
+    if (ev.key === 'F2') { toggleDebug(); ev.preventDefault(); }
+  });
+  let lastD = 0;
+  window.addEventListener('keydown', (ev)=>{
+    if (ev.key.toLowerCase() === 'd' && ev.shiftKey) {
+      const now = Date.now();
+      if (now - lastD < 350) { toggleDebug(); }
+      lastD = now;
+    }
+  });
+
+  // Always show small bug toggle if debug mode is on
+  if (isDebugWanted) { openDebug(); } else { toggleBtn.style.display='flex'; }
+
+  // Logger
+  function log(title, obj){
+    const wrap = document.createElement('div');
+    wrap.style.marginBottom = '10px';
+    const h = document.createElement('div');
+    h.textContent = title;
+    h.style.fontWeight = '600';
+    h.style.marginBottom = '4px';
+    wrap.appendChild(h);
+    const pre = document.createElement('pre');
+    pre.style.whiteSpace='pre-wrap';
+    pre.style.margin='0';
+    try { pre.textContent = typeof obj === 'string' ? obj : JSON.stringify(obj,null,2); }
+    catch(e){ pre.textContent = String(obj); }
+    wrap.appendChild(pre);
+    body.appendChild(wrap);
+  }
+  window.__dbgLog = log;
+  window.__dbgPanelOpen = openDebug;
+
+  // Augment loadHomebound: preview + metrics
   const _loadHomebound = window.loadHomebound;
   window.loadHomebound = async function(){
     try{
       await ensureIds();
-      if (debugEnabled) {
-        __dbg.show();
-        __dbg.log({ids});
+      const idsCopy = JSON.parse(JSON.stringify(window.ids||{}));
+      status.textContent = 'IDs geladen';
+      if (isDebugWanted) {
+        __dbgPanelOpen();
+        log('IDs', idsCopy);
       }
-      const [depsBhf,depsFriedr] = await Promise.all([
-        fetchJSON(`${API}/stops/${ids.giessenBhf}/departures?duration=120&language=de`),
-        fetchJSON(`${API}/stops/${ids.friedr}/departures?duration=120&language=de`)
-      ]);
-      if (debugEnabled) {
-        __dbg.log({ giessenBhf: ids.giessenBhf, friedrichstr: ids.friedr });
-        __dbg.log({ depsBhf_preview: (Array.isArray(depsBhf?.departures)?depsBhf.departures:depsBhf).slice(0,10).map(d=>({line:d.line?.name, product:d.line?.product||d.line?.mode, dir:d.direction||d.destination, when:d.when||d.plannedWhen})) });
-        __dbg.log({ depsFriedr_preview: (Array.isArray(depsFriedr?.departures)?depsFriedr.departures:depsFriedr).slice(0,5).map(d=>({line:d.line?.name, dir:d.direction||d.destination, when:d.when||d.plannedWhen})) });
+      // preview fetch using duration override
+      const urlBhf = `${API}/stops/${ids.giessenBhf}/departures?duration=${window.__dbgDur||120}&language=de`;
+      const urlF = `${API}/stops/${ids.friedr}/departures?duration=${window.__dbgDur||120}&language=de`;
+      const [depsBhf,depsFriedr] = await Promise.all([ fetchJSON(urlBhf), fetchJSON(urlF) ]);
+      const depList = Array.isArray(depsBhf?.departures)?depsBhf.departures:depsBhf;
+      const allCount = Array.isArray(depList)?depList.length:0;
+      const matched = (depList||[]).filter(d => {
+        const digits = (String(d.line?.name||'').match(/\d+/)||[])[0];
+        return Number(digits)===17;
+      });
+      const matchCount = matched.length;
+      if (isDebugWanted) {
+        log('Homebound Preview (erste 15)', (depList||[]).slice(0,15).map(d=>({line:d.line?.name, product:d.line?.product||d.line?.mode, dir:d.direction||d.destination, when:d.when||d.plannedWhen})));
+        log('Metrics', {duration: window.__dbgDur||120, totalFromBhf: allCount, matched17: matchCount});
+        log('Matched Linie 17 (bis 10)', matched.slice(0,10).map(d=>({line:d.line?.name, dir:d.direction||d.destination, when:d.when||d.plannedWhen})));
       }
     }catch(e){
-      if (debugEnabled) { __dbg.show(); __dbg.log({ error: e?.message||String(e) }); }
+      status.textContent = 'Fehler: '+(e?.message||String(e));
+      if (isDebugWanted) log('Error', {message:e?.message, stack:e?.stack});
     }
-    // finally call the original
     return _loadHomebound.apply(this, arguments);
   };
-
-  // Keyboard toggle "d"
-  window.addEventListener('keydown', (ev)=>{
-    if (ev.key.toLowerCase() === 'd' && (ev.ctrlKey || ev.metaKey) && ev.shiftKey) {
-      panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
-    }
-  });
-  if (debugEnabled) showDbg();
 })();
 </script>
+
 </body>
 </html>
