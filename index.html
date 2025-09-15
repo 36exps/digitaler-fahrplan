@@ -560,7 +560,9 @@ async function loadHomebound(){
       const lineName = String(d.line?.name || '');
       const product  = String(d.line?.product || d.line?.mode || '').toLowerCase();
       const isBus    = product.includes('bus');
-      if((/\bBus\s*17\b/i.test(lineName)) || (isBus && /\b17\b/.test(lineName))){
+      const isBusish = isBus || /\bbus\b/i.test(lineName);
+      const digits = (lineName.match(/\d+/) || [])[0];
+      if(isBusish && Number(digits) === 17){
         pushRow(d, 'Gießen Bahnhof');
       }
     }
