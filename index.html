@@ -985,7 +985,7 @@ window.addEventListener('scroll', ()=>{
       }
     }catch(_){}
 
-    // Open quickly, then render
+    openModal(); // Open quickly, then render
 
     const fullTrip = await tryFetchFullTrip(leg);
     renderTrip(j, leg, fullTrip);
@@ -994,7 +994,13 @@ window.addEventListener('scroll', ()=>{
   // focusable chips
   const cardsRoot = document.getElementById('cards');
   if(cardsRoot){
-    const mark = ()=>{ cardsRoot.querySelectorAll('.line-chip').forEach(el=>{ el.tabIndex=0; el.setAttribute('role','button'); el.classList.add('clickable'); }); };
+    const mark = ()=>{
+      cardsRoot.querySelectorAll('.line-chip').forEach(el=>{
+        el.setAttribute('role','button');
+        if(!el.hasAttribute('tabindex')) el.setAttribute('tabindex','0');
+        el.classList.add('clickable');
+      });
+    };
     mark();
     new MutationObserver(mark).observe(cardsRoot, {childList:true, subtree:true});
   }

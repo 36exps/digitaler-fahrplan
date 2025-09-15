@@ -676,3 +676,7 @@ html, body{
   .trip-stops .row{grid-template-columns:24px 120px 1fr}
   .trip-stops .thead .plat-h, .trip-stops .plat{display:none}
 }
+
+.modal-panel{max-height:90vh; overflow:auto}
+
+.modal-panel{-webkit-overflow-scrolling:touch}
