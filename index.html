@@ -1076,7 +1076,6 @@ window.addEventListener('scroll', ()=>{
   function openModal(){
     if(!modal) return;
     modal.hidden = false;
-    // focus trap start
     btnClose.focus();
     document.addEventListener('keydown', onKey);
   }
@@ -1087,41 +1086,93 @@ window.addEventListener('scroll', ()=>{
   }
   function onKey(e){ if(e.key === 'Escape') closeModal(); }
 
-  // Delegation: open when clicking any .line-chip inside a journey card
+  // Guard: ignore clicks inside the modal itself
   document.addEventListener('click', (e)=>{
-    const btn = e.target.closest('.line-chip');
-    if(!btn) return;
-    const card = btn.closest('.card');
+    if(modal && !modal.hidden && modal.contains(e.target)) return;
+    const targetChip = e.target.closest('.line-chip');
+    if(!targetChip) return;
+
+    // Scope strictly to the card that owns this chip
+    const card = targetChip.closest('.card');
     if(!card) return;
 
-    // Extract basic details from the card
-    const times = card.querySelectorAll('.time');
-    const dep = times[0]?.textContent?.trim() || '—';
-    const arr = times[1]?.textContent?.trim() || '—';
-    const timelineEl = card.querySelector('.timeline');
-    const firstChip = card.querySelector('.line-chip');
-    const lineText = firstChip ? firstChip.textContent.trim() : '—';
-    const color = getComputedStyle(firstChip).getPropertyValue('--line-color') || '#455A64';
-
+    // Derive line text & color only from the clicked chip
+    const lineText = (targetChip.textContent || '').trim() || '—';
+    const color = getComputedStyle(targetChip).getPropertyValue('--line-color') || '#455A64';
     chip.style.setProperty('--line-color', color);
-    chip.textContent = lineText;
-    chip.insertAdjacentHTML('afterbegin', '<i class="fa-solid fa-train"></i> ');
-    head.style.background = 'var(--bar)'; // header keeps standard bar bg; chip color is the token source
-    title.textContent = `Fahrtdetails • ${dep} → ${arr}`;
-    tl.innerHTML = timelineEl ? timelineEl.innerHTML : '';
+    chip.innerHTML = '<i class="fa-solid fa-train"></i> ' + lineText;
 
-    // Meta details: clone chips row
+    // Build a DB-Navigator-like timeline from the card's .timeline rows
+    const rows = Array.from(card.querySelectorAll('.timeline .row'));
+    // Try to capture departure/arrival shown in card, if present
+    const times = Array.from(card.querySelectorAll('.time')).map(el=> (el.textContent||'').trim());
+    const dep = times[0] || '—';
+    const arr = times[1] || '—';
+    title.textContent = `Fahrtdetails • ${dep} → ${arr}`;
+
+    // Compose meta: show ONLY the clicked chip (no flood of all lines)
     meta.innerHTML = '';
-    const chips = card.querySelectorAll('.row:nth-of-type(2) .line-chip, .row:nth-of-type(2) .chip');
-    chips.forEach(c=> meta.appendChild(c.cloneNode(true)) );
+    meta.appendChild(targetChip.cloneNode(true));
+
+    // Render timeline
+    tl.innerHTML = '';
+    const now = Date.now();
+
+    rows.forEach((r, idx)=>{
+      const t = (r.querySelector('.time')?.textContent||'').trim();
+      const name = (r.querySelector('.stop')?.textContent||'').trim() || (r.textContent||'').trim();
+      const delay = (r.querySelector('.delay')?.textContent||'').trim() || '';
+      const platform = (r.querySelector('.platform')?.textContent||'').trim() || '';
+      // Build node
+      const node = document.createElement('div');
+      node.className = 'row';
+      node.innerHTML = `
+        <div class="time">${t}</div>
+        <div class="bar">
+          <div class="dot"></div>
+        </div>
+        <div class="stop">
+          <div>${name}</div>
+          <div class="meta">${platform}${delay ? (platform ? ' • ' : '') + delay : ''}</div>
+        </div>
+      `;
+      tl.appendChild(node);
+    });
+
+    // Colorize dots/bar with clicked line color
+    tl.style.setProperty('--line-color', color);
+
+    // Compute simple progress marker between rows based on current time strings if parseable
+    // Try HH:MM parsing
+    const timesParsed = Array.from(tl.querySelectorAll('.row .time')).map(el=>{
+      const m = (el.textContent||'').trim().match(/^(\d{1,2}):(\d{2})$/);
+      if(!m) return NaN;
+      const d = new Date();
+      d.setHours(parseInt(m[1],10), parseInt(m[2],10), 0, 0);
+      return d.getTime();
+    });
+
+    const firstValidIdx = timesParsed.findIndex(v => !Number.isNaN(v));
+    const lastValidIdx = timesParsed.map(v=>!Number.isNaN(v)).lastIndexOf(true);
+    if(firstValidIdx !== -1 && lastValidIdx !== -1 && lastValidIdx > firstValidIdx){
+      // Find segment containing "now"
+      let seg = firstValidIdx;
+      for(let i=firstValidIdx; i<lastValidIdx; i++){
+        const a = timesParsed[i], b = timesParsed[i+1];
+        if(Number.isNaN(a) || Number.isNaN(b)) continue;
+        if(now >= a && now <= b){ seg = i; break; }
+        if(now > b) seg = i+1;
+      }
+      // Highlight current dot
+      const dot = tl.querySelectorAll('.row .dot')[seg];
+      if(dot) dot.classList.add('is-current');
+    }
 
     openModal();
   });
 
   btnClose?.addEventListener('click', closeModal);
   backdrop?.addEventListener('click', closeModal);
-})();
-
-</script>
+})();</script>
 </body>
 </html>
