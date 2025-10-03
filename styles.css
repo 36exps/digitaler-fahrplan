@@ -680,3 +680,12 @@ html, body{
 .modal-panel{max-height:90vh; overflow:auto}
 
 .modal-panel{-webkit-overflow-scrolling:touch}
+
+/* === Audit additions === */
+/* Popup header uses same token via chip --line-color variable */
+.trip-line-chip{ cursor:default }
+.trip-head{ position:sticky; top:0; z-index:2 }
+
+/* Full-width timeline inside modal */
+#tripTimeline{ grid-column: 1 / -1; }
+
